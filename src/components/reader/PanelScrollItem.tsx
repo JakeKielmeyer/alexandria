@@ -51,7 +51,7 @@ interface PanelScrollItemProps {
 // ── Scroll mode (plain block, no 3D) ──────────────────────────────────────
 
 function ScrollPanelItem({
-  heightPx, onActivate, id, slotClassName, cardClassName, children,
+  onActivate, id, slotClassName, cardClassName, children,
 }: Omit<PanelScrollItemProps, 'mode' | 'introVariant'>): React.JSX.Element {
   const ref = useRef<HTMLDivElement>(null)
 

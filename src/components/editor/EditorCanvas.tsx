@@ -205,8 +205,6 @@ function LayerCanvas({ layer, panelWidth, panelHeight, isActive, onSelect, onUpd
 
   const style = getLayerStyle(layer)
 
-  const isCrop = resolvedFillMode(layer) === 'crop'
-
   // Focal-point drag: clicking / dragging on a crop-fill layer sets the
   // object-position anchor. The canvas frame is the reference rectangle.
   const handleFocalDrag = useCallback((e: React.MouseEvent): void => {

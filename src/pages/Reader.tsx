@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, animate, motion } from 'framer-motion'
 import { useAuthStore } from '../store/authStore'
@@ -227,8 +227,6 @@ export default function Reader(): React.JSX.Element {
   const { clearedGates, clearGate, unClearGate, resetForStory } = useGateStore()
   const videoSfxEnabled = useReaderStore((s) => s.videoSfxEnabled)
   const toggleVideoSfx = useReaderStore((s) => s.toggleVideoSfx)
-  const videoVolume = useReaderStore((s) => s.videoVolume)
-  const setVideoVolume = useReaderStore((s) => s.setVideoVolume)
   const [searchParams] = useSearchParams()
   const previewMode = searchParams.get('preview') === '1'
   const currentUser = useAuthStore((s) => s.user)
