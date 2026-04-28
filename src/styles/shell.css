@@ -1,0 +1,87 @@
+/* ── Global reset ─────────────────────────────────────────────────────
+   Kill the 8px UA body margin and set the dark app background at the
+   document root so any browser "overflow" areas (elastic scroll, snap
+   edges) stay on-brand instead of flashing white.
+*/
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  background: #0E0608;
+}
+
+html {
+  color-scheme: dark;
+}
+
+/* ── Fluid full-viewport shell (replaces the 320×690 phone mockup) ────────── */
+
+.fluid-shell {
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
+  background: #0E0608;
+  color: #F5EEE8;
+  font-family: 'DM Sans', sans-serif;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.fluid-shell--gate {
+  align-items: center;
+  justify-content: center;
+  padding: 32px clamp(20px, 6vw, 48px);
+  text-align: center;
+  overflow: hidden;
+}
+
+.fluid-shell__texture {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(45deg, #200810, #200810 2px, #2e0e1a 2px, #2e0e1a 8px);
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.fluid-shell__overlay {
+  position: absolute;
+  inset: 0;
+  background: #0E0608;
+  opacity: 0.82;
+  pointer-events: none;
+}
+
+.fluid-shell__content {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 440px;
+  margin: 0 auto;
+}
+
+/* ── Global focus ring (spec: 2px Rose Accent) ──────────────────────────── */
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible,
+[role="switch"]:focus-visible {
+  outline: 2px solid #DC5A8A;
+  outline-offset: 2px;
+}
+
+/* ── Reduced motion ─────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

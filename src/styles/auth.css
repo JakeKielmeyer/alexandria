@@ -1,0 +1,167 @@
+/* ── Auth pages — full-page responsive layout ── */
+/* Replaces GateShell constraint on SignIn and SignUp only. */
+/* Gate pages (AgeGate, ExplicitConsent, etc.) still use GateShell — do not change them. */
+
+.auth-root {
+  min-height: 100vh;
+  background: #0E0608;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  font-family: 'DM Sans', sans-serif;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 440px;
+  background: rgba(245,238,232,0.03);
+  border: 1px solid rgba(245,238,232,0.08);
+  border-radius: 16px;
+  padding: 48px 40px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.auth-heading {
+  font-family: 'DM Serif Display', serif;
+  font-size: 28px;
+  line-height: 1.2;
+  color: #F5EEE8;
+  margin-bottom: 28px;
+  align-self: flex-start;
+}
+
+.auth-fields {
+  width: 100%;
+}
+
+.auth-footer-text {
+  margin-top: 32px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  color: rgba(245,238,232,0.2);
+  letter-spacing: 0.06em;
+}
+
+/* Password field wrapper — positions the toggle button inside the input */
+.auth-password-wrapper {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+/* When password wrapper is used, the input inside gets no bottom margin */
+.auth-password-wrapper input {
+  margin-bottom: 0 !important;
+  padding-right: 44px !important;
+}
+
+.auth-password-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: rgba(245,238,232,0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.auth-password-toggle:hover {
+  color: rgba(245,238,232,0.65);
+}
+
+/* Password wrapper variant with bottom margin for field errors */
+.auth-password-wrapper--error {
+  margin-bottom: 4px;
+}
+
+/* Terms-of-service checkbox row on signup */
+.auth-tos-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 16px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: rgba(245,238,232,0.62);
+  font-family: 'DM Sans', sans-serif;
+  text-align: left;
+}
+
+.auth-tos-row input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1px solid rgba(245,238,232,0.25);
+  background: rgba(245,238,232,0.06);
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-top: 1px;
+  position: relative;
+}
+
+.auth-tos-row input[type="checkbox"]:checked {
+  background: #C93060;
+  border-color: #C93060;
+}
+
+.auth-tos-row input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 5px;
+  height: 9px;
+  border: solid #F5EEE8;
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
+}
+
+.auth-tos-row a {
+  color: #DC5A8A;
+  text-decoration: none;
+}
+
+.auth-tos-row a:hover {
+  text-decoration: underline;
+}
+
+/* Bottom links row on auth pages */
+.auth-legal-links {
+  margin-top: 24px;
+  font-size: 11px;
+  color: rgba(245,238,232,0.35);
+  letter-spacing: 0.04em;
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.auth-legal-links a {
+  color: rgba(245,238,232,0.45);
+  text-decoration: none;
+}
+
+.auth-legal-links a:hover {
+  color: #DC5A8A;
+}
+
+@media (max-width: 520px) {
+  .auth-card {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 32px 0 0;
+  }
+}

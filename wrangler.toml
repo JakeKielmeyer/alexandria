@@ -1,0 +1,28 @@
+# Alexandria — Cloudflare Pages deployment config.
+#
+# This file is consumed by `wrangler pages` CLI and by the Pages
+# dashboard when "Git integration" is enabled.
+#
+# Hosting decision: Cloudflare Pages (NOT Vercel). Vercel's content
+# policy prohibits adult illustrated content; Cloudflare Pages permits
+# it provided the project abides by Cloudflare's acceptable-use terms
+# and local law. Changing hosts requires a new policy review.
+
+name = "alexandria"
+pages_build_output_dir = "dist"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Build settings are also configured in the Pages dashboard. Keep these
+# mirrored so wrangler-driven deploys match dashboard deploys.
+#
+# Dashboard equivalents:
+#   Build command:          pnpm install --frozen-lockfile && pnpm build
+#   Build output directory: dist
+#   Root directory:         /
+#   Node version:           20 (set via NODE_VERSION env var in dashboard)
+#
+# Environment variables (set in dashboard, never committed):
+#   VITE_SUPABASE_URL
+#   VITE_SUPABASE_ANON_KEY
+#   VITE_SENTRY_DSN  (optional)

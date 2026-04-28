@@ -1,0 +1,513 @@
+.dashboard-root[data-theme="dark"] {
+  --db-bg:               #0E0608;
+  --db-nav-bg:           rgba(14,6,8,0.95);
+  --db-border:           rgba(245,238,232,0.07);
+  --db-border-card:      rgba(245,238,232,0.08);
+
+  --db-text-primary:     #F5EEE8;
+  --db-text-secondary:   rgba(245,238,232,0.88);
+  --db-text-tertiary:    rgba(245,238,232,0.55);
+  --db-text-muted:       rgba(245,238,232,0.35);
+  --db-text-faint:       rgba(245,238,232,0.22);
+
+  --db-rose-deep:        #C93060;
+  --db-rose-accent:      #DC5A8A;
+  --db-rose-soft:        #E87FAA;
+  --db-btn-rose-bg:      rgba(201,48,96,0.18);
+  --db-btn-rose-brd:     rgba(201,48,96,0.36);
+
+  --db-card-bg:          rgba(245,238,232,0.03);
+  --db-card-brd:         rgba(245,238,232,0.08);
+  --db-card-hover-brd:   rgba(245,238,232,0.16);
+  --db-card-strip-brd:   rgba(245,238,232,0.05);
+
+  --db-btn-ghost-bg:     transparent;
+  --db-btn-ghost-brd:    rgba(245,238,232,0.12);
+  --db-btn-ghost-text:   rgba(245,238,232,0.5);
+
+  --db-input-bg:         rgba(245,238,232,0.05);
+  --db-input-brd:        rgba(245,238,232,0.1);
+
+  --db-toggle-off-bg:    rgba(245,238,232,0.1);
+  --db-toggle-on-bg:     #C93060;
+
+  --db-action-edit-bg:   rgba(201,48,96,0.14);
+  --db-action-edit-brd:  rgba(201,48,96,0.28);
+  --db-action-edit-txt:  #DC5A8A;
+  --db-action-del-txt:   rgba(245,238,232,0.28);
+  --db-action-del-brd:   rgba(245,238,232,0.07);
+
+  --db-badge-live-bg:    rgba(61,170,112,0.12);
+  --db-badge-live-brd:   rgba(61,170,112,0.22);
+  --db-badge-live-txt:   #3DAA70;
+  --db-badge-draft-bg:   rgba(245,238,232,0.06);
+  --db-badge-draft-brd:  rgba(245,238,232,0.12);
+  --db-badge-draft-txt:  rgba(245,238,232,0.45);
+
+  --db-url-bg:           rgba(245,238,232,0.04);
+  --db-url-brd:          rgba(245,238,232,0.07);
+  --db-url-text:         rgba(245,238,232,0.38);
+
+  --db-confirm-bg:       rgba(201,48,96,0.1);
+  --db-confirm-brd:      rgba(201,48,96,0.25);
+  --db-confirm-txt:      #DC5A8A;
+}
+
+/* Light mode — deferred to Layer 2. Stub only. */
+.dashboard-root[data-theme="light"] {
+  /* Will be filled in during light mode implementation pass */
+  --db-bg:               #F5EEE8;
+  --db-nav-bg:           rgba(245,238,232,0.95);
+  --db-border:           rgba(14,6,8,0.08);
+  --db-border-card:      rgba(14,6,8,0.1);
+  --db-text-primary:     #0E0608;
+  --db-text-secondary:   rgba(14,6,8,0.8);
+  --db-text-tertiary:    rgba(14,6,8,0.55);
+  --db-text-muted:       rgba(14,6,8,0.4);
+  --db-text-faint:       rgba(14,6,8,0.25);
+  --db-rose-deep:        #C93060;
+  --db-rose-accent:      #C93060;
+  --db-rose-soft:        #DC5A8A;
+  --db-btn-rose-bg:      rgba(201,48,96,0.1);
+  --db-btn-rose-brd:     rgba(201,48,96,0.25);
+  --db-card-bg:          rgba(14,6,8,0.03);
+  --db-card-brd:         rgba(14,6,8,0.09);
+  --db-card-hover-brd:   rgba(14,6,8,0.18);
+  --db-card-strip-brd:   rgba(14,6,8,0.06);
+  --db-btn-ghost-bg:     transparent;
+  --db-btn-ghost-brd:    rgba(14,6,8,0.15);
+  --db-btn-ghost-text:   rgba(14,6,8,0.5);
+  --db-input-bg:         rgba(14,6,8,0.04);
+  --db-input-brd:        rgba(14,6,8,0.12);
+  --db-toggle-off-bg:    rgba(14,6,8,0.12);
+  --db-toggle-on-bg:     #C93060;
+  --db-action-edit-bg:   rgba(201,48,96,0.1);
+  --db-action-edit-brd:  rgba(201,48,96,0.22);
+  --db-action-edit-txt:  #C93060;
+  --db-action-del-txt:   rgba(14,6,8,0.3);
+  --db-action-del-brd:   rgba(14,6,8,0.1);
+  --db-badge-live-bg:    rgba(61,170,112,0.1);
+  --db-badge-live-brd:   rgba(61,170,112,0.2);
+  --db-badge-live-txt:   #2A8A56;
+  --db-badge-draft-bg:   rgba(14,6,8,0.05);
+  --db-badge-draft-brd:  rgba(14,6,8,0.1);
+  --db-badge-draft-txt:  rgba(14,6,8,0.4);
+  --db-url-bg:           rgba(14,6,8,0.04);
+  --db-url-brd:          rgba(14,6,8,0.08);
+  --db-url-text:         rgba(14,6,8,0.35);
+  --db-confirm-bg:       rgba(201,48,96,0.08);
+  --db-confirm-brd:      rgba(201,48,96,0.2);
+  --db-confirm-txt:      #C93060;
+}
+
+/* ── Layout ── */
+.dashboard-root {
+  min-height: 100vh;
+  background: var(--db-bg);
+  font-family: 'DM Sans', sans-serif;
+  color: var(--db-text-primary);
+}
+
+.dashboard-nav {
+  height: 56px;
+  background: var(--db-nav-bg);
+  border-bottom: 1px solid var(--db-border);
+  display: flex;
+  align-items: center;
+  padding: 0 32px;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.dashboard-nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.dashboard-nav-wordmark {
+  font-family: 'Cinzel', serif;
+  font-size: 14px;
+  letter-spacing: 0.1em;
+  color: var(--db-text-primary);
+}
+
+.dashboard-nav-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dashboard-nav-username {
+  font-size: 12px;
+  color: var(--db-text-muted);
+}
+
+.dashboard-nav-btn {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  color: var(--db-btn-ghost-text);
+  background: var(--db-btn-ghost-bg);
+  border: 1px solid var(--db-btn-ghost-brd);
+  border-radius: 6px;
+  padding: 6px 14px;
+  min-height: 36px;
+  cursor: pointer;
+}
+
+.dashboard-nav-btn:hover {
+  color: var(--db-text-secondary);
+  border-color: rgba(245,238,232,0.22);
+}
+
+/* ── Main content ── */
+.dashboard-main {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 48px 32px 80px;
+}
+
+.dashboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 36px;
+}
+
+.dashboard-heading {
+  font-family: 'DM Serif Display', serif;
+  font-size: 28px;
+  color: var(--db-text-primary);
+  line-height: 1.1;
+}
+
+/* ── New Story button ── */
+.dashboard-new-btn {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #F5EEE8;
+  background: var(--db-rose-deep);
+  border: none;
+  border-radius: 7px;
+  padding: 10px 20px;
+  min-height: 40px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+}
+
+.dashboard-new-btn:hover {
+  opacity: 0.88;
+}
+
+.dashboard-new-btn:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+/* ── Error banner ── */
+.dashboard-error {
+  background: rgba(201,48,96,0.08);
+  border: 1px solid rgba(201,48,96,0.22);
+  border-radius: 6px;
+  padding: 12px 16px;
+  font-size: 12px;
+  color: var(--db-rose-soft);
+  margin-bottom: 24px;
+}
+
+/* ── Story grid ── */
+.story-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+/* ── Story card ── */
+.story-card {
+  background: var(--db-card-bg);
+  border: 1px solid var(--db-card-brd);
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.15s;
+}
+
+.story-card:hover {
+  border-color: var(--db-card-hover-brd);
+}
+
+.story-card-top {
+  display: flex;
+  gap: 14px;
+  padding: 16px;
+}
+
+.story-cover {
+  width: 64px;
+  height: 88px;
+  border-radius: 5px;
+  overflow: hidden;
+  background: rgba(245,238,232,0.05);
+  flex-shrink: 0;
+  border: 1px solid var(--db-border-card);
+}
+
+.story-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.story-cover-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.18;
+}
+
+.story-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.story-meta-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.story-title-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--db-text-primary);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.story-badge {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-radius: 4px;
+  padding: 2px 7px;
+  flex-shrink: 0;
+}
+
+.story-badge-live {
+  background: var(--db-badge-live-bg);
+  border: 1px solid var(--db-badge-live-brd);
+  color: var(--db-badge-live-txt);
+}
+
+.story-badge-draft {
+  background: var(--db-badge-draft-bg);
+  border: 1px solid var(--db-badge-draft-brd);
+  color: var(--db-badge-draft-txt);
+}
+
+.story-stat-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.story-stat {
+  font-size: 11px;
+  color: var(--db-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.story-url-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--db-url-bg);
+  border: 1px solid var(--db-url-brd);
+  border-radius: 5px;
+  padding: 5px 8px;
+  margin-top: 2px;
+}
+
+.story-url-text {
+  font-family: monospace;
+  font-size: 10px;
+  color: var(--db-url-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.story-url-copy-btn {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  color: var(--db-text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.story-url-copy-btn.copied {
+  color: #3DAA70;
+}
+
+/* ── Card bottom strip ── */
+.story-card-bottom {
+  border-top: 1px solid var(--db-card-strip-brd);
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* ── Publish toggle ── */
+.publish-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.publish-toggle {
+  width: 32px;
+  height: 18px;
+  border-radius: 9px;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.18s;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.publish-toggle[aria-checked="true"] {
+  background: var(--db-toggle-on-bg);
+}
+
+.publish-toggle[aria-checked="false"] {
+  background: var(--db-toggle-off-bg);
+}
+
+.publish-toggle-thumb {
+  position: absolute;
+  top: 3px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #F5EEE8;
+  transition: left 0.18s;
+}
+
+.publish-toggle[aria-checked="true"] .publish-toggle-thumb {
+  left: 17px;
+}
+
+.publish-toggle[aria-checked="false"] .publish-toggle-thumb {
+  left: 3px;
+}
+
+.publish-toggle-label {
+  font-size: 11px;
+  color: var(--db-text-muted);
+}
+
+/* ── Card action buttons ── */
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.card-action-btn {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  border-radius: 5px;
+  padding: 4px 10px;
+  min-height: 28px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.card-action-edit {
+  background: var(--db-action-edit-bg);
+  border: 1px solid var(--db-action-edit-brd);
+  color: var(--db-action-edit-txt);
+}
+
+.card-action-delete {
+  background: transparent;
+  border: 1px solid var(--db-action-del-brd);
+  color: var(--db-action-del-txt);
+}
+
+.card-action-delete:hover {
+  color: var(--db-text-secondary);
+  border-color: rgba(245,238,232,0.15);
+}
+
+.card-action-delete.confirming {
+  background: var(--db-confirm-bg);
+  border-color: var(--db-confirm-brd);
+  color: var(--db-confirm-txt);
+}
+
+/* ── Empty state ── */
+.dashboard-empty {
+  text-align: center;
+  padding: 80px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.dashboard-empty-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 22px;
+  color: var(--db-text-secondary);
+}
+
+.dashboard-empty-sub {
+  font-size: 13px;
+  color: var(--db-text-muted);
+  max-width: 320px;
+  line-height: 1.6;
+}
+
+/* ── Loading / full-page states ── */
+.dashboard-state-full {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--db-bg);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  color: var(--db-text-muted);
+}

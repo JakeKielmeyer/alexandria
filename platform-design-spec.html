@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Alexandria — Platform Design Specification</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Cinzel:wght@400&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:#0E0608;color:#F5EEE8;
+  font-family:'DM Sans',sans-serif;
+  min-height:100vh;
+  padding:64px 48px 100px;
+  max-width:980px;margin:0 auto;
+  line-height:1.6;
+}
+
+/* ── Header ── */
+.doc-header{margin-bottom:56px;padding-bottom:32px;border-bottom:1px solid rgba(245,238,232,0.08)}
+.doc-eyebrow{font-size:10px;font-weight:500;letter-spacing:0.16em;text-transform:uppercase;color:#DC5A8A;margin-bottom:12px}
+.doc-title{font-family:'DM Serif Display',serif;font-size:40px;line-height:1.1;color:#F5EEE8;margin-bottom:8px}
+.doc-sub{font-size:13px;color:rgba(245,238,232,0.45);letter-spacing:0.04em}
+.logo-row{display:flex;align-items:flex-end;gap:8px;margin-bottom:20px}
+.logo-text{font-family:'Cinzel',serif;font-size:16px;color:#F5EEE8;letter-spacing:0.1em;line-height:1}
+
+/* ── Status strip ── */
+.status-strip{display:flex;gap:24px;flex-wrap:wrap;background:rgba(245,238,232,0.03);border:1px solid rgba(245,238,232,0.06);border-radius:8px;padding:14px 20px;margin-bottom:52px}
+.status-item{display:flex;align-items:center;gap:8px;font-size:11px;color:rgba(245,238,232,0.5)}
+.status-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.dot-green{background:#3DAA70}
+.dot-rose{background:#DC5A8A}
+.dot-amber{background:#D4A030}
+
+/* ── Section ── */
+.section{margin-bottom:52px}
+.section-num{font-size:10px;font-weight:500;letter-spacing:0.14em;text-transform:uppercase;color:#DC5A8A;margin-bottom:6px}
+.section-title{font-family:'DM Serif Display',serif;font-size:26px;color:#F5EEE8;margin-bottom:20px;line-height:1.2}
+.section-divider{width:100%;height:1px;background:rgba(245,238,232,0.07);margin-bottom:28px}
+
+/* ── Subsection ── */
+.sub{margin-bottom:28px}
+.sub-title{font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:rgba(245,238,232,0.45);margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid rgba(245,238,232,0.06)}
+
+/* ── Prose ── */
+.prose{font-size:13px;color:rgba(245,238,232,0.75);line-height:1.75;margin-bottom:14px}
+.prose strong{color:#F5EEE8;font-weight:500}
+.prose code{font-family:monospace;font-size:11px;background:rgba(245,238,232,0.07);padding:2px 6px;border-radius:3px;color:#E87FAA}
+
+/* ── Decision / info block ── */
+.decision{background:rgba(245,238,232,0.03);border:1px solid rgba(245,238,232,0.07);border-radius:8px;padding:18px 22px;margin-bottom:10px}
+.decision-label{font-size:9px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:#DC5A8A;margin-bottom:6px}
+.decision-body{font-size:13px;color:rgba(245,238,232,0.78);line-height:1.7}
+.decision-body strong{color:#F5EEE8;font-weight:500}
+.decision-body code{font-family:monospace;font-size:11px;background:rgba(245,238,232,0.07);padding:2px 5px;border-radius:3px;color:#E87FAA}
+
+/* ── Callout ── */
+.callout{background:rgba(201,48,96,0.07);border:1px solid rgba(201,48,96,0.2);border-left:3px solid #C93060;border-radius:0 6px 6px 0;padding:14px 18px;margin-bottom:14px}
+.callout-label{font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#DC5A8A;margin-bottom:5px}
+.callout-body{font-size:12px;color:rgba(245,238,232,0.7);line-height:1.65}
+
+/* ── Change note ── */
+.change-note{background:rgba(212,160,48,0.07);border:1px solid rgba(212,160,48,0.2);border-left:3px solid #D4A030;border-radius:0 6px 6px 0;padding:12px 16px;margin-bottom:12px;font-size:11px;color:rgba(245,238,232,0.6);line-height:1.6}
+.change-note strong{color:#D4A030}
+
+/* ── Spec table ── */
+.spec-table{width:100%;border-collapse:collapse;margin-bottom:14px;font-size:12px}
+.spec-table th{text-align:left;padding:8px 12px;font-size:9px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:rgba(245,238,232,0.3);border-bottom:1px solid rgba(245,238,232,0.07)}
+.spec-table td{padding:10px 12px;border-bottom:1px solid rgba(245,238,232,0.04);color:rgba(245,238,232,0.72);vertical-align:top;line-height:1.55}
+.spec-table td:first-child{color:#F5EEE8;font-weight:500}
+.spec-table tr:last-child td{border-bottom:none}
+.spec-table tr:hover td{background:rgba(245,238,232,0.02)}
+.td-mono{font-family:monospace;font-size:11px;color:#E87FAA}
+.td-done{color:#3DAA70;font-weight:600;font-size:10px;letter-spacing:0.06em;text-transform:uppercase}
+.td-complete{color:rgba(245,238,232,0.3);font-size:10px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase}
+.td-v3{color:#D4A030;font-size:10px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase}
+
+/* ── Annotation rows ── */
+.ann-block{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.ann-row{display:flex;align-items:flex-start;gap:8px}
+.ann-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.ann-dot.rose{background:#DC5A8A}
+.ann-dot.dim{background:rgba(245,238,232,0.22)}
+.ann-text{font-size:11px;color:rgba(245,238,232,0.45);line-height:1.55}
+.ann-text strong{color:rgba(245,238,232,0.7);font-weight:500}
+.ann-text code{font-family:monospace;font-size:10px;background:rgba(245,238,232,0.06);padding:1px 4px;border-radius:3px;color:#E87FAA}
+
+/* ── Locked / status badges ── */
+.badge{display:inline-flex;align-items:center;font-size:9px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;border-radius:4px;padding:2px 7px;margin-left:8px;vertical-align:middle}
+.badge-locked{color:#C93060;background:rgba(201,48,96,0.12);border:1px solid rgba(201,48,96,0.22)}
+.badge-done{color:#3DAA70;background:rgba(61,170,112,0.1);border:1px solid rgba(61,170,112,0.2)}
+.badge-v3{color:#D4A030;background:rgba(212,160,48,0.1);border:1px solid rgba(212,160,48,0.22)}
+.badge-complete{color:rgba(245,238,232,0.4);background:rgba(245,238,232,0.05);border:1px solid rgba(245,238,232,0.1)}
+
+/* ── Color swatch ── */
+.color-row{display:flex;align-items:center;gap:12px;padding:10px 12px;border-bottom:1px solid rgba(245,238,232,0.04)}
+.color-row:last-child{border-bottom:none}
+.color-swatch{width:28px;height:28px;border-radius:5px;flex-shrink:0;border:1px solid rgba(245,238,232,0.1)}
+.color-token{font-size:12px;font-weight:600;color:#F5EEE8;width:100px;flex-shrink:0}
+.color-hex{font-family:monospace;font-size:11px;color:#E87FAA;width:80px;flex-shrink:0}
+.color-usage{font-size:11px;color:rgba(245,238,232,0.5);line-height:1.5}
+
+/* ── Footer ── */
+.doc-footer{margin-top:64px;padding-top:24px;border-top:1px solid rgba(245,238,232,0.07);display:flex;justify-content:space-between;align-items:center}
+.footer-text{font-size:10px;color:rgba(245,238,232,0.2);letter-spacing:0.05em}
+
+/* ── TOC ── */
+.toc{background:rgba(245,238,232,0.03);border:1px solid rgba(245,238,232,0.07);border-radius:8px;padding:20px 24px;margin-bottom:48px}
+.toc-title{font-size:10px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:rgba(245,238,232,0.3);margin-bottom:14px}
+.toc-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 32px}
+.toc-item{font-size:12px;color:rgba(245,238,232,0.5);padding:3px 0;display:flex;gap:8px}
+.toc-num{color:#DC5A8A;font-weight:500;flex-shrink:0;font-size:11px}
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<div class="doc-header">
+  <div class="logo-row">
+    <svg width="14" height="28" viewBox="0 0 20 40" fill="none"><rect x="1" y="27" width="18" height="13" rx="1" fill="#C93060"/><rect x="3.5" y="17" width="13" height="11" rx="1" fill="#DC5A8A"/><rect x="6" y="9" width="8" height="9" rx="1" fill="#E87FAA"/><rect x="8" y="3" width="4" height="7" rx="1" fill="#F5EEE8" opacity="0.9"/><polygon points="10,0 8.5,3 11.5,3" fill="#F5EEE8"/><circle cx="10" cy="0.8" r="1.2" fill="#DC5A8A"/></svg>
+    <span class="logo-text">Alexandria</span>
+  </div>
+  <div class="doc-eyebrow">Platform Design Specification · V2 MVP Build · Cinematic + Scroll Webtoon</div>
+  <div class="doc-title">Design & Product Specification</div>
+  <div class="doc-sub">Last updated April 25, 2026 · Reader layer pipeline rebuilt · All editor state now renders in reader · Fill modes (Crop / Stretch / Custom) with focal-point drag · Per-panel height in reader · Scroll mode continuous (no 3D) · Preview same-tab · End-cover image fixed · Volume slider · Auto-advance removed</div>
+</div>
+
+<!-- ── STATUS ── -->
+<div class="status-strip">
+  <div class="status-item"><div class="status-dot dot-green"></div>Auth + Reader + Dashboard complete — April 13–15, 2026</div>
+  <div class="status-item"><div class="status-dot dot-green"></div>Editor Layer 1 complete — April 14, 2026</div>
+  <div class="status-item"><div class="status-dot dot-green"></div>All 7 bugs fixed + thumbnail — April 15, 2026</div>
+  <div class="status-item"><div class="status-dot dot-green"></div>Layers architecture live — April 18, 2026</div>
+  <div class="status-item"><div class="status-dot dot-green"></div>Reader rebuild · book-page cards · audio pipeline unified · autosave fix — April 22, 2026</div>
+  <div class="status-item"><div class="status-dot dot-green"></div>Layer pipeline rebuilt · fill modes · scroll/cinematic split · 10 bugs fixed — April 25, 2026</div>
+  <div class="status-item"><div class="status-dot dot-rose"></div>Next: run fill-mode SQL migration, founding creator test prep</div>
+</div>
+
+<!-- ── TOC ── -->
+<div class="toc">
+  <div class="toc-title">Contents</div>
+  <div class="toc-grid">
+    <div class="toc-item"><span class="toc-num">01</span>Platform Overview</div>
+    <div class="toc-item"><span class="toc-num">02</span>Project Timeline</div>
+    <div class="toc-item"><span class="toc-num">03</span>Tech Stack</div>
+    <div class="toc-item"><span class="toc-num">04</span>Content Policy</div>
+    <div class="toc-item"><span class="toc-num">05</span>Target Creator Audience</div>
+    <div class="toc-item"><span class="toc-num">06</span>Monetization (V3)</div>
+    <div class="toc-item"><span class="toc-num">07</span>Reader Flow Architecture</div>
+    <div class="toc-item"><span class="toc-num">08</span>Visual Design Language</div>
+    <div class="toc-item"><span class="toc-num">09</span>Editor Architecture</div>
+    <div class="toc-item"><span class="toc-num">10</span>Creator Dashboard</div>
+    <div class="toc-item"><span class="toc-num">11</span>Data & Storage Architecture</div>
+    <div class="toc-item"><span class="toc-num">12</span>Completed Deliverables</div>
+    <div class="toc-item"><span class="toc-num">13</span>V3 Parked Decisions</div>
+    <div class="toc-item"><span class="toc-num">14</span>Decision Log</div>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════
+     01 — PLATFORM OVERVIEW
+════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-num">Section 01</div>
+  <div class="section-title">Platform Overview</div>
+  <div class="section-divider"></div>
+
+  <div class="prose">A browser-based creation and hosting tool for adult visual storytelling. Creators build stories in an editor, stories live at hosted URLs, and creators share those links directly with their audience. <strong>There is no public discovery feed.</strong></div>
+
+  <div class="sub">
+    <div class="sub-title">Positioning</div>
+    <div class="prose">Adult-focused in the HBO sense — horror, grimdark, dark romance, explicit sexual content, gore, psychological thrillers, mature themes. Content that is banned or restricted on every mainstream platform. This is the core positioning and the reason the target creator audience has nowhere else to go.</div>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">V2 Scope</div>
+    <div class="prose">The first build is <strong>webtoon format only.</strong> Comic and book formats are planned for V3+ but are explicitly out of scope for this design phase.</div>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════
+     02 — PROJECT TIMELINE
+════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-num">Section 02</div>
+  <div class="section-title">Project Timeline</div>
+  <div class="section-divider"></div>
+
+  <div class="change-note"><strong>Updated April 25, 2026 — Layer pipeline rebuild &amp; 10-bug fix pass.</strong> <code>useReaderData</code> now exposes full <code>layers: Layer[]</code> array on every <code>PanelWithMeta</code> instead of collapsing to a single <code>image_url</code> — all z-ordered layers with position, size, fill mode, opacity, and playback settings now render in the reader. New <code>PanelLayers.tsx</code> component renders each layer with <code>IntersectionObserver</code> autoplay, imperative muted/playback-rate sync, and focal-point <code>object-position</code>. Fill modes: <code>crop</code> (cover + focal point drag in editor), <code>stretch</code> (fill objectFit), <code>custom</code> (absolute position/size). DB migration adds <code>fill_mode</code>, <code>focal_x_percent</code>, <code>focal_y_percent</code> columns to layers table. <code>PanelScrollItem</code> split into <code>ScrollPanelItem</code> (plain div, per-panel height, no 3D) and <code>CinematicPanelItem</code> (original framer-motion 3D) dispatched by <code>mode</code> prop — scroll mode is now truly continuous with no transforms. <code>EditorTopBar</code> preview changed from <code>window.open(_blank)</code> to same-tab <code>navigate()</code>. End-cover background image distortion fixed by adding <code>.reader-panel-card--end .cover-bg</code> CSS rule. Fullscreen now targets <code>document.documentElement</code> so window scroll continues driving framer-motion transforms. Auto-advance on last panel removed — next arrow only. Volume slider added to Navbar (range input, 0–1, step 0.02) driven by new <code>readerStore.videoVolume</code>. <code>FillMode</code> type and <code>fill_mode</code> / <code>focal_x_percent</code> / <code>focal_y_percent</code> added to Layer interface and <code>LAYER_DEFAULTS</code>. <code>EditorRail</code> fill toggle replaced with three-way Crop / Stretch / Custom button group. <code>EditorCanvas</code> adds focal-point crosshair drag in crop mode. Canvas size label fixed (400 × 640).</div>
+  <div class="change-note"><strong>Updated April 22, 2026 — Reader polish pass.</strong> Reader rebuilt on a <code>.reader-stage</code> / <code>.reader-panel-slot</code> / <code>.reader-panel-card</code> system (35vw × 95vh desktop, 100vw × 95vh mobile). CSS <code>perspective</code> moved from stage to slot so fixed-position descendants (Navbar) are not trapped in a containing block. Cover → first-panel dramatic one-shot intro via AnimatePresence opacity crossfade plus an inner <code>introVariant="first"</code> scale/rotate/y animation nested inside the scroll-driven transform. End page now uses the same book-page card layout (<code>.reader-panel-card--end</code>); PhoneShell dropped. Transition button navigation uses framer-motion <code>animate()</code> honoring <code>story.transition_duration_ms</code> with temporary <code>scroll-snap-type: none</code> during the tween. Audio pipeline unified: single <code>readerStore.videoSfxEnabled</code> flag, imperative <code>videoRef.current.muted</code> sync, <code>effectiveMuted = panel.muted || !videoSfxEnabled</code> in PanelMedia. <strong>Autosave bug fixed</strong> — <code>useAutoSave.ts</code> layer UPDATE payload now includes <code>autoplay, loop, muted, playback_rate</code> (previously silently dropped, so editor toggles never reached the DB). <strong>LAYER_DEFAULTS.video.muted flipped from <code>true</code> → <code>false</code></strong> so new video layers defer to the viewer's global Video &amp; SFX preference; creator-set Muted ON remains a hard-override. End-page Restart and Exit buttons now both route to <code>/u/:username/s/:slug</code> (the story cover) rather than home / dashboard.</div>
+  <div class="change-note"><strong>Updated April 18, 2026 — Layers architecture complete.</strong> DB migration run (reading_mode column, layers table created, overlays dropped). Types, editorStore, useAutoSave, Editor, EditorCanvas, EditorRail fully rewritten for layers. Media upload for image/GIF/video/audio. 8-handle resize (4 corners + 4 edges) with shift-constrained proportional scaling. Fill vs positioned layer modes. Layer selection bubbling, arrow direction, filmstrip thumbnails all fixed same day.</div>
+  <div class="change-note"><strong>Updated April 17, 2026 — Editor pivot.</strong> Text overlays, speech bubbles, font editor removed from MVP entirely. Editor now: media upload (image/GIF/video/audio) into pre-sized panel frames, multiple media items per panel as layers, drag handles for position/resize, layers tab for z-order. Canvas width locked at 400px. Two reading modes locked: Cinematic (400×640px fixed, Framer Motion transitions, default) and Scroll (400px wide, variable height, no transitions). layers table replaces overlays table — overlays table to be dropped. Transparent video deferred. Living documents now auto-updated by Claude Code after every session.</div>
+  <div class="change-note"><strong>Updated April 15, 2026 — Bug fix session complete.</strong> All 7 confirmed bugs resolved: CSS token selector fix, share URL /s/ segment, duplicate email detection, password toggles on auth pages, auth pages moved off GateShell to full-page responsive layout, editor logo navigates back to dashboard, Supabase redirect URL configured. Bonus: story cover thumbnail now auto-set from first panel upload and updates when panel 0 is replaced.</div>
+  <div class="change-note"><strong>Updated April 15, 2026.</strong> Creator Dashboard built. Story grid, publish toggle, copy share URL, delete with confirm, empty state. New Story creates row in Supabase then redirects to editor. dashboard.css with full dark token system (light stub only — deferred).</div>
+  <div class="change-note"><strong>Updated April 14, 2026.</strong> Editor Layer 1 complete. Top bar, filmstrip, canvas with image/GIF upload, right rail with Design/Transitions/Publish modes. Auto-save (2s debounce) live. Supabase Storage wired. Go Live / Unpublish functional.</div>
+  <div class="change-note"><strong>Updated April 13, 2026.</strong> Auth system complete. Reader Supabase integration complete. Gate flow logic complete. Full routing table live.</div>
+  <div class="change-note"><strong>Updated April 12, 2026.</strong> Design phase complete. All reader screens, editor architecture, mockups, dashboard, system spec delivered.</div>
+
+  <table class="spec-table">
+    <tr><th>Phase</th><th>Estimate</th><th>Status</th><th>Notes</th></tr>
+    <tr>
+      <td>Design & Spec</td><td>~1.5 weeks</td>
+      <td><span class="td-done">Complete</span></td>
+      <td>All reader screens, editor architecture, mockups, dashboard, system spec delivered and approved. April 12, 2026.</td>
+    </tr>
+    <tr>
+      <td>Build — Auth, Reader, Gates, Dashboard</td><td>~1 week</td>
+      <td><span class="td-done">Complete</span></td>
+      <td>All pages built and functional. Supabase integration live. April 13–15, 2026.</td>
+    </tr>
+    <tr>
+      <td>Build — Editor Layer 1</td><td>~1 week</td>
+      <td><span class="td-done">Complete</span></td>
+      <td>Full editor shell, filmstrip, canvas, right rail, auto-save, image upload. April 14, 2026.</td>
+    </tr>
+    <tr>
+      <td>Build — Bug fixes</td><td>1 session</td>
+      <td><span class="td-done">Complete</span></td>
+      <td>7 confirmed bugs from first real user test. All resolved. April 15, 2026.</td>
+    </tr>
+    <tr>
+      <td>Build — Editor pivot + rewrite</td><td>1–2 weeks</td>
+      <td><span class="td-v3">In progress</span></td>
+      <td>Remove overlays. Build layers system: media upload, drag/resize handles, z-order. Two reading modes. DB migrations. Started April 17, 2026.</td>
+    </tr>
+    <tr>
+      <td>Founding Creator Test</td><td>3 weeks</td>
+      <td>Not started</td>
+      <td>3–5 founding creators, 25–50 readers. Feedback collection. Starts when editor rewrite is stable.</td>
+    </tr>
+    <tr>
+      <td>V3 Build</td><td>6–8 weeks</td>
+      <td>Not started</td>
+      <td>Feedback implementation, chapter breaks, drag-to-reorder filmstrip, font picker, video upload (Cloudflare Stream), payment processing, Pro tier.</td>
+    </tr>
+    <tr>
+      <td>Paid Launch</td><td>~15–17 weeks from start</td>
+      <td>Target</td>
+      <td>From start of design phase. MVP scope reduction may accelerate this.</td>
+    </tr>
+  </table>
+
+  <div class="prose" style="margin-top:8px">Working pace assumption: 15–25 hours per week including weekends, average 20 hours. Sessions are async-friendly — decisions made in chat, both documents updated automatically after every session.</div>
+</div>
+
+
+<!-- ════════════════════════════════════════
+     03 — TECH STACK
+════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-num">Section 03</div>
+  <div class="section-title">Tech Stack</div>
+  <div class="section-divider"></div>
+
+  <div class="callout">
+    <div class="callout-label">ToS verified</div>
+    <div class="callout-body">All provider terms of service verified for adult illustrated content. No conflicts found.</div>
+  </div>
+
+  <table class="spec-table">
+    <tr><th>Layer</th><th>Tool</th><th>Rationale</th></tr>
+    <tr><td>Frontend</td><td class="td-mono">React + TypeScript</td><td>Type safety pays off at data model complexity; scales to V3.</td></tr>
+    <tr><td>2D Transitions</td><td class="td-mono">Framer Motion + CSS 3D</td><td>Webtoon panel transitions — no WebGL overhead for 2D format.</td></tr>
+    <tr><td>3D Rendering</td><td class="td-mono">React Three Fiber (Three.js)</td><td>V2 setup only. V3 comic/book/magazine format payoff. Scoped to non-webtoon formats.</td></tr>
+    <tr><td>State Management</td><td class="td-mono">Zustand</td><td>Lightweight, performant, simpler than Redux for this use case.</td></tr>
+    <tr><td>Video Delivery</td><td class="td-mono">Cloudflare Stream</td><td>Adult content permitted. Handles transcoding, delivery, autoplay/loop API.</td></tr>
+    <tr><td>Database + Auth</td><td class="td-mono">Supabase (Postgres)</td><td>Single system for creator accounts, story data, password protection, flags. Row-level security.</td></tr>
+    <tr><td>Media Storage</td><td class="td-mono">Backblaze B2</td><td>Adult content permitted. S3-compatible. Cost-effective at indie scale. Free egress via Cloudflare CDN partnership.</td></tr>
+    <tr><td>Hosting</td><td class="td-mono">Cloudflare Pages</td><td>Edge network, adult content permitted, single vendor with Stream.</td></tr>
+    <tr><td>Payments (V3)</td><td class="td-mono">Stripe</td><td>Adult content platforms permitted with verification. CCBill/Segpay as alternatives. Not PayPal.</td></tr>
+  </table>
+
+  <div class="sub">
+    <div class="sub-title">Ruled out and why</div>
+    <div class="ann-block">
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>Bunny.net</strong> — prohibits adult content in ToS.</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>Vercel</strong> — vague ToS on adult content, prior enforcement history.</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>Next.js</strong> — overkill for V2; adds complexity without payoff. Revisit if SEO becomes a priority in V3.</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>Firebase</strong> — vendor lock-in, inferior query flexibility vs Postgres.</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>AWS directly</strong> — too much infrastructure management for a 6-week build.</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>PayPal</strong> — prohibits adult content platforms explicitly.</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>Three.js in webtoon reader</strong> — WebGL overhead for a 2D format. CSS 3D + Framer Motion handles webtoon transitions. Three.js reserved for V3.</div></div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════
+     04 — CONTENT POLICY
+════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-num">Section 04</div>
+  <div class="section-title">Content Policy</div>
+  <div class="section-divider"></div>
+
+  <div class="sub">
+    <div class="sub-title">Permitted</div>
+    <div class="ann-block">
+      <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text">Mature themes, horror, grimdark, dark romance, explicit violence, gore, adult language — no restrictions.</div></div>
+      <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text">Explicit sexual content — illustrated only, adult characters only, no real people.</div></div>
+      <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text">Violence and horror with public figure likenesses in clearly fictional contexts.</div></div>
+    </div>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">Absolute prohibitions — immediate termination</div>
+    <div class="ann-block">
+      <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>Sexual content involving minors</strong> — immediate account termination.</div></div>
+      <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>Sexual content depicting real people.</strong></div></div>
+      <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>Photographs of people in any context</strong> — platform is illustrated/artistic work only at launch.</div></div>
+      <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>Targeted harassment of private individuals.</strong></div></div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════
+     05 — TARGET CREATOR AUDIENCE
+════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-num">Section 05</div>
+  <div class="section-title">Target Creator Audience</div>
+  <div class="section-divider"></div>
+
+  <div class="sub">
+    <div class="sub-title">Priority 1 — Adult webtoon: dark romance and BL</div>
+    <table class="spec-table">
+      <tr><th>Attribute</th><th>Range</th></tr>
+      <tr><td>Twitter/X Followers</td><td>2,000–50,000</td></tr>
+      <tr><td>Patreon Patrons</td><td>50–800</td></tr>
+      <tr><td>Monthly Earnings</td><td>$200–$3,000</td></tr>
+      <tr><td>Current Workflow</td><td>Clip Studio Paint → manual export → Patreon image post (hated)</td></tr>
+      <tr><td>Found On</td><td>Twitter/X, Cara.app, dark romance and BL Discord servers</td></tr>
+    </table>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">Priority 2 — Adult horror webtoon and comic</div>
+    <table class="spec-table">
+      <tr><th>Attribute</th><th>Range</th></tr>
+      <tr><td>Twitter/X Followers</td><td>1,000–30,000</td></tr>
+      <tr><td>Patreon Patrons</td><td>30–400</td></tr>
+      <tr><td>Monthly Earnings</td><td>$150–$2,000</td></tr>
+      <tr><td>Found On</td><td>Twitter/X, Tumblr, r/HorrorComics</td></tr>
+    </table>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">Priority 3 — Explicit adult webtoon: harem, ecchi, BL/GL</div>
+    <table class="spec-table">
+      <tr><th>Attribute</th><th>Range</th></tr>
+      <tr><td>Twitter/X Followers</td><td>500–20,000</td></tr>
+      <tr><td>Fanbox/SubscribeStar Subscribers</td><td>50–600</td></tr>
+      <tr><td>Monthly Earnings</td><td>$300–$4,000</td></tr>
+      <tr><td>Found On</td><td>Twitter/X, Fanbox, private Discord communities</td></tr>
+    </table>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════
+     06 — MONETIZATION (V3)
+════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-num">Section 06</div>
+  <div class="section-title">Monetization <span class="badge badge-v3">V3</span></div>
+  <div class="section-divider"></div>
+
+  <div class="callout">
+    <div class="callout-label">Out of scope for V2</div>
+    <div class="callout-body">Monetization is not built in V2. Documented here for V3 structural planning. The <code>subscription_tier</code> field already exists in the users table — Stripe writes to it when V3 ships.</div>
+  </div>
+
+  <table class="spec-table">
+    <tr><th>Tier</th><th>Price</th><th>Storage</th><th>Stories</th><th>Branding</th><th>Other</th></tr>
+    <tr><td>Free</td><td>—</td><td>200MB</td><td>2 max</td><td>Platform branding in reader</td><td>Full feature access</td></tr>
+    <tr><td>Creator</td><td>$20/mo or $180/yr</td><td>25GB</td><td>Unlimited</td><td>No branding</td><td>Custom URL slug</td></tr>
+    <tr><td>Pro</td><td>$40/mo or $360/yr</td><td>100GB</td><td>Unlimited</td><td>No branding</td><td>Custom domain, analytics, early access, $0.08/GB overage</td></tr>
+    <tr><td>Founding Creator</td><td>Lifetime free Creator</td><td>25GB</td><td>Unlimited</td><td>No branding</td><td>Locked Pro pricing if upgraded, named as founder</td></tr>
+  </table>
+</div>
+
+
+<!-- ════════════════════════════════════════
+     07 — READER FLOW ARCHITECTURE
+════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-num">Section 07</div>
+  <div class="section-title">Reader Flow Architecture <span class="badge badge-done">Complete</span></div>
+  <div class="section-divider"></div>
+
+  <div class="sub">
+    <div class="sub-title">Complete reader path</div>
+    <table class="spec-table">
+      <tr><th>Step</th><th>Screen</th><th>Trigger</th><th>Notes</th></tr>
+      <tr><td>1</td><td>Password Gate</td><td>Creator-enabled password protection only</td><td>Optional per story. Creator communicates password via Patreon, Discord, etc.</td></tr>
+      <tr><td>2</td><td>Age Gate</td><td>Mature or Explicit flag only</td><td>Not shown for General stories. Every visit — no localStorage persistence in V2.</td></tr>
+      <tr><td>3</td><td>Explicit Content Consent</td><td>Explicit flag only — always stacks on Age Gate</td><td>Separate legal purpose: informed consent for sexual content specifically.</td></tr>
+      <tr><td>4</td><td>Pre-Cover Interstitial</td><td>All stories</td><td>Two audio toggles (Video & SFX, Music). Enter Story button. Minimal V2, extensible V3.</td></tr>
+      <tr><td>5</td><td>Cover Screen</td><td>All stories</td><td>Full-screen cover art. Story title. Creator name. Upward arrow enter prompt. Navbar visible.</td></tr>
+      <tr><td>6</td><td>Webtoon Reader</td><td>All stories</td><td>Paginated vertical chunks. Video panels autoplay at 50% viewport. Navbar always visible.</td></tr>
+      <tr><td>7</td><td>End Page</td><td>All stories</td><td>Creator-designed. Built-in Restart and Exit buttons always last. Creator links only here.</td></tr>
+    </table>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">Content rating flags</div>
+    <div class="prose">Required at publish. Creator must make a deliberate choice before a story can go live.</div>
+    <table class="spec-table">
+      <tr><th>Flag</th><th>Gates triggered</th><th>Definition</th></tr>
+      <tr><td>General</td><td>None — straight to interstitial</td><td>Suitable for all ages. No graphic violence, horror, sexual content, or strong language.</td></tr>
+      <tr><td>Mature</td><td>Age Gate only</td><td>Adult themes, no sexual content. Graphic violence, horror, gore, strong language, dark themes, non-explicit nudity.</td></tr>
+      <tr><td>Explicit</td><td>Age Gate + Explicit Consent</td><td>Sexually explicit content only. Setting Explicit automatically triggers both gates. Non-explicit nudity belongs under Mature — do not over-flag.</td></tr>
+    </table>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">Cover screen</div>
+    <div class="ann-block">
+      <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>Cover art:</strong> Full-screen. Supports static image, GIF, and looping video. Video covers: autoplay, loop, no controls, no sound. object-fit cover — no letterboxing.</div></div>
+      <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>Enter interaction:</strong> Click or tap upward arrow only. No auto-advance. No timeout. Arrow points up — implies scroll-down reading direction naturally.</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>No links:</strong> No links of any kind on the cover screen. Creator links belong on the end page only.</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>Audio:</strong> Creator can upload background atmospheric audio for the cover screen. Respects the Video & SFX Audio toggle set in the interstitial.</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>Transitions:</strong> In — fade through Void as interstitial fades out. Out — cover art recedes with rotateX tilt, first panel rises from below (same 3D mechanic as chunk transitions).</div></div>
+    </div>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">Webtoon reader</div>
+    <div class="ann-block">
+      <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>Panel layout:</strong> Always full viewport width in V2. Heights are creator-defined (presets + custom). Stack vertically, no gaps unless creator adds spacing. Scroll direction: down.</div></div>
+      <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>Video panel behavior:</strong> Autoplay at 50% viewport visibility. Pause and reset on scroll out. Only most-visible panel plays when multiple are in view. Always autoplays regardless of sound state — interstitial interaction satisfies browser gesture requirement.</div></div>
+      <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>Chunk navigation:</strong> Creator-defined breaks. Optional chapter title per break. Two advance methods: scroll past last panel (auto-advance) or next arrow in navbar. Progress stored in localStorage.</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>Audio classification:</strong> Ambient/atmospheric sound → Video & SFX toggle. Composed music → Music toggle. Both default Off. Reader opts in deliberately.</div></div>
+    </div>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">Navbar — locked spec</div>
+    <table class="spec-table">
+      <tr><th>Element</th><th>Function</th><th>Notes</th></tr>
+      <tr><td>Skip-back / Prev</td><td>Navigate to first or previous chunk</td><td>Left cluster</td></tr>
+      <tr><td>Zoom</td><td>Zoom in/out on panel content</td><td>Left cluster</td></tr>
+      <tr><td>Grid (thumbnail)</td><td>Opens thumbnail strip above navbar</td><td>Left cluster. Icon strokes shift to Deep Rose #C93060 while open.</td></tr>
+      <tr><td>Center label</td><td>Current position — format locked</td><td><strong>Reader:</strong> Ch. # · # (chapter · page within chapter). <strong>End page:</strong> Pg. # only. <strong>Cover:</strong> Cover. Updates every panel advance.</td></tr>
+      <tr><td>Skip-forward / Next</td><td>Navigate to next or last chunk</td><td>Right cluster</td></tr>
+      <tr><td>Audio toggle</td><td>Video & SFX Audio on/off</td><td>Right cluster. Default Off.</td></tr>
+      <tr><td>Fullscreen</td><td>Toggle browser fullscreen</td><td>Right cluster</td></tr>
+    </table>
+    <div class="ann-block" style="margin-top:10px">
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>Background:</strong> rgba(14,6,8,0.92). Icons: Cream #F5EEE8 at 55% rest, 95% hover, 15×15px.</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>Thumbnail strip:</strong> Slides up from top of navbar (translateY(100%) → translateY(0), 240ms ease-out). Background rgba(14,6,8,0.97). Thumbnails 72×96px, 6px radius, chapter groupings. 3.5 thumbnails visible — 4th half-clipped to signal scrollability. Active page: Deep Rose 1.5px outline. Future pages: 35% opacity dim.</div></div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════
+     08 — VISUAL DESIGN LANGUAGE
+════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-num">Section 08</div>
+  <div class="section-title">Visual Design Language <span class="badge badge-locked">Locked</span></div>
+  <div class="section-divider"></div>
+
+  <div class="callout">
+    <div class="callout-label">Source of truth</div>
+    <div class="callout-body">All UI elements, mockups, and developer implementation must reference this section. Nothing in the visual design system changes without a deliberate decision logged here.</div>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">Color system</div>
+    <div style="background:rgba(245,238,232,0.03);border:1px solid rgba(245,238,232,0.07);border-radius:8px;padding:4px 0;margin-bottom:12px">
+      <div class="color-row"><div class="color-swatch" style="background:#0E0608"></div><span class="color-token">Void</span><span class="color-hex">#0E0608</span><span class="color-usage">Primary dark surface. Reader background, gate screens, interstitial, navbar base. Subtle rose undertone.</span></div>
+      <div class="color-row"><div class="color-swatch" style="background:#F5EEE8;border-color:rgba(14,6,8,0.15)"></div><span class="color-token">Cream</span><span class="color-hex">#F5EEE8</span><span class="color-usage">Primary light surface. Text on dark. Dashboard base. Light surface cards.</span></div>
+      <div class="color-row"><div class="color-swatch" style="background:#C93060"></div><span class="color-token">Deep Rose</span><span class="color-hex">#C93060</span><span class="color-usage">Primary interactive accent. All buttons, CTAs, active states. Featured card surface (one per view max).</span></div>
+      <div class="color-row"><div class="color-swatch" style="background:#8C1F42"></div><span class="color-token">Rose Dark</span><span class="color-hex">#8C1F42</span><span class="color-usage">Deep Rose hover and press state. Depth under rose surfaces.</span></div>
+      <div class="color-row"><div class="color-swatch" style="background:#DC5A8A"></div><span class="color-token">Rose Accent</span><span class="color-hex">#DC5A8A</span><span class="color-usage">Eyebrows, icons, rule lines, logo accent, active mode tabs. Mid-point between Deep Rose and Rose Soft.</span></div>
+      <div class="color-row"><div class="color-swatch" style="background:#E87FAA"></div><span class="color-token">Rose Soft</span><span class="color-hex">#E87FAA</span><span class="color-usage">Secondary labels, tints, toggle active state. Soft accent moments.</span></div>
+    </div>
+    <div class="ann-block">
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>System Red</strong> (framework default) — errors and destructive states only. Never decorative.</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>System Green</strong> (framework default) — success and confirmation states only. Never decorative.</div></div>
+    </div>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">Typography</div>
+    <table class="spec-table">
+      <tr><th>Role</th><th>Font</th><th>Usage</th></tr>
+      <tr><td>Logo wordmark</td><td class="td-mono">Cinzel 400</td><td>Alexandria wordmark only. Never used for anything else. Paired with Pharos lighthouse icon, baseline-aligned.</td></tr>
+      <tr><td>Display / Headings</td><td class="td-mono">DM Serif Display</td><td>All platform-owned headings — gate screens, interstitial, cover screen title, dashboard headers. Never inside story panels.</td></tr>
+      <tr><td>UI / Body</td><td class="td-mono">DM Sans</td><td>All platform UI body text, labels, buttons, navbar, system copy.</td></tr>
+      <tr><td>Story content</td><td class="td-mono">Creator-chosen (Google Fonts)</td><td>Fonts inside panels are creator's choice via full Google Fonts API. Platform fonts never appear inside reader panels.</td></tr>
+    </table>
+    <div class="change-note"><strong>Changed from original spec:</strong> Story content fonts are no longer a curated 8–10 font shortlist. Creators have access to the full Google Fonts catalog (~1,500 families) via live API with search and preview. The reader loads only fonts actually used in a story via a single batched <code>&lt;link&gt;</code> tag built from the story's font manifest at load time.</div>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">Logo — Pharos lighthouse</div>
+    <div class="ann-block">
+      <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>Icon:</strong> Minimal geometric — three stacked rectangular tiers in decreasing width, flame tip at crown. Base tier Deep Rose (#C93060), mid tier Rose Accent (#DC5A8A), upper tier Rose Soft (#E87FAA), tip Cream (#F5EEE8).</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>Gate/interstitial scale:</strong> Icon 16×32px, Cinzel 18px, centered.</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>Cover pill:</strong> Icon 8×16px, Cinzel 10px, top-right corner, dark pill background rgba(14,6,8,0.65).</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>Reader branding mark (free tier only):</strong> "Alexandria" text only, DM Sans 9px, Cream 18–20% opacity, bottom-right fixed, never animates.</div></div>
+    </div>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">Chunk-to-chunk transition — locked CSS values</div>
+    <div class="decision">
+      <div class="decision-label">Locked</div>
+      <div class="decision-body">
+        <strong>Outgoing panel:</strong> <code>perspective(1000px) rotateX(36deg) scale(0.88) opacity(0.35)</code>, transform-origin center bottom.<br><br>
+        <strong>Incoming mid-rise:</strong> <code>perspective(1000px) rotateX(-26deg) scale(0.92) opacity(0.6)</code>, transform-origin center top.<br><br>
+        <strong>Incoming settled:</strong> no transform, full opacity, <code>box-shadow: 0 -20px 44px rgba(0,0,0,0.95)</code>.<br><br>
+        <strong>Chapter overlay on incoming panel:</strong> full-bleed gradient (light top → heavy bottom), rose eyebrow "Chapter #" in DM Sans 500 9px uppercase Rose Accent, chapter title in DM Serif Display 16px Cream. text-shadow on both. No creator name, no platform branding on overlay.<br><br>
+        <strong>Duration:</strong> ~600ms. Implementation: CSS 3D + Framer Motion.
+      </div>
+    </div>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">Gate screen and interstitial visual spec</div>
+    <div class="ann-block">
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>Background:</strong> Void #0E0608 full bleed + repeating 45° diagonal stripe texture at 35% opacity + #0E0608 overlay at 82% opacity.</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>Rose rule:</strong> 32×2px, #DC5A8A, centered, between logo and headline.</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>Headline:</strong> DM Serif Display 26px, Cream. Body: DM Sans 13px, Cream 62% opacity, 1.75 line height.</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>Primary button:</strong> Deep Rose #C93060, Cream text, DM Sans 500, 15px vertical padding, 8px radius, full width.</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>Ghost button:</strong> 1px Cream border at 18% opacity, Cream text at 45% opacity, 13px vertical padding.</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>Branding footer:</strong> "Alexandria · Visual Storytelling", DM Sans 10px, Cream 20% opacity.</div></div>
+    </div>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">Dashboard surface system</div>
+    <div class="ann-block">
+      <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>Deep Rose card (#C93060):</strong> Single primary CTA per view — "Start a New Story." One per view maximum. Cream text on Deep Rose surface.</div></div>
+      <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>Void card:</strong> Each story in the list. Dark, content-forward. Story title, stats, share URL, password toggle, actions.</div></div>
+      <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>Cream card (#F5EEE8):</strong> Account-level stats (total reads, stories published, monthly reads). Void text on Cream with subtle border. Light, readable, distinct from story cards.</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text">Section labels: DM Sans, uppercase, tracked. Numbers in DM Serif Display for editorial weight.</div></div>
+    </div>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">Accessibility — light/dark mode</div>
+    <div class="ann-block">
+      <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>Full CSS token system implemented.</strong> All surfaces, text levels, borders, and interactive states use CSS variables keyed to <code>data-theme="dark"</code> and <code>data-theme="light"</code> on the root element. Toggle in nav bar switches modes with 0.2s transition.</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>Contrast floor:</strong> All meaningful text is 10px minimum. Text opacity levels: primary 100%, secondary 88%, tertiary 65%, muted 45%, faint 28% (decorative only).</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>Focus rings:</strong> 2px rose #DC5A8A outline on :focus-visible (keyboard only). All interactive elements have visible focus states.</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>Touch targets:</strong> All interactive elements meet 44×44px minimum.</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>Active state differentiation:</strong> Active states use color + a secondary signal (underline, background change) so they are not color-alone differentiators.</div></div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════
+     09 — EDITOR ARCHITECTURE
+════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-num">Section 09</div>
+  <div class="section-title">Editor Architecture <span class="badge badge-locked">Locked April 17, 2026</span></div>
+  <div class="section-divider"></div>
+
+  <div class="callout">
+    <div class="callout-label">Pivot — April 17, 2026</div>
+    <div class="callout-body">The editor has been significantly simplified for MVP. Text overlays, speech bubbles, thought bubbles, title cards, narration overlays, and the font editor have all been removed. The editor now focuses exclusively on media composition: uploading image, GIF, video, and audio into pre-sized panel frames, with multiple media items per panel managed as layers.</div>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">What the editor does — MVP scope</div>
+    <div class="ann-block">
+      <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>Creators build panels</strong> by uploading media (image, GIF, video, audio) into pre-sized panel frames. No text tools. No speech bubbles. No font editor.</div></div>
+      <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>Multiple media items per panel</strong> — a panel can contain a background image, a foreground video with transparency (PNG workaround for MVP), an audio track, etc. Each media item is a layer.</div></div>
+      <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>Layers</strong> — each media item on a panel has a z-order position. Creators manage z-order in the Layers tab of the right rail. Layers can be reordered and deleted.</div></div>
+      <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>Drag handles</strong> — media items can be repositioned and resized on the canvas using drag handles. Two modes: Fill (fills the panel frame) or Custom (free position and size via drag).</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>Audio</strong> — attached to a panel. Not visible to the reader. Toggled on/off via the speaker icon in the reader navbar.</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>Transparent video</strong> — deferred post-MVP. PNG with transparency covers the foreground layering use case for now. Logged as known limitation.</div></div>
+    </div>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">Reading modes — locked</div>
+    <table class="spec-table">
+      <tr><th>Mode</th><th>Panel size</th><th>Transitions</th><th>Scroll</th><th>Default</th></tr>
+      <tr><td>Cinematic</td><td>400×640px fixed</td><td>Framer Motion (Cinematic/Fade/Cut)</td><td>Disabled — panel-by-panel only</td><td>Yes — all new stories</td></tr>
+      <tr><td>Scroll</td><td>400px wide, variable height</td><td>None</td><td>Continuous vertical scroll</td><td>—</td></tr>
+    </table>
+    <div class="ann-block">
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text">Creator sets reading mode once in Publish settings. Cannot change per-panel. Changing mode after publishing requires re-publishing.</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text">Editor canvas previews the correct mode. Cinematic mode: fixed 400×640 frame. Scroll mode: 400px wide, height presets or custom input.</div></div>
+    </div>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">Canvas spec — locked</div>
+    <table class="spec-table">
+      <tr><th>Property</th><th>Value</th><th>Notes</th></tr>
+      <tr><td>Authoring width</td><td>400px</td><td>Reference width for all panels. Reader renders full-width on device.</td></tr>
+      <tr><td>Cinematic height</td><td>640px fixed</td><td>Full-screen panel. Cannot be changed per-panel in Cinematic mode.</td></tr>
+      <tr><td>Scroll height</td><td>Variable</td><td>Creator-set via presets (160/240/320/480/620px) or custom input (80–800px).</td></tr>
+      <tr><td>Phone shell</td><td>Gate pages only</td><td>Removed from editor and reader. Editor is full-bleed desktop. Reader is full-width on device.</td></tr>
+      <tr><td>Navbar preview</td><td>Below panel on canvas</td><td>Real Navbar component rendered inert below the active panel so creator sees the reader navbar position.</td></tr>
+    </table>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">Media types — what creators can upload</div>
+    <table class="spec-table">
+      <tr><th>Type</th><th>Fill panel</th><th>Custom size/position</th><th>Visible to reader</th><th>Notes</th></tr>
+      <tr><td>Image (JPG/PNG/WebP)</td><td>✅</td><td>✅</td><td>✅</td><td>PNG with transparency enables foreground layering</td></tr>
+      <tr><td>GIF</td><td>✅</td><td>✅</td><td>✅</td><td>Autoplay, loop</td></tr>
+      <tr><td>Video (MP4)</td><td>✅</td><td>✅</td><td>✅</td><td>Cloudflare Stream — deferred. Supabase Storage for MVP.</td></tr>
+      <tr><td>Audio</td><td>N/A</td><td>N/A</td><td>❌</td><td>Attached to panel. Toggled via navbar speaker icon.</td></tr>
+    </table>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">Editor layout — five regions (unchanged)</div>
+    <div class="ann-block">
+      <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>Top bar:</strong> Logo (back to dashboard with unsaved-changes guard) · Add button · Mode tabs (Design / Transitions) · Story title + save status (centered) · Publish button (right).</div></div>
+      <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>Filmstrip (left rail):</strong> Panel thumbnails in reading order. Add panel, delete panel. Active panel: Deep Rose outline. Drag-to-reorder deferred to V3.</div></div>
+      <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>Canvas toolbar:</strong> Height presets (Scroll mode only) · Add media button. Always present.</div></div>
+      <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>Canvas viewport:</strong> Active panel at reference size. Dot grid background. Navbar preview below panel. Selected layer gets rose outline + drag/resize handles.</div></div>
+      <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>Right rail:</strong> Context-sensitive. No layer selected: panel height controls (Scroll mode) / reading mode indicator. Layer selected: layer position/size/fill toggle. Layers tab: z-order list, reorder, delete. Transitions mode: presets + duration (Cinematic only). Publish mode: share URL, content rating, reading mode toggle, go live.</div></div>
+    </div>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">What was removed from MVP — and why</div>
+    <table class="spec-table">
+      <tr><th>Removed feature</th><th>Reason</th><th>Future?</th></tr>
+      <tr><td>Text overlays (speech bubbles, captions, narration, thought bubbles, title cards)</td><td>Adds significant complexity. Creators can embed text in their artwork. Simplifying to MVP gets the platform in creators' hands faster.</td><td>V3 if creator feedback demands it</td></tr>
+      <tr><td>Font editor / Google Fonts picker</td><td>Depends on text overlay system — removed with it.</td><td>V3 with overlays</td></tr>
+      <tr><td>Transparent video layers</td><td>Inconsistent browser support for WebM alpha. PNG with transparency covers the use case for MVP.</td><td>Post-MVP when creator feedback confirms demand</td></tr>
+      <tr><td>Drag-to-reorder filmstrip</td><td>Deferred — not blocking MVP. Creators can delete and re-add panels for now.</td><td>V3</td></tr>
+      <tr><td>Chapter breaks</td><td>Deferred — not blocking MVP.</td><td>V3</td></tr>
+    </table>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">Auto-save model — unchanged</div>
+    <div class="ann-block">
+      <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>Trailing debounce, 2 seconds after last change.</strong> No manual save. Zustand state is source of truth while editor is open. Database updated asynchronously. Saves story metadata, all panels, and all layers.</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>Publish</strong> is a separate explicit action that sets <code>is_published = true</code>. Draft and published share the same permanent URL.</div></div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════
+     10 — CREATOR DASHBOARD
+════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-num">Section 10</div>
+  <div class="section-title">Creator Dashboard <span class="badge badge-done">Complete</span></div>
+  <div class="section-divider"></div>
+
+  <div class="callout">
+    <div class="callout-label">Full mockup in 13-creator-dashboard.html</div>
+    <div class="callout-body">This section summarizes dashboard decisions. The HTML file is the authoritative visual reference.</div>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">Story card anatomy</div>
+    <div class="ann-block">
+      <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>Cover thumbnail</strong> (88px wide, object-fit cover, object-position top) left-anchored. Story title in DM Serif Display. Status badge (Live/Draft). Content rating badge (Mature/Explicit, or absent if General).</div></div>
+      <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>Read count</strong> + panel/chapter count. <strong>Share URL</strong> in monospace pill with functioning Copy button (2s "Copied!" confirmation state).</div></div>
+      <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>Password toggle</strong> + <strong>Edit / Delete</strong> actions in card bottom strip.</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>No-cover placeholder:</strong> Image outline SVG at 15% opacity on dark gradient. Not alarming — signals that cover is missing.</div></div>
+    </div>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">Nav</div>
+    <div class="ann-block">
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text">Sticky top nav with blur-backdrop. Alexandria logo (links to dashboard). Light/dark toggle. Settings. Avatar initials. No "Back to Editor" link.</div></div>
+    </div>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">About section</div>
+    <div class="change-note"><strong>Removed from V2 scope.</strong> The about section (end page creator links, bio, Patreon/socials) was originally planned for Days 8–9 but was cut from V2. It will be designed and built in a later version.</div>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════
+     11 — DATA & STORAGE ARCHITECTURE
+════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-num">Section 11</div>
+  <div class="section-title">Data & Storage Architecture <span class="badge badge-done">Updated April 17, 2026</span></div>
+  <div class="section-divider"></div>
+
+  <div class="callout">
+    <div class="callout-label">Schema change — April 17, 2026</div>
+    <div class="callout-body">The <code>overlays</code> table is being dropped. It is replaced by the <code>layers</code> table which stores all media items per panel. The <code>stories</code> table gains a <code>reading_mode</code> column. These migrations must be run before the editor rewrite begins.</div>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">URL structure — creator-scoped namespace</div>
+    <table class="spec-table">
+      <tr><th>Route</th><th>Pattern</th><th>Notes</th></tr>
+      <tr><td>Story reader (public)</td><td class="td-mono">alex.so/u/[username]/s/[slug]</td><td>Permanent. Slug generated once at creation, never changes on rename.</td></tr>
+      <tr><td>Editor (authenticated)</td><td class="td-mono">alex.so/editor/[story_id]</td><td>Internal route, not shared.</td></tr>
+      <tr><td>Dashboard</td><td class="td-mono">alex.so/dashboard</td><td></td></tr>
+      <tr><td>Creator profile (V3)</td><td class="td-mono">alex.so/u/[username]</td><td>Returns 404 in V2. Namespace reserved.</td></tr>
+    </table>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">Storage layers</div>
+    <table class="spec-table">
+      <tr><th>Layer</th><th>Tool</th><th>Stores</th></tr>
+      <tr><td>Relational data + Auth</td><td class="td-mono">Supabase (Postgres)</td><td>All structured data: accounts, story metadata, chapters, panels, layers, ratings. Never stores media files.</td></tr>
+      <tr><td>Static media (MVP)</td><td class="td-mono">Supabase Storage</td><td>Panel images, GIFs, audio files, cover images. Backblaze B2 deferred to post-MVP.</td></tr>
+      <tr><td>Video delivery</td><td class="td-mono">Cloudflare Stream</td><td>All video panels and video covers. Deferred — using Supabase Storage for MVP video until Stream is integrated.</td></tr>
+    </table>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">Database tables — current live schema</div>
+    <table class="spec-table">
+      <tr><th>Table</th><th>Key fields</th><th>Status</th><th>Notes</th></tr>
+      <tr><td>users</td><td><code>id, username, display_name, bio, avatar_url, created_at</code></td><td class="td-done">Live</td><td>UUID = Supabase Auth UID. Username permanent, globally unique, URL-safe. Populated by handle_new_user trigger on signup.</td></tr>
+      <tr><td>stories</td><td><code>id, user_id, title, slug, content_rating, password_hash, is_published, cover_url, font_manifest, creator_bio, creator_links, reading_mode, created_at, updated_at</code></td><td class="td-done">Live</td><td>reading_mode: 'cinematic' | 'scroll', default 'cinematic'. Migration pending. cover_url auto-set from first panel upload at position 0.</td></tr>
+      <tr><td>chunks</td><td><code>id, story_id, chapter_number, chapter_title, position, created_at</code></td><td class="td-done">Live</td><td>First-class records. Panels reference their chunk. Chapter numbers derived at read time.</td></tr>
+      <tr><td>panels</td><td><code>id, chunk_id (nullable), story_id, position, height, created_at</code></td><td class="td-done">Live</td><td>height is raw integer px. chunk_id nullable. No media_url on panel — media lives on layers table.</td></tr>
+      <tr><td>layers</td><td><code>id, panel_id, story_id, position (z-order), media_type, media_url, x_percent, y_percent, width_percent, height_percent, is_fill, fill_mode, focal_x_percent, focal_y_percent, opacity, autoplay, loop, muted, playback_rate, created_at</code></td><td class="td-done">Live</td><td>Replaces overlays table. media_type: 'image' | 'gif' | 'video' | 'audio'. is_fill kept for backward compat; fill_mode ('crop' | 'stretch' | 'custom') supersedes it — reader resolves fill_mode ?? (is_fill ? 'crop' : 'custom'). focal_x_percent / focal_y_percent (0–100, default 50/50) drive CSS object-position in crop mode. Playback fields (autoplay, loop, muted, playback_rate) harmless on non-video rows — readers ignore. <strong>April 22:</strong> autosave now persists all four playback fields (previously dropped silently). Default <code>muted</code> for new video layers is <code>false</code> so the viewer's global Video &amp; SFX toggle controls audio; creator can hard-override to true. <strong>April 25:</strong> fill_mode, focal_x_percent, focal_y_percent columns added via migration.</td></tr>
+      <tr><td>overlays</td><td>—</td><td class="td-complete">Dropped</td><td>Table and all code removed April 18, 2026.</td></tr>
+    </table>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">Pending migrations — run before next editor build session</div>
+    <div class="ann-block">
+      <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>1. Add reading_mode to stories:</strong> <code>ALTER TABLE stories ADD COLUMN IF NOT EXISTS reading_mode text DEFAULT 'cinematic';</code></div></div>
+      <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>2. Create layers table:</strong> <code>CREATE TABLE layers (id uuid DEFAULT gen_random_uuid() PRIMARY KEY, panel_id uuid REFERENCES panels(id) ON DELETE CASCADE, story_id uuid REFERENCES stories(id) ON DELETE CASCADE, position integer DEFAULT 0, media_type text NOT NULL, media_url text, x_percent numeric DEFAULT 0, y_percent numeric DEFAULT 0, width_percent numeric DEFAULT 100, height_percent numeric DEFAULT 100, is_fill boolean DEFAULT true, created_at timestamptz DEFAULT now()); ALTER TABLE layers ENABLE ROW LEVEL SECURITY;</code></div></div>
+      <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>3. Drop overlays table:</strong> <code>DROP TABLE IF EXISTS overlays;</code> — run only after all overlay code is removed from the codebase. <strong>Completed April 18, 2026.</strong></div></div>
+      <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>4. Backfill legacy muted video rows (April 22, 2026):</strong> <code>UPDATE layers SET muted = false WHERE media_type = 'video' AND muted = true;</code> — one-time fix for rows created before the autosave bug was patched. All those rows were stuck <code>muted = true</code> because the editor's Muted toggle never reached the DB.</div></div>
+      <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>5. Fill-mode columns (April 25, 2026) — file: <code>supabase-migrations/2026-04-24-fill-mode.sql</code>:</strong> <code>ALTER TABLE layers ADD COLUMN IF NOT EXISTS fill_mode text; ALTER TABLE layers ADD COLUMN IF NOT EXISTS focal_x_percent numeric NOT NULL DEFAULT 50; ALTER TABLE layers ADD COLUMN IF NOT EXISTS focal_y_percent numeric NOT NULL DEFAULT 50; UPDATE layers SET fill_mode = 'crop' WHERE fill_mode IS NULL AND is_fill = true; UPDATE layers SET fill_mode = 'custom' WHERE fill_mode IS NULL AND is_fill = false;</code> — run each statement individually in Supabase SQL editor using the <code>postgres</code> superuser role (role dropdown, top-right). If ALTER TABLE fails with a permissions error, switch from the default anon key to the postgres role.</div></div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════
+     12 — COMPLETED DELIVERABLES
+════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-num">Section 12</div>
+  <div class="section-title">Completed Deliverables</div>
+  <div class="section-divider"></div>
+
+  <div class="sub">
+    <div class="sub-title">Week 1 — Reader screens (10 HTML files)</div>
+    <table class="spec-table">
+      <tr><th>File</th><th>Screen</th><th>Status</th></tr>
+      <tr><td class="td-mono">01-age-gate.html</td><td>Age Gate</td><td class="td-done">Done</td></tr>
+      <tr><td class="td-mono">02-explicit-consent.html</td><td>Explicit Consent</td><td class="td-done">Done</td></tr>
+      <tr><td class="td-mono">03-password.html</td><td>Password Screen</td><td class="td-done">Done</td></tr>
+      <tr><td class="td-mono">04-interstitial.html</td><td>Pre-Cover Interstitial</td><td class="td-done">Done</td></tr>
+      <tr><td class="td-mono">05-cover-screen.html</td><td>Cover Screen</td><td class="td-done">Done</td></tr>
+      <tr><td class="td-mono">06-reader.html</td><td>Reader View</td><td class="td-done">Done</td></tr>
+      <tr><td class="td-mono">07-end-page.html</td><td>End Page</td><td class="td-done">Done</td></tr>
+      <tr><td class="td-mono">08-decline.html</td><td>Decline / Dead End</td><td class="td-done">Done</td></tr>
+      <tr><td class="td-mono">09-chunk-transition.html</td><td>Chunk Transition (2-frame)</td><td class="td-done">Done</td></tr>
+      <tr><td class="td-mono">10-thumbnail-strip.html</td><td>Thumbnail Strip (2-frame)</td><td class="td-done">Done</td></tr>
+    </table>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">Build Phase — Week 1</div>
+    <table class="spec-table">
+      <tr><th>Deliverable</th><th>Status</th></tr>
+      <tr><td>Vite + React + TypeScript project scaffolded</td><td class="td-done">Done</td></tr>
+      <tr><td>pnpm, Node 22.12.0 environment configured</td><td class="td-done">Done</td></tr>
+      <tr><td>Supabase project live with all 5 tables and RLS policies</td><td class="td-done">Done</td></tr>
+      <tr><td>Reusable components: GateShell, GateLogo, PhoneShell, Navbar</td><td class="td-done">Done</td></tr>
+      <tr><td>Pages complete: AgeGate, ExplicitConsent, Password, Interstitial, Decline, Cover, Reader, EndPage</td><td class="td-done">Done</td></tr>
+      <tr><td>Full routing structure wired</td><td class="td-done">Done</td></tr>
+      <tr><td>TypeScript types for all 5 data tables</td><td class="td-done">Done</td></tr>
+      <tr><td>Supabase client configured</td><td class="td-done">Done</td></tr>
+    </table>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">Week 2 — Editor, dashboard, system spec</div>
+    <table class="spec-table">
+      <tr><th>File</th><th>Deliverable</th><th>Status</th></tr>
+      <tr><td class="td-mono">11-editor-architecture.html</td><td>Editor Architecture — all 7 decisions locked (Days 6–7)</td><td class="td-done">Done</td></tr>
+      <tr><td class="td-mono">12-editor-workspace.html</td><td>Editor Workspace mockup — Design mode, speech bubble selected (v6 final)</td><td class="td-done">Done</td></tr>
+      <tr><td class="td-mono">12bcd-editor-states.html</td><td>Editor additional states — Panel Props (12b), Transitions mode (12c), Publish mode (12d), three-up layout</td><td class="td-done">Done</td></tr>
+      <tr><td class="td-mono">13-creator-dashboard.html</td><td>Creator Dashboard — three-card system, story list, stats, light/dark toggle</td><td class="td-done">Done</td></tr>
+      <tr><td class="td-mono">14-system-spec.html</td><td>System Spec — URL structure, 3 storage layers, 5 database tables, V3 extensibility map (Day 10)</td><td class="td-done">Done</td></tr>
+    </table>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">Build Session — April 18, 2026 — Layers architecture complete</div>
+    <table class="spec-table">
+      <tr><th>Deliverable</th><th>Status</th></tr>
+      <tr><td>Database migration: <code>reading_mode</code> column added to stories, <code>layers</code> table created (id, panel_id, story_id, position, media_type, media_url, x_percent, y_percent, width_percent, height_percent, is_fill, opacity, created_at), <code>overlays</code> table dropped</td><td class="td-done">Done</td></tr>
+      <tr><td><code>src/types/index.ts</code> — added Layer interface, MediaType, ReadingMode, LAYER_DEFAULTS, CINEMATIC_PANEL_HEIGHT. Removed Overlay, OverlayType, OVERLAY_DEFAULTS.</td><td class="td-done">Done</td></tr>
+      <tr><td><code>src/store/editorStore.ts</code> — full rewrite. Overlay state removed, layers state added.</td><td class="td-done">Done</td></tr>
+      <tr><td><code>src/hooks/useAutoSave.ts</code> — full rewrite. Now saves story (including reading_mode), panels, and layers.</td><td class="td-done">Done</td></tr>
+      <tr><td><code>src/pages/Editor.tsx</code> — updated to load layers from Supabase on mount instead of overlays.</td><td class="td-done">Done</td></tr>
+      <tr><td><code>src/components/editor/EditorCanvas.tsx</code> — full rewrite. Media upload (image/gif/video/audio), LayerCanvas component with drag-to-move and 8-handle resize (4 corners + 4 edges), shift-key proportional scaling on corners, fill vs positioned layer modes (cover vs fill objectFit), cinematic/scroll mode aware toolbar.</td><td class="td-done">Done</td></tr>
+      <tr><td><code>src/components/editor/EditorRail.tsx</code> — full rewrite. Properties tab, Layers tab with z-order controls, Transitions mode, Publish mode with reading mode toggle.</td><td class="td-done">Done</td></tr>
+      <tr><td><code>src/styles/editor.css</code> — all new CSS classes added for canvas and rail components.</td><td class="td-done">Done</td></tr>
+      <tr><td>OverlayCanvas.tsx deleted. overlay.css deleted.</td><td class="td-done">Done</td></tr>
+    </table>
+    <div class="change-note" style="margin-top:12px"><strong>Known issues logged (to be fixed in upcoming sessions):</strong> Layer selection click bubbling bug · Panel thumbnails not reflecting layers · Dashboard cover image stale · Layer arrow buttons non-functional · Single resize handle (8-handle planned) · Navbar label visible in canvas · No assets management modal yet</div>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">Build Session — April 22, 2026 — Reader polish &amp; audio pipeline</div>
+    <table class="spec-table">
+      <tr><th>Deliverable</th><th>Status</th></tr>
+      <tr><td>Reader rebuilt on <code>.reader-stage</code> / <code>.reader-panel-slot</code> / <code>.reader-panel-card</code> system (35vw × 95vh desktop, 100vw × 95vh mobile). CSS <code>perspective</code> on slot, not stage — fixed Navbar no longer trapped in a containing block.</td><td class="td-done">Done</td></tr>
+      <tr><td>Cover → first-panel dramatic intro. AnimatePresence opacity crossfade outer + <code>introVariant="first"</code> scale/rotate/y animation nested inside the scroll-driven transform on <code>PanelScrollItem</code>.</td><td class="td-done">Done</td></tr>
+      <tr><td>End page rewritten to use <code>.reader-panel-card--end</code> — book-page parity with cover and panels. PhoneShell removed.</td><td class="td-done">Done</td></tr>
+      <tr><td>Transition button navigation uses framer-motion <code>animate()</code> honoring <code>story.transition_duration_ms</code>. Temporary <code>scroll-snap-type: none</code> during the tween so the animation doesn't fight the snap layer.</td><td class="td-done">Done</td></tr>
+      <tr><td>Audio pipeline unified. Single <code>readerStore.videoSfxEnabled</code> flag fed by both the Interstitial "Video &amp; SFX" switch and the Navbar speaker button. <code>PanelMedia</code> computes <code>effectiveMuted = panel.muted || !videoSfxEnabled</code> and imperatively syncs <code>videoRef.current.muted</code> (React's <code>muted</code> prop is initial-attribute-only on some browsers).</td><td class="td-done">Done</td></tr>
+      <tr><td><strong>Autosave bug fixed.</strong> <code>useAutoSave.ts</code> layer UPDATE payload now includes <code>autoplay, loop, muted, playback_rate</code> — previously dropped, which is why the editor's Muted / Autoplay / Loop / Speed toggles never persisted to the DB.</td><td class="td-done">Done</td></tr>
+      <tr><td><code>LAYER_DEFAULTS.video.muted</code> flipped from <code>true</code> → <code>false</code>. New video layers default to deferring to the viewer's Video &amp; SFX preference. Creator-set Muted ON remains a hard-override.</td><td class="td-done">Done</td></tr>
+      <tr><td>End-page Restart and Exit buttons route to <code>/u/:username/s/:slug</code> (the story cover) — previously landed on dashboard / home, which broke the re-entry flow.</td><td class="td-done">Done</td></tr>
+      <tr><td>Three <code>react-hooks/exhaustive-deps</code> warnings silenced with scoped <code>eslint-disable-next-line</code> + justification comments (stable Zustand setters explicitly excluded from dep arrays).</td><td class="td-done">Done</td></tr>
+      <tr><td>TypeScript build error fixed in <code>PanelScrollItem.tsx</code>: cubic-bezier tuple annotated <code>as const</code> so framer-motion's <code>Easing</code> type inference doesn't widen to <code>number[]</code>.</td><td class="td-done">Done</td></tr>
+    </table>
+    <div class="change-note" style="margin-top:12px"><strong>Pending operator action:</strong> run the one-time SQL backfill <code>UPDATE layers SET muted = false WHERE media_type = 'video' AND muted = true;</code> against the Supabase project so existing video layers created before the autosave bug was patched pick up the new default.</div>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">Build Session — April 25, 2026 — Layer pipeline rebuild &amp; 10-bug fix pass</div>
+    <table class="spec-table">
+      <tr><th>Deliverable</th><th>Status</th></tr>
+      <tr><td><code>src/types/index.ts</code> — added <code>FillMode = 'stretch' | 'crop' | 'custom'</code> type; added <code>fill_mode: FillMode | null</code>, <code>focal_x_percent: number | null</code>, <code>focal_y_percent: number | null</code> to Layer interface; updated LAYER_DEFAULTS for image/gif/video (fill_mode: 'crop', focal 50/50) and audio (fill_mode: 'custom').</td><td class="td-done">Done</td></tr>
+      <tr><td><code>src/store/readerStore.ts</code> — added <code>videoVolume: number</code> (default 1) and <code>setVideoVolume</code> action for Navbar volume slider.</td><td class="td-done">Done</td></tr>
+      <tr><td><code>supabase-migrations/2026-04-24-fill-mode.sql</code> — new migration file. Adds <code>fill_mode</code>, <code>focal_x_percent</code>, <code>focal_y_percent</code> columns to layers table with backfill from <code>is_fill</code>.</td><td class="td-done">Done</td></tr>
+      <tr><td><code>src/hooks/useAutoSave.ts</code> — layer UPDATE payload extended to include <code>fill_mode</code>, <code>focal_x_percent</code>, <code>focal_y_percent</code>.</td><td class="td-done">Done</td></tr>
+      <tr><td><code>src/hooks/useReaderData.ts</code> — <code>PanelWithMeta</code> now exposes full <code>layers: Layer[]</code> (sorted ascending by position) instead of collapsing to a single <code>image_url</code>. Root cause fix for issues 1, 2, 3, 6 — all z-ordered layers now reach the reader.</td><td class="td-done">Done</td></tr>
+      <tr><td><code>src/components/reader/PanelLayers.tsx</code> — new file. Renders all layers in z-order. <code>resolvedFillMode()</code> helper respects new <code>fill_mode</code> with <code>is_fill</code> fallback. IntersectionObserver per video/audio layer for autoplay at 50% visibility. Imperative <code>playbackRate</code>, <code>muted</code>, volume sync. Focal-point <code>object-position</code> for crop mode. Audio layers render as invisible <code>&lt;audio&gt;</code> elements.</td><td class="td-done">Done</td></tr>
+      <tr><td><code>src/components/reader/PanelScrollItem.tsx</code> — split into <code>ScrollPanelItem</code> (plain div, per-panel height from <code>panel.height</code>, no transforms) and <code>CinematicPanelItem</code> (original 3D framer-motion logic). Public export dispatches on <code>mode</code> prop. Fixes scroll mode having 3D animations.</td><td class="td-done">Done</td></tr>
+      <tr><td><code>src/pages/Reader.tsx</code> — removed flat <code>PanelMedia</code> component entirely; <code>PanelLayers</code> now renders inside a relative container div. <code>handleFullscreen</code> changed to <code>document.documentElement.requestFullscreen()</code> so window scroll continues. Auto-advance <code>IntersectionObserver</code> on last panel removed — end navigation on next-arrow only. <code>PanelScrollItem</code> receives <code>mode</code> and <code>heightPx</code>. Volume/setVideoVolume threaded from readerStore to Navbar. <code>introVariant</code> only applied in cinematic mode.</td><td class="td-done">Done</td></tr>
+      <tr><td><code>src/components/Navbar.tsx</code> — added <code>volume</code> and <code>onVolumeChange</code> props. Volume slider (range 0–1, step 0.02, accentColor #DC5A8A) rendered in right cluster when audio is enabled.</td><td class="td-done">Done</td></tr>
+      <tr><td><code>src/pages/Cover.tsx</code> — added <code>previewMode</code> and <code>onExitPreview</code> props. "Exit Preview ×" button shown when in preview mode.</td><td class="td-done">Done</td></tr>
+      <tr><td><code>src/components/editor/EditorTopBar.tsx</code> — Preview button changed from <code>window.open(_blank)</code> to same-tab <code>navigate(url)</code>. Eliminates the duplicate editor tab bug.</td><td class="td-done">Done</td></tr>
+      <tr><td><code>src/styles/reader.css</code> — added <code>.reader-panel-card--end .cover-bg</code> and <code>.reader-panel-card--end .cover-gradient</code> rules to fix end-cover background image distortion. Added <code>.reader-panel-slot--scroll</code> to remove perspective/height constraints in scroll mode.</td><td class="td-done">Done</td></tr>
+      <tr><td><code>src/components/editor/EditorCanvas.tsx</code> — <code>FillMode</code> import moved to top-level. <code>resolvedFillMode()</code> and <code>getMediaObjectFit()</code> helpers added. Focal-point crosshair drag handler in crop mode. Resize handles only shown when mode is 'custom'. Canvas size label corrected from "800 × 640" to "400 × 640".</td><td class="td-done">Done</td></tr>
+      <tr><td><code>src/components/editor/EditorRail.tsx</code> — "Fill panel" boolean toggle replaced with three-way Crop / Stretch / Custom button group. Focal point X/Y numeric inputs shown in crop mode. Position/size inputs only shown in custom mode. <code>fill_mode</code> and <code>is_fill</code> both updated on change for backward compat.</td><td class="td-done">Done</td></tr>
+      <tr><td>TypeScript build (<code>npx tsc --noEmit</code>) — zero errors. Vite build — clean in 1.17s.</td><td class="td-done">Done</td></tr>
+    </table>
+    <div class="change-note" style="margin-top:12px"><strong>Pending operator action:</strong> run <code>supabase-migrations/2026-04-24-fill-mode.sql</code> against the Supabase project (postgres superuser role, statements individually). Until migration runs, <code>fill_mode</code> column does not exist and the editor's three-way fill control will not persist to the DB.</div>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">Build Session — April 18, 2026 — Bug fixes &amp; editor improvements</div>
+    <table class="spec-table">
+      <tr><th>Deliverable</th><th>Status</th></tr>
+      <tr><td>Fixed layer selection event bubbling bug — viewport deselect handler changed from <code>onClick</code> to <code>onMouseDown</code> in EditorCanvas</td><td class="td-done">Done</td></tr>
+      <tr><td>Fixed layer arrow button direction logic — up = higher position value = higher z-order = swap with index + 1 in sorted array</td><td class="td-done">Done</td></tr>
+      <tr><td>Fixed filmstrip thumbnails — EditorFilmstrip now derives thumbnail from top visible layer's <code>media_url</code> (excluding audio), not <code>panel.image_url</code></td><td class="td-done">Done</td></tr>
+      <tr><td>Removed "Navbar — visible to reader" label from EditorCanvas</td><td class="td-done">Done</td></tr>
+      <tr><td>Implemented 8-handle resize on LayerCanvas (4 corners + 4 edges). Corner handles support shift-constrained proportional scaling using aspect ratio captured at drag start.</td><td class="td-done">Done</td></tr>
+      <tr><td>Fixed <code>objectFit</code> — positioned layers use <code>fill</code>, fill layers use <code>cover</code></td><td class="td-done">Done</td></tr>
+    </table>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════
+     13 — V3 PARKED DECISIONS
+════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-num">Section 13</div>
+  <div class="section-title">V3 and Later — Parked Decisions</div>
+  <div class="section-divider"></div>
+
+  <table class="spec-table">
+    <tr><th>Item</th><th>Target</th><th>Notes</th></tr>
+    <tr><td>Episode/chapter management UI</td><td class="td-v3">V3</td><td>V2 each story is one episode. URL namespace <code>/u/username/s/slug</code> already supports this structure without retrofit.</td></tr>
+    <tr><td>Monetization — Free, Creator, Pro tiers</td><td class="td-v3">V3</td><td>Full spec in Section 6. Stripe confirmed. <code>subscription_tier</code> field already in users table — Stripe writes to it when V3 ships.</td></tr>
+    <tr><td>Creator profile pages</td><td class="td-v3">V3</td><td>URL namespace <code>alex.so/u/[username]</code> reserved. Returns 404 in V2. Username and display_name already stored. Zero migration needed.</td></tr>
+    <tr><td>Custom domain support</td><td class="td-v3">V3 Pro</td><td>Cloudflare Pages supports this natively.</td></tr>
+    <tr><td>Analytics dashboard</td><td class="td-v3">V3 Pro</td><td>Supabase event logging hooks available in V2. Add <code>story_views</code> table when ready.</td></tr>
+    <tr><td>Comic format — editor + reader</td><td class="td-v3">V3</td><td>Three.js (React Three Fiber) set up in V2. Page turn, spine, paper curl rendering.</td></tr>
+    <tr><td>Book format — editor + reader</td><td class="td-v3">V3</td><td>Same Three.js infrastructure as comic.</td></tr>
+    <tr><td>Magazine format — editor + reader</td><td class="td-v3">V3+</td><td>Same Three.js infrastructure.</td></tr>
+    <tr><td>Panel width control</td><td class="td-v3">V3 editor</td><td>Full-width only in V2. Affects text reflow, video scaling, transitions, mobile handling.</td></tr>
+    <tr><td>Master volume control</td><td><span class="badge badge-done">Shipped V2</span></td><td>Volume slider added to Navbar right cluster in April 25, 2026 session — range 0–1, step 0.02, driven by <code>readerStore.videoVolume</code>. Visible when audio is enabled. Two independent mute toggles (Video &amp; SFX, Music) remain. A true master mute above both is still a V3 option.</td></tr>
+    <tr><td>Shapes overlay type in editor</td><td class="td-v3">V3</td><td>Cut from V2 to avoid a second parallel overlay system. Five text overlay types are the complete V2 set.</td></tr>
+    <tr><td>Multi-session editing / conflict resolution</td><td class="td-v3">V3</td><td>V2 assumes single-session. Last save wins. Multi-tab conflict resolution deferred.</td></tr>
+    <tr><td>About section (end page)</td><td>Later</td><td>Cut from V2 scope. Creator bio, Patreon, socials, commission links. Will be designed and built in a future version.</td></tr>
+    <tr><td>Auto-advance with voice acting</td><td>V4+</td><td>Requires audio upload infrastructure, per-panel timing controls, sync logic.</td></tr>
+    <tr><td>Founding creator program</td><td>V2 test</td><td>Lifetime free Creator tier, locked Pro pricing, named as founders. 3–5 creators, 25–50 readers.</td></tr>
+  </table>
+</div>
+
+
+<!-- ════════════════════════════════════════
+     14 — DECISION LOG (CLOSED)
+════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-num">Section 14</div>
+  <div class="section-title">Decision Log — All Closed</div>
+  <div class="section-divider"></div>
+
+  <div class="sub">
+    <div class="sub-title">Structural & product decisions</div>
+    <table class="spec-table">
+      <tr><th>Decision</th><th>Outcome</th></tr>
+      <tr><td>Platform format — V2 scope</td><td>Webtoon only. Comic, book, magazine deferred to V3+.</td></tr>
+      <tr><td>Chunk boundary definition</td><td>Creator-defined breaks at intentional narrative moments. Optional chapter title per break.</td></tr>
+      <tr><td>URL namespace</td><td>Creator-scoped: <code>alex.so/u/[username]/s/[slug]</code>. Enables V3 profile pages at zero additional cost.</td></tr>
+      <tr><td>Slug permanence</td><td>Generated once at creation, never changes on rename. Shared links never break.</td></tr>
+      <tr><td>Chunk advance mechanic</td><td>Both: scroll past last panel auto-advances AND next arrow in navbar.</td></tr>
+      <tr><td>Reader progress persistence</td><td>localStorage. Position persists on browser close and refresh.</td></tr>
+      <tr><td>Panel width — V2</td><td>Full viewport width only. No creator width control. V3 editor option.</td></tr>
+      <tr><td>Scroll direction</td><td>Down. Standard webtoon convention.</td></tr>
+      <tr><td>Cover screen enter interaction</td><td>Click/tap upward arrow only. No auto-advance, no timeout.</td></tr>
+      <tr><td>Cover screen links</td><td>No links of any kind. Creator links on end page only.</td></tr>
+      <tr><td>Audio infrastructure scope</td><td>Multimodal from V2. Cover screen audio, background music, video audio, SFX all in scope.</td></tr>
+      <tr><td>Interstitial audio controls</td><td>Two independent toggles: Video & SFX Audio and Music Audio. Both default Off.</td></tr>
+      <tr><td>Audio classification rule</td><td>Ambient/atmospheric → Video & SFX. Composed tracks → Music. Never mixed.</td></tr>
+      <tr><td>Age gate session persistence</td><td>Re-confirm every visit in V2. No localStorage persistence.</td></tr>
+      <tr><td>Content rating flags</td><td>Three tiers: General (no gates), Mature (age gate), Explicit (age gate + consent). Required at publish.</td></tr>
+      <tr><td>Password protection</td><td>Optional per story. Off by default. Creator distributes password via Patreon, Discord, etc.</td></tr>
+      <tr><td>About section (V2)</td><td>Cut from V2. Deferred to future version.</td></tr>
+    </table>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">Editor decisions — Week 2</div>
+    <table class="spec-table">
+      <tr><th>Decision</th><th>Outcome</th></tr>
+      <tr><td>Editor mental model</td><td>Slide-deck with vertical filmstrip. One panel active at a time in canvas. Confirmed from PowerPoint reference.</td></tr>
+      <tr><td>Text overlay types — V2</td><td>Five: Speech Bubble, Thought Bubble, Caption, Narration, Title Card. Shapes cut as V3.</td></tr>
+      <tr><td>Creator font system</td><td>Full Google Fonts API (~1,500 families). Not a curated shortlist. Search + live preview in picker. Lazy-load fonts in editor. Batched single request in reader from font manifest.</td></tr>
+      <tr><td>Panel height storage</td><td>Raw pixel integer (e.g. 240), not preset name. Preset labels are UI-only. Stored numbers describe the actual panel.</td></tr>
+      <tr><td>Chunk break data model</td><td>Chunks are first-class records with their own table. Panels reference their chunk by ID. Chunk music lives on the chunk record, not the panel.</td></tr>
+      <tr><td>Undo/redo scope</td><td>Full session history in Zustand client state. Database has no undo history.</td></tr>
+      <tr><td>Save model</td><td>Auto-save draft (2s trailing debounce) + explicit Publish action.</td></tr>
+      <tr><td>Video + music collision</td><td>Both play simultaneously by default. Creator can suppress story music per panel via music_suppressed boolean.</td></tr>
+      <tr><td>Transitions</td><td>Three global presets per story: Cinematic (default), Fade, Cut. Not per-panel. Duration adjustable 200–1200ms.</td></tr>
+      <tr><td>Cover panel structure</td><td>First panel in filmstrip. chunk_id = null. Cannot be reordered or deleted. Custom canvas surface. Multiple cover panels supported for anthology stories.</td></tr>
+      <tr><td>Dashboard about section</td><td>Cut from V2. Not built.</td></tr>
+    </table>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">Build phase decisions — Week 1</div>
+    <table class="spec-table">
+      <tr><th>Decision</th><th>Outcome</th></tr>
+      <tr><td>Package manager</td><td>pnpm — faster installs, better for Cloudflare Pages deploy</td></tr>
+      <tr><td>Node version</td><td>22.12.0 LTS — required for Vite 8</td></tr>
+      <tr><td>Database setup</td><td>Supabase hosted from day one — not local CLI</td></tr>
+      <tr><td>Media storage</td><td>Supabase Storage for dev, Backblaze B2 deferred to later phase</td></tr>
+      <tr><td>Gate screen heights</td><td>Fixed at 620px. Reader screen: minHeight 620px.</td></tr>
+      <tr><td>Phone shell encapsulation</td><td>Dimensions locked as reusable components (PhoneShell, GateShell) — never hardcoded per-page again</td></tr>
+    </table>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">Build phase decisions — Reader integration (April 13, 2026)</div>
+    <table class="spec-table">
+      <tr><th>Decision</th><th>Outcome</th></tr>
+      <tr><td>Overlay position rendering</td><td>x_percent and y_percent rendered as CSS % values (not px). width_percent nullable with 62% fallback.</td></tr>
+      <tr><td>Story in Zustand store</td><td>Story stored in gateStore alongside gate state. EndPage reads story from store — no prop drilling, no route state.</td></tr>
+      <tr><td>Panel container height formula</td><td>activeHeight + Math.round(activeHeight * 0.39) + 20. Outgoing panel height is 39% of active panel height. Locked.</td></tr>
+      <tr><td>Canonical types file</td><td>src/lib/types.ts deleted. src/types/index.ts is the single source of truth for all data types.</td></tr>
+      <tr><td>clearGate deduplication</td><td>clearGate now guards against duplicate entries with an includes() check before appending.</td></tr>
+    </table>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">Build phase decisions — Auth system (April 13, 2026)</div>
+    <table class="spec-table">
+      <tr><th>Decision</th><th>Outcome</th></tr>
+      <tr><td>Auth system</td><td>Supabase email/password. No custom auth. Sessions managed by Supabase JS client (localStorage persistence).</td></tr>
+      <tr><td>Routing</td><td>Full route table live. Reader routes require no auth. Dashboard and Editor protected by AuthGuard.</td></tr>
+    </table>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">Build phase decisions — Dashboard + Bug fixes (April 15, 2026)</div>
+    <table class="spec-table">
+      <tr><th>Decision</th><th>Outcome</th></tr>
+      <tr><td>New Story creation flow</td><td>No modal. Click New Story → create row immediately (title: 'Untitled Story', random slug: adj-noun-hex4, is_published: false, content_rating: 'mature') → redirect to /editor/:storyId.</td></tr>
+      <tr><td>Dashboard CSS token system</td><td>dashboard.css created. Dark mode fully defined. Light mode stub only — deferred to Layer 2. Uses data-theme attribute on root element matching editor.css pattern.</td></tr>
+      <tr><td>Dashboard story card delete</td><td>Two-click confirm pattern. First click: button shows "Sure?" (confirming state). Second click within 3s: deletes from Supabase and removes from state. Auto-resets after 3s if not confirmed.</td></tr>
+      <tr><td>Panel image persistence bug</td><td>handleUpload was updating Zustand only — never writing image_url to Supabase. Fixed: Supabase update now runs before updatePanel call.</td></tr>
+      <tr><td>Title input sync bug</td><td>EditorTopBar initialized titleValue from story at mount only. Fixed: useEffect now syncs titleValue when story.title changes.</td></tr>
+      <tr><td>Panel delete persistence</td><td>deletePanel store action was Zustand-only. Fixed: EditorFilmstrip now calls Supabase delete before calling store action. Delete is permanent and persists across refresh.</td></tr>
+      <tr><td>Editor → Dashboard navigation</td><td>Alexandria logo in EditorTopBar navigates to /dashboard. If saveStatus === 'unsaved', shows window.confirm() native dialog before navigating. Custom UI deferred to Layer 2.</td></tr>
+      <tr><td>SignIn/SignUp layout</td><td>Phone shell removed from auth pages. Full-page responsive layout. auth.css created matching Alexandria dark aesthetic. Responsive at all screen sizes.</td></tr>
+      <tr><td>Share URL bug</td><td>Dashboard copy handler was building /u/username/slug — missing /s/ segment. Fixed to /u/username/s/slug matching reader route.</td></tr>
+      <tr><td>Duplicate email handling</td><td>Supabase returns data.user.identities === [] for already-registered emails. UI now detects this and shows "An account with this email already exists. Sign in instead."</td></tr>
+      <tr><td>Responsive design policy</td><td>All pages must be responsive. Editor is the only exception — desktop-only by design (creation tool). Auth pages, Dashboard, Reader are all responsive.</td></tr>
+      <tr><td>Confirmation email redirect</td><td>Supabase redirect URL config fix required — not a code change. Site URL and redirect URL must be set in Supabase Auth → URL Configuration. Instructions included in handoff.</td></tr>
+    </table>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">Build phase decisions — Editor Layer 1 (April 14, 2026)</div>
+    <table class="spec-table">
+      <tr><th>Decision</th><th>Outcome</th></tr>
+      <tr><td>Editor layout</td><td>Full-bleed desktop. No phone shell. 1280×720 target. Five regions: top bar, filmstrip (180px), canvas (flex 1), right rail (240px).</td></tr>
+      <tr><td>Panel image storage</td><td>Supabase Storage bucket 'panels'. Path: {storyId}/{panelId}/{timestamp}.{ext}. Public bucket with authenticated upload policy.</td></tr>
+      <tr><td>Video upload</td><td>Deferred. Requires Cloudflare Stream. Not Supabase Storage.</td></tr>
+      <tr><td>chunk_id nullability</td><td>panels.chunk_id altered to nullable. Panels can exist without chunk assignment in Layer 1.</td></tr>
+      <tr><td>Transition persistence</td><td>Deferred. No schema field yet. Local state only in Layer 1.</td></tr>
+      <tr><td>Editor theme</td><td>Dark mode only in Layer 1. Light mode deferred.</td></tr>
+    </table>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">Tech stack decisions</div>
+    <table class="spec-table">
+      <tr><th>Decision</th><th>Outcome</th></tr>
+      <tr><td>Frontend</td><td>React + TypeScript</td></tr>
+      <tr><td>2D transitions</td><td>Framer Motion + CSS 3D</td></tr>
+      <tr><td>3D rendering</td><td>React Three Fiber (Three.js) — V2 setup, V3 format payoff</td></tr>
+      <tr><td>State management</td><td>Zustand</td></tr>
+      <tr><td>Video delivery</td><td>Cloudflare Stream — ToS verified</td></tr>
+      <tr><td>Database + Auth</td><td>Supabase (Postgres) — ToS verified</td></tr>
+      <tr><td>Media storage</td><td>Backblaze B2 — ToS verified, free egress via Cloudflare CDN</td></tr>
+      <tr><td>Hosting</td><td>Cloudflare Pages — ToS verified</td></tr>
+      <tr><td>Payments (V3)</td><td>Stripe — adult content with verification. CCBill/Segpay as alternatives.</td></tr>
+    </table>
+  </div>
+</div>
+
+
+  <div class="sub">
+    <div class="sub-title">Build phase decisions — April 18, 2026 (bug fixes &amp; editor improvements)</div>
+    <table class="spec-table">
+      <tr><th>Decision</th><th>Outcome</th></tr>
+      <tr><td>Viewport deselect event</td><td>Changed from <code>onClick</code> to <code>onMouseDown</code> on viewport div in EditorCanvas to fix layer selection event bubbling bug.</td></tr>
+      <tr><td>Layer arrow direction logic</td><td>Corrected: up = higher position value = higher z-order = swap with index + 1 in sorted array.</td></tr>
+      <tr><td>Filmstrip thumbnail source</td><td>EditorFilmstrip thumbnails now derive from top visible layer's <code>media_url</code> (excluding audio), not <code>panel.image_url</code>.</td></tr>
+      <tr><td>8-handle resize</td><td>Implemented 4 corners + 4 edges on LayerCanvas. Corner handles support shift-constrained proportional scaling using aspect ratio captured at drag start.</td></tr>
+      <tr><td>Layer media objectFit</td><td>LayerCanvas renderMedia uses <code>objectFit: fill</code> for positioned layers, <code>objectFit: cover</code> for fill layers.</td></tr>
+      <tr><td>Navbar label removal</td><td>"Navbar — visible to reader" label removed from EditorCanvas.</td></tr>
+    </table>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">Reader polish decisions — April 22, 2026</div>
+    <table class="spec-table">
+      <tr><th>Decision</th><th>Outcome</th></tr>
+      <tr><td>Reader card system</td><td><code>.reader-stage</code> → <code>.reader-panel-slot</code> → <code>.reader-panel-card</code>. Slot sizes to 35vw × 95vh desktop / 100vw × 95vh mobile. The slot — not the stage — owns the CSS <code>perspective</code> so fixed-position descendants like the Navbar are not trapped in its containing block.</td></tr>
+      <tr><td>Cover → reader handoff</td><td>AnimatePresence opacity crossfade between Cover and Reader, plus a one-shot <code>introVariant="first"</code> on the first panel that nests a scale/rotate/y animation inside the scroll-driven transform. Reduced-motion collapses the inner variant to pure opacity.</td></tr>
+      <tr><td>End page structure</td><td>Same book-page card as cover and panels (<code>.reader-panel-card--end</code> variant). PhoneShell dropped here too. Visual parity across all reader surfaces.</td></tr>
+      <tr><td>End-page exit routing</td><td>Restart and Exit both navigate to <code>/u/:username/s/:slug</code> — the story cover. Previously Exit went to dashboard (wrong for anonymous readers) and Restart reloaded the route. Unified on cover so the reader always re-enters through the gate flow.</td></tr>
+      <tr><td>Chunk transition timing source</td><td>Framer-motion <code>animate()</code> driving <code>window.scrollTo</code>, with duration read from <code>story.transition_duration_ms</code>. CSS <code>scroll-snap-type</code> is temporarily set to <code>none</code> during the tween, restored on completion.</td></tr>
+      <tr><td>Reader audio — single source of truth</td><td>One store flag: <code>readerStore.videoSfxEnabled</code>. Both the Interstitial "Video &amp; SFX" switch and the Navbar speaker button write to it. Legacy <code>audioEnabled</code>/<code>toggleAudio</code> removed.</td></tr>
+      <tr><td>Muted computation in reader</td><td><code>effectiveMuted = panel.muted || !videoSfxEnabled</code>. Creator-set <code>muted=true</code> is a hard-override the viewer cannot undo. Viewer's <code>videoSfxEnabled</code> only unmutes layers that the creator left <code>muted=false</code>.</td></tr>
+      <tr><td>Video muted sync</td><td>Imperatively set <code>videoRef.current.muted = effectiveMuted</code> in a useEffect. React's <code>muted</code> prop is an initial-attribute-only in some browsers — updating the prop after mount does not always reach the element.</td></tr>
+      <tr><td>Autosave layers payload</td><td><code>useAutoSave.ts</code> layer UPDATE must include <code>autoplay, loop, muted, playback_rate</code>. Omitting any of them silently drops the editor's corresponding toggle. Rediscovered as the root cause of the "audio isn't working" bug.</td></tr>
+      <tr><td>Default <code>muted</code> for new video layers</td><td><code>false</code>. New videos defer to the viewer's Video &amp; SFX preference (off by default in the reader). A creator who needs a silent clip — e.g. ambient loop under a music track — flips the Muted switch in EditorRail to ON. Image/GIF defaults left at <code>true</code> (no audio track); Audio layer default <code>false</code>.</td></tr>
+      <tr><td>Autoplay policy compatibility</td><td>Because <code>videoSfxEnabled</code> defaults to <code>false</code> in the reader, first-render <code>effectiveMuted = true</code> even for a <code>muted=false</code> layer — so <code>&lt;video autoplay muted&gt;</code> succeeds under Chrome's policy. User gesture (Navbar speaker click or Interstitial accept) unmutes while the video is already playing, which the policy permits.</td></tr>
+      <tr><td>Exhaustive-deps on stable setters</td><td>Preferred scoped <code>eslint-disable-next-line react-hooks/exhaustive-deps</code> with a one-line justification over widening the dep array with Zustand setters that are stable across renders. Applied in <code>Editor.tsx</code>, <code>Reader.tsx</code>, <code>useReaderData.ts</code>.</td></tr>
+    </table>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">Build phase decisions — April 25, 2026 (layer pipeline &amp; 10-bug pass)</div>
+    <table class="spec-table">
+      <tr><th>Decision</th><th>Outcome</th></tr>
+      <tr><td>Fill mode data model</td><td>Three-way enum: <code>crop</code> (object-fit: cover + focal-point object-position), <code>stretch</code> (object-fit: fill), <code>custom</code> (absolute position/size). Stored as <code>fill_mode text</code> column. <code>is_fill</code> retained for backward compat; reader resolves <code>fill_mode ?? (is_fill ? 'crop' : 'custom')</code>.</td></tr>
+      <tr><td>Focal point storage</td><td><code>focal_x_percent</code> / <code>focal_y_percent</code> (0–100, default 50/50, NOT NULL). Maps to CSS <code>object-position: {x}% {y}%</code> in crop mode. Editor provides crosshair drag on the layer canvas.</td></tr>
+      <tr><td>Layer pipeline in reader</td><td><code>useReaderData</code> exposes <code>layers: Layer[]</code> sorted ascending by position on every <code>PanelWithMeta</code>. Previous approach collapsed all layers to a single <code>image_url</code>, silently discarding positioning, sizing, fill mode, opacity, and all sibling layers.</td></tr>
+      <tr><td>Scroll mode rendering</td><td><code>PanelScrollItem</code> split: <code>ScrollPanelItem</code> is a plain div with per-panel height and no transforms; <code>CinematicPanelItem</code> keeps the framer-motion 3D scroll-driven animation. Public export dispatches on <code>mode</code> prop.</td></tr>
+      <tr><td>Per-panel height in reader</td><td>Scroll mode respects <code>panel.height</code> (raw px integer, e.g. 320) via inline styles. Cinematic mode ignores it — panels are always 95vh card slots.</td></tr>
+      <tr><td>Auto-advance on last panel</td><td>Removed. The IntersectionObserver that auto-navigated after 1.4s when the last panel was &gt;90% visible was disorienting. End navigation now only on explicit next-arrow press. No reader-initiated IO triggers navigation anymore.</td></tr>
+      <tr><td>Fullscreen target</td><td><code>document.documentElement.requestFullscreen()</code>. Previous target (<code>.reader-stage</code>) froze window scroll because the element owned the scroll context, breaking all framer-motion scroll-driven transforms. Targeting <code>documentElement</code> keeps window scroll active.</td></tr>
+      <tr><td>Preview navigation</td><td>Same-tab <code>navigate(url)</code> in <code>EditorTopBar</code>. Previous <code>window.open(_blank)</code> created a second tab that then navigated to <code>/editor/:id</code> on exit, leaving two editor tabs open.</td></tr>
+      <tr><td>Volume slider in reader</td><td>Navbar right cluster. Range 0–1, step 0.02, accentColor #DC5A8A. Visible only when audio is enabled. Drives <code>readerStore.videoVolume</code> which is passed into <code>PanelLayers</code> for all video/audio elements.</td></tr>
+      <tr><td>Video autoplay in PanelLayers</td><td>IntersectionObserver per video/audio layer at 50% threshold. On intersect: <code>play()</code>; on exit: <code>pause()</code>. Imperative <code>playbackRate</code>, <code>muted</code>, and <code>volume</code> sync via separate useEffects so changes propagate even after mount.</td></tr>
+      <tr><td>End-cover image fix</td><td>Added <code>.reader-panel-card--end .cover-bg</code> CSS rule (position:absolute, inset:0, width/height 100%, object-fit:cover, object-position:center top). The end page used <code>.reader-panel-card--end</code> but only <code>.reader-panel-card--cover .cover-bg</code> existed, so the background image rendered at its intrinsic size.</td></tr>
+      <tr><td>SQL migration delivery</td><td>Migration file committed at <code>supabase-migrations/2026-04-24-fill-mode.sql</code>. If ALTER TABLE fails in the Supabase SQL editor, switch the role dropdown (top-right of SQL editor) from the default anon/service key to <code>postgres</code> superuser.</td></tr>
+    </table>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">Editor pivot decisions — April 17, 2026</div>
+    <table class="spec-table">
+      <tr><th>Decision</th><th>Outcome</th></tr>
+      <tr><td>Text overlay removal</td><td>All text overlays (speech bubbles, captions, narration, thought bubbles, title cards) removed from MVP. Creators embed text in artwork. Revisit post-MVP based on creator feedback.</td></tr>
+      <tr><td>Font editor removal</td><td>Removed with text overlays. No dependency without overlay system.</td></tr>
+      <tr><td>Canvas authoring width</td><td>Locked at 400px. Reader renders full-width on device — 400px is the authoring reference only.</td></tr>
+      <tr><td>Reading modes</td><td>Two modes: Cinematic (400×640px fixed, Framer Motion transitions, default) and Scroll (400px wide, variable height, no transitions). Creator sets once in Publish settings.</td></tr>
+      <tr><td>Default reading mode</td><td>Cinematic — it is Alexandria's differentiator. Creators opt into Scroll if they want traditional webtoon format.</td></tr>
+      <tr><td>layers table</td><td>Replaces overlays table. Stores all media items per panel with position, size, z-order, fill vs custom mode.</td></tr>
+      <tr><td>Transparent video</td><td>Deferred post-MVP. PNG with transparency covers foreground layering use case. WebM alpha has inconsistent browser support.</td></tr>
+      <tr><td>Audio in MVP</td><td>Attached to panel, not visible to reader. Toggled via existing navbar speaker icon. No visible audio UI on panel.</td></tr>
+      <tr><td>Drag-to-reorder filmstrip</td><td>Deferred to V3. Not blocking MVP.</td></tr>
+      <tr><td>Chapter breaks</td><td>Deferred to V3. Not blocking MVP.</td></tr>
+      <tr><td>Phone shell scope</td><td>Gate pages only. Removed from reader and editor. Reader is full-width on device.</td></tr>
+      <tr><td>Living document auto-update</td><td>Claude Code must update both handoff prompt and platform-design-spec.html after every meaningful session automatically — not waiting to be asked.</td></tr>
+    </table>
+  </div>
+
+<!-- FOOTER -->
+<div class="doc-footer">
+  <span class="footer-text">Alexandria · Platform Design Specification · Updated April 25, 2026</span>
+  <span class="footer-text">Layer pipeline rebuilt · fill modes · scroll/cinematic split · 10 bugs fixed · volume slider</span>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,113 @@
+// src/hooks/useAutoSave.ts
+
+import { useEffect, useRef, useCallback } from 'react'
+import { supabase } from '../lib/supabase'
+import { useEditorStore } from '../store/editorStore'
+
+const DEBOUNCE_MS = 2000
+
+export function useAutoSave(): void {
+  const { story, panels, layers, saveStatus, setSaveStatus } = useEditorStore()
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const isMounted = useRef(true)
+  const requestIdRef = useRef(0)
+
+  useEffect(() => {
+    isMounted.current = true
+    return () => {
+      isMounted.current = false
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
+  }, [])
+
+  const save = useCallback(async (): Promise<void> => {
+    if (!story) return
+    if (!isMounted.current) return
+
+    const myId = ++requestIdRef.current
+    const isStale = (): boolean => !isMounted.current || myId !== requestIdRef.current
+
+    setSaveStatus('saving')
+
+    try {
+      const storyUpdates: Record<string, unknown> = {
+        title: story.title,
+        content_rating: story.content_rating,
+        reading_mode: story.reading_mode,
+        creator_bio: story.creator_bio,
+        creator_links: story.creator_links,
+        updated_at: new Date().toISOString(),
+      }
+      if (story.transition_style != null) storyUpdates.transition_style = story.transition_style
+      if (story.transition_duration_ms != null) storyUpdates.transition_duration_ms = story.transition_duration_ms
+
+      const { error: storyError } = await supabase
+        .from('stories')
+        .update(storyUpdates)
+        .eq('id', story.id)
+
+      if (isStale()) return
+      if (storyError) throw new Error(storyError.message)
+
+      for (let i = 0; i < panels.length; i++) {
+        if (isStale()) return
+        const panel = panels[i]
+        const { error: panelError } = await supabase
+          .from('panels')
+          .update({
+            position: i,
+            height: panel.height,
+            image_url: panel.image_url,
+          })
+          .eq('id', panel.id)
+        if (panelError) throw new Error(panelError.message)
+      }
+
+      for (const layer of layers) {
+        if (isStale()) return
+        const { error: layerError } = await supabase
+          .from('layers')
+          .update({
+            position: layer.position,
+            media_url: layer.media_url,
+            x_percent: layer.x_percent,
+            y_percent: layer.y_percent,
+            width_percent: layer.width_percent,
+            height_percent: layer.height_percent,
+            is_fill: layer.is_fill,
+            fill_mode: layer.fill_mode,
+            focal_x_percent: layer.focal_x_percent,
+            focal_y_percent: layer.focal_y_percent,
+            opacity: layer.opacity,
+            autoplay: layer.autoplay,
+            loop: layer.loop,
+            muted: layer.muted,
+            playback_rate: layer.playback_rate,
+          })
+          .eq('id', layer.id)
+        if (layerError) throw new Error(layerError.message)
+      }
+
+      if (!isStale()) setSaveStatus('saved')
+    } catch (err) {
+      if (!isStale()) {
+        setSaveStatus('error')
+        if (import.meta.env.DEV) console.error('[autosave]', err)
+      }
+    }
+  }, [story, panels, layers, setSaveStatus])
+
+  useEffect(() => {
+    if (saveStatus !== 'unsaved') return
+
+    if (timerRef.current) clearTimeout(timerRef.current)
+
+    timerRef.current = setTimeout(() => {
+      void save()
+    }, DEBOUNCE_MS)
+
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
+  }, [saveStatus, save])
+}

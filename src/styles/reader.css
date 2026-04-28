@@ -1,0 +1,561 @@
+/* ── Reader Stage ─────────────────────────────────────────────────────────
+   Full-viewport dark stage. Book-page cards float in this stage; neighbours
+   are one full viewport apart so only the active card is visible at rest.
+   `perspective` lives here (the element containing all transformed cards),
+   so every card shares a single depth plane.
+*/
+
+.reader-stage {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
+  background: #0E0608;
+  color: #F5EEE8;
+  font-family: 'DM Sans', sans-serif;
+  overflow-x: hidden;
+  /* NOTE: perspective lives on each .reader-panel-slot, not here. Putting
+     `perspective` on this ancestor creates a containing block that traps
+     `position: fixed` descendants (Navbar, ExitPreview, ThumbStrip) so
+     they stop anchoring to the viewport. Per-slot perspective still gives
+     each card its own depth plane, which matches the reference behavior. */
+}
+
+/* Feed is a plain block — scroll happens on the WINDOW, not a scoped
+   overflow container. That's what keeps framer-motion's useScroll
+   measurements in sync with what the user actually sees. */
+.reader-feed {
+  display: block;
+  padding: 0;
+  margin: 0;
+}
+
+/* ── Slots + Cards ─────────────────────────────────────────────────── */
+
+/* Each slot is flush with the next (slot_h = card_h = 95vh). At snap
+   center, the card fills the viewport except for a 2.5vh sliver at the
+   top and bottom — which is exactly where the previous card's tail and
+   the next card's head peek in. That small peek signals "there's more
+   scroll here" without dominating the page. */
+.reader-panel-slot {
+  min-height: 95vh;
+  height: 95vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Each slot owns its perspective so the card inside it tilts in 3D.
+     Moving perspective here (off .reader-stage) avoids trapping fixed-
+     position descendants in a containing block. */
+  perspective: 1400px;
+  perspective-origin: center center;
+}
+
+.reader-panel-slot--snap {
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
+}
+
+/* Scroll-mode slots: same 95vh height as cinematic but continuous (no snap).
+   Disable perspective so no 3D transforms apply; stretch so card fills slot. */
+.reader-panel-slot--scroll {
+  perspective: none;
+  align-items: stretch;
+}
+
+/* The book-page card. Height is fixed at 95vh across devices; width
+   is 35vw on desktop (narrow book-page), 100vw on mobile (edge-to-edge).
+   `transform-style: preserve-3d` so rotateX is measured against the
+   slot's perspective. */
+.reader-panel-card {
+  position: relative;
+  height: 95vh;
+  width: 35vw;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #0a0a0a;
+  border: 0;
+  outline: 0;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  will-change: transform, opacity;
+}
+
+@media (max-width: 640px) {
+  .reader-panel-card {
+    width: 100vw;
+    border-radius: 0;
+  }
+}
+
+/* Panel image/video. `display: block` removes the UA-default inline gap. */
+.reader-panel-media {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  display: block;
+  border: 0;
+}
+
+.reader-panel-placeholder {
+  width: 100%;
+  height: 100%;
+  background: #0E0608;
+}
+
+/* ── Chapter overlay (rendered inside the motion card) ── */
+
+.chapter-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom,
+    rgba(14,6,8,0.18) 0%,
+    rgba(14,6,8,0.04) 25%,
+    rgba(14,6,8,0.6) 65%,
+    rgba(14,6,8,0.95) 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.chapter-overlay-eyebrow {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #DC5A8A;
+  text-shadow: 0 1px 8px rgba(0,0,0,0.95);
+}
+
+.chapter-overlay-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: clamp(20px, 4vw, 32px);
+  line-height: 1.2;
+  color: #F5EEE8;
+  text-align: center;
+  padding: 0 16px;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.95);
+}
+
+/* ── Cover card variant (same footprint as a panel card) ── */
+
+.reader-panel-card--cover {
+  background: #0E0608;
+  cursor: pointer;
+  padding: 0;
+  border: 0;
+  text-align: inherit;
+  font: inherit;
+  color: inherit;
+}
+
+.reader-panel-card--cover .cover-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
+}
+
+.reader-panel-card--cover .cover-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom,
+    rgba(14,6,8,0.2) 0%,
+    rgba(14,6,8,0.05) 30%,
+    rgba(14,6,8,0.65) 65%,
+    rgba(14,6,8,0.97) 100%);
+  pointer-events: none;
+}
+
+.reader-panel-card--cover .cover-content {
+  position: absolute;
+  inset: auto 0 0 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 0 18px 28px;
+  text-align: center;
+}
+
+.reader-panel-card--cover .cover-eyebrow {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #DC5A8A;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.95);
+}
+
+.reader-panel-card--cover .cover-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: clamp(22px, 6vh, 34px);
+  line-height: 1.1;
+  color: #F5EEE8;
+  margin: 0;
+  text-shadow: 0 2px 16px rgba(0,0,0,0.95), 0 4px 32px rgba(0,0,0,0.8);
+}
+
+.reader-panel-card--cover .cover-cue {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(245,238,232,0.72);
+  margin-top: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.reader-panel-card--cover .cover-branding {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: rgba(14,6,8,0.65);
+  border-radius: 18px;
+  padding: 5px 12px;
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+/* ── End-page card variant ──────────────────────────────────────────────
+   Same book-page footprint as `.reader-panel-card--cover`; reuses `.cover-bg`
+   and `.cover-gradient` children (identical background rendering). The
+   content block is aligned toward the bottom of the card with a slightly
+   looser padding than the cover so there's room for creator bio + link
+   list + action buttons without feeling cramped.
+*/
+.reader-panel-card--end {
+  background: #0E0608;
+}
+
+.reader-panel-card--end .cover-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
+}
+
+.reader-panel-card--end .cover-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom,
+    rgba(14,6,8,0.2) 0%,
+    rgba(14,6,8,0.05) 30%,
+    rgba(14,6,8,0.65) 65%,
+    rgba(14,6,8,0.97) 100%);
+  pointer-events: none;
+}
+
+.reader-panel-card--end .end-content {
+  position: absolute;
+  inset: auto 0 0 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 0 22px 28px;
+  text-align: center;
+}
+
+.reader-panel-card--end .end-divider {
+  width: 40px;
+  height: 1px;
+  background: rgba(201, 48, 96, 0.5);
+  margin: 6px 0 4px;
+}
+
+.reader-panel-card--end .end-bio {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  line-height: 1.65;
+  color: rgba(245, 238, 232, 0.68);
+  margin: 0;
+  max-width: 32ch;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+}
+
+.reader-panel-card--end .end-links {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  align-items: flex-start;
+  margin-top: 4px;
+}
+
+.reader-panel-card--end .end-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.reader-panel-card--end .end-link-icon {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  background: rgba(201, 48, 96, 0.25);
+  flex-shrink: 0;
+}
+
+.reader-panel-card--end .end-link-label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  color: #E87FAA;
+}
+
+.reader-panel-card--end .end-actions {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  margin-top: 14px;
+}
+
+.reader-panel-card--end .end-btn {
+  flex: 1;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 13px 0;
+  border-radius: 8px;
+  cursor: pointer;
+  min-height: 44px;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease, transform 120ms ease;
+}
+
+.reader-panel-card--end .end-btn--ghost {
+  background: transparent;
+  color: rgba(245, 238, 232, 0.6);
+  border: 1px solid rgba(245, 238, 232, 0.18);
+}
+.reader-panel-card--end .end-btn--ghost:hover {
+  color: #F5EEE8;
+  border-color: rgba(245, 238, 232, 0.36);
+}
+
+.reader-panel-card--end .end-btn--primary {
+  background: #C93060;
+  color: #F5EEE8;
+  border: 1px solid #C93060;
+}
+.reader-panel-card--end .end-btn--primary:hover {
+  background: #DC5A8A;
+  border-color: #DC5A8A;
+  transform: translateY(-1px);
+}
+
+/* ── Fixed-position Navbar wrapper ── */
+
+.reader-navbar-fixed {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+}
+
+/* ── Exit Preview button (creator-only overlay) ── */
+
+.reader-exit-preview {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 1000;
+  background: rgba(201, 48, 96, 0.92);
+  color: #F5EEE8;
+  border: none;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(6px);
+  transition: transform 120ms ease, background 120ms ease;
+}
+.reader-exit-preview:hover {
+  background: rgba(220, 90, 138, 1);
+  transform: translateY(-1px);
+}
+
+/* ── Thumbnail strip ── */
+
+.reader-thumb-strip {
+  /* Fixed to viewport so it sits above the Navbar regardless of scroll. */
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  max-height: 60%;
+  background: rgba(14, 6, 8, 0.97);
+  border-top: 1px solid rgba(245, 238, 232, 0.08);
+  backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 56px; /* leaves room above the Navbar */
+}
+
+.reader-thumb-strip-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(245, 238, 232, 0.06);
+}
+
+.reader-thumb-strip-title {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(245, 238, 232, 0.55);
+}
+
+.reader-thumb-strip-close {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(245, 238, 232, 0.08);
+  border: none;
+  border-radius: 999px;
+  color: #F5EEE8;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 120ms;
+}
+.reader-thumb-strip-close:hover { opacity: 1; }
+
+.reader-thumb-strip-body {
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1;
+  padding: 8px 0;
+}
+
+.reader-thumb-chapter {
+  padding: 8px 14px 14px;
+}
+
+.reader-thumb-chapter-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(245, 238, 232, 0.28);
+  margin-bottom: 8px;
+}
+.reader-thumb-chapter-header.is-current {
+  color: #DC5A8A;
+}
+.reader-thumb-chapter-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: rgba(245, 238, 232, 0.6);
+}
+
+.reader-thumb-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  padding-bottom: 4px;
+}
+.reader-thumb-row::-webkit-scrollbar { display: none; }
+
+.reader-thumb {
+  flex-shrink: 0;
+  position: relative;
+  width: 72px;
+  height: 96px;
+  background: #0E0608;
+  border: 1px solid rgba(245, 238, 232, 0.08);
+  border-radius: 6px;
+  padding: 0;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 160ms ease, transform 120ms ease;
+}
+.reader-thumb:hover { transform: translateY(-1px); }
+.reader-thumb.is-active {
+  border-color: #C93060;
+  border-width: 1.5px;
+}
+
+.reader-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.reader-thumb-empty {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #1a0e12 0%, #0E0608 100%);
+}
+
+.reader-thumb-page {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  background: rgba(14, 6, 8, 0.8);
+  color: #F5EEE8;
+  font-size: 9px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 3px;
+  letter-spacing: 0.04em;
+}
+
+/* ── Legacy classes retained for EndPage etc. ──────────────────────── */
+
+.cinematic-reader-root {
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
+  background: #0E0608;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.cinematic-reader-stage {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  overflow: hidden;
+  background: #0E0608;
+}
+
+.cinematic-panel-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  display: block;
+}
