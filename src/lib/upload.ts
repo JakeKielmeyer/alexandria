@@ -11,6 +11,33 @@ import type { MediaType } from '../types'
 export const ACCEPTED_MEDIA = 'image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,audio/mpeg,audio/wav,audio/ogg'
 export const ACCEPTED_COVER = 'image/jpeg,image/png,image/webp,image/gif'
 
+const ACCEPTED_MEDIA_TYPES = new Set(ACCEPTED_MEDIA.split(','))
+const ACCEPTED_COVER_TYPES = new Set(ACCEPTED_COVER.split(','))
+
+// 100 MB cap. Comfortably above any reasonable single-panel image and well
+// below Supabase Storage limits (50 MB on free tier, 5 GB on Pro). Above this
+// the Supabase JS client would silently choke during in-memory file
+// preparation before issuing the network request, leaving the editor with
+// a hung spinner and no error.
+const MAX_UPLOAD_BYTES = 100 * 1024 * 1024
+
+function formatBytes(bytes: number): string {
+  if (bytes >= 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  if (bytes >= 1024) return `${(bytes / 1024).toFixed(0)} KB`
+  return `${bytes} B`
+}
+
+export function validateMediaFile(file: File, accept: 'media' | 'cover' = 'media'): void {
+  const allowed = accept === 'cover' ? ACCEPTED_COVER_TYPES : ACCEPTED_MEDIA_TYPES
+  if (!allowed.has(file.type)) {
+    throw new Error(`Unsupported file type (${file.type || 'unknown'})`)
+  }
+  if (file.size > MAX_UPLOAD_BYTES) {
+    throw new Error(`File too large (${formatBytes(file.size)}; max ${formatBytes(MAX_UPLOAD_BYTES)})`)
+  }
+}
+
 export function getMediaType(file: File): MediaType | null {
   if (file.type.startsWith('image/gif')) return 'gif'
   if (file.type.startsWith('image/')) return 'image'

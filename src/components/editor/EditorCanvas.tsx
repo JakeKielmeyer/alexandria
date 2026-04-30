@@ -6,7 +6,7 @@ import { useToastStore } from '../../store/toastStore'
 import { supabase } from '../../lib/supabase'
 import { PANEL_HEIGHT_PRESETS, LAYER_DEFAULTS, CINEMATIC_PANEL_HEIGHT } from '../../types'
 import type { PanelHeightPreset, Layer, FillMode } from '../../types'
-import { ACCEPTED_MEDIA, getMediaType, uploadToPanelsBucket, panelLayerPath } from '../../lib/upload'
+import { ACCEPTED_MEDIA, getMediaType, uploadToPanelsBucket, panelLayerPath, validateMediaFile } from '../../lib/upload'
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -400,6 +400,7 @@ export default function EditorCanvas(): React.JSX.Element {
     setSaveStatus('saving')
 
     try {
+      validateMediaFile(file, 'media')
       const { url: mediaUrl } = await uploadToPanelsBucket(file, panelLayerPath(story.id, activePanel.id, file))
 
       const nextPosition = activePanelLayers.length
