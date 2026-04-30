@@ -12,6 +12,8 @@ const Reader = lazy(() => import('./pages/Reader'))
 const EndPage = lazy(() => import('./pages/EndPage'))
 const SignUp = lazy(() => import('./pages/SignUp'))
 const SignIn = lazy(() => import('./pages/SignIn'))
+const ResetPassword = lazy(() => import('./pages/ResetPassword'))
+const UpdatePassword = lazy(() => import('./pages/UpdatePassword'))
 const Editor = lazy(() => import('./pages/Editor'))
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const Terms = lazy(() => import('./pages/legal/Terms'))
@@ -57,6 +59,8 @@ function App(): React.JSX.Element {
         <Route path="/" element={<HomeRedirect />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/signin" element={<SignIn />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/update-password" element={<UpdatePassword />} />
         <Route path="/u/:username/s/:slug" element={<Reader />} />
         <Route path="/u/:username/s/:slug/end" element={<EndPage />} />
         <Route path="/decline" element={<Decline />} />
