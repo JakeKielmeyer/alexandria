@@ -22,10 +22,12 @@ compatibility_flags = ["nodejs_compat"]
 #   Root directory:         /
 #   Node version:           20 (set via NODE_VERSION env var in dashboard)
 #
-# Build-time env vars: live in `.env.production` (committed). All
-# VITE_-prefixed vars are inlined into the client bundle and therefore
-# already public; Supabase RLS is what protects the data. To rotate,
-# edit `.env.production` and push.
+# Build-time public config (Supabase URL + anon key) is inlined via
+# `define` in `vite.config.ts`. Hardcoded there because Cloudflare Pages
+# does not honor `.env*` files at build time. All VITE_-prefixed values
+# are inlined into the client bundle and are therefore already public;
+# Supabase RLS is what protects the data. To rotate, edit
+# `vite.config.ts` and push.
 #
 # Optional secrets (set in dashboard if used; not committed):
 #   VITE_SENTRY_DSN
