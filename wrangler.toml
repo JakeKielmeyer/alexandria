@@ -17,12 +17,15 @@ compatibility_flags = ["nodejs_compat"]
 # mirrored so wrangler-driven deploys match dashboard deploys.
 #
 # Dashboard equivalents:
-#   Build command:          pnpm install --frozen-lockfile && pnpm build
+#   Build command:          npx pnpm install && npx pnpm run build
 #   Build output directory: dist
 #   Root directory:         /
 #   Node version:           20 (set via NODE_VERSION env var in dashboard)
 #
-# Environment variables (set in dashboard, never committed):
-#   VITE_SUPABASE_URL
-#   VITE_SUPABASE_ANON_KEY
-#   VITE_SENTRY_DSN  (optional)
+# Build-time env vars: live in `.env.production` (committed). All
+# VITE_-prefixed vars are inlined into the client bundle and therefore
+# already public; Supabase RLS is what protects the data. To rotate,
+# edit `.env.production` and push.
+#
+# Optional secrets (set in dashboard if used; not committed):
+#   VITE_SENTRY_DSN
