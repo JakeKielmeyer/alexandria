@@ -4,7 +4,7 @@ import React, { useRef, useState } from 'react'
 import { useEditorStore } from '../../store/editorStore'
 import { useToastStore } from '../../store/toastStore'
 import { supabase } from '../../lib/supabase'
-import { ACCEPTED_COVER, coverPath, uploadToPanelsBucket } from '../../lib/upload'
+import { ACCEPTED_COVER, coverPath, uploadToPanelsBucket, validateMediaFile } from '../../lib/upload'
 import type { ContentRating, FillMode, ReadingMode, TransitionStyle } from '../../types'
 
 function resolvedFillMode(layer: { fill_mode: FillMode | null; is_fill: boolean }): FillMode {
@@ -171,6 +171,7 @@ export default function EditorRail(): React.JSX.Element {
     setCoverUploading(true)
     setSaveStatus('saving')
     try {
+      validateMediaFile(file, 'cover')
       const { url } = await uploadToPanelsBucket(file, coverPath(story.id, file))
       const { error } = await supabase
         .from('stories')
