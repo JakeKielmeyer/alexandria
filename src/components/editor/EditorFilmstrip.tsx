@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Reorder } from "framer-motion";
 import { useEditorStore } from "../../store/editorStore";
 import { supabase } from "../../lib/supabase";
@@ -21,13 +21,60 @@ export default function EditorFilmstrip(): React.JSX.Element {
     setSaveStatus,
   } = useEditorStore();
 
-  const handleDeletePanel = async (panelId: string): Promise<void> => {
+  // Two-click delete confirmation. First click on the × switches the
+  // button into "confirm" state for 3s; second click within that window
+  // commits the delete. Clicking outside or the 3s timeout reverts.
+  const [confirmingDeletionId, setConfirmingDeletionId] = useState<string | null>(null);
+  const confirmTimeoutRef = useRef<number | null>(null);
+  const deleteButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  const clearConfirmTimeout = (): void => {
+    if (confirmTimeoutRef.current !== null) {
+      window.clearTimeout(confirmTimeoutRef.current);
+      confirmTimeoutRef.current = null;
+    }
+  };
+
+  // Reset confirm-state when the user clicks anywhere outside the delete
+  // button (e.g. on a different panel, the canvas, or the rail).
+  useEffect(() => {
+    if (!confirmingDeletionId) return;
+    const onDocClick = (e: MouseEvent): void => {
+      if (deleteButtonRef.current && deleteButtonRef.current.contains(e.target as Node)) return;
+      setConfirmingDeletionId(null);
+      clearConfirmTimeout();
+    };
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [confirmingDeletionId]);
+
+  // Clean up the timeout on unmount.
+  useEffect(() => () => clearConfirmTimeout(), []);
+
+  const performDelete = async (panelId: string): Promise<void> => {
     const { error } = await supabase.from("panels").delete().eq("id", panelId);
     if (error) {
       setSaveStatus("error");
       return;
     }
     deletePanel(panelId);
+  };
+
+  const handleDeletePanel = (panelId: string): void => {
+    if (confirmingDeletionId === panelId) {
+      // Second click — commit.
+      setConfirmingDeletionId(null);
+      clearConfirmTimeout();
+      void performDelete(panelId);
+      return;
+    }
+    // First click — enter confirm state for 3s.
+    setConfirmingDeletionId(panelId);
+    clearConfirmTimeout();
+    confirmTimeoutRef.current = window.setTimeout(() => {
+      setConfirmingDeletionId(null);
+      confirmTimeoutRef.current = null;
+    }, 3000);
   };
 
   const handleAddPanel = async (): Promise<void> => {
@@ -197,37 +244,51 @@ export default function EditorFilmstrip(): React.JSX.Element {
                 {index + 1}
               </div>
               {/* Delete button — only on active panel */}
-              {isActive && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    void handleDeletePanel(panel.id);
-                  }}
-                  disabled={panels.length === 1}
-                  aria-label="Delete panel"
-                  style={{
-                    position: "absolute",
-                    top: "4px",
-                    right: "4px",
-                    width: "18px",
-                    height: "18px",
-                    background: "rgba(14,6,8,0.75)",
-                    borderRadius: "3px",
-                    border: "none",
-                    padding: 0,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "var(--text-secondary)",
-                    cursor: panels.length === 1 ? "not-allowed" : "pointer",
-                    opacity: panels.length === 1 ? 0.4 : 1,
-                  }}
-                >
-                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
-                    <path d="M2 2l6 6M8 2l-6 6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-                  </svg>
-                </button>
-              )}
+              {isActive && (() => {
+                const confirming = confirmingDeletionId === panel.id;
+                const disabled = panels.length === 1;
+                return (
+                  <button
+                    ref={confirming ? deleteButtonRef : undefined}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeletePanel(panel.id);
+                    }}
+                    disabled={disabled}
+                    aria-label={confirming ? "Confirm delete panel" : "Delete panel"}
+                    title={confirming ? "Click again to confirm" : "Delete panel"}
+                    style={{
+                      position: "absolute",
+                      top: "4px",
+                      right: "4px",
+                      height: "18px",
+                      width: confirming ? "auto" : "18px",
+                      padding: confirming ? "0 6px" : 0,
+                      background: confirming ? "#C93060" : "rgba(14,6,8,0.75)",
+                      borderRadius: "3px",
+                      border: "none",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: confirming ? "#F5EEE8" : "var(--text-secondary)",
+                      fontFamily: "'DM Sans', sans-serif",
+                      fontSize: "10px",
+                      fontWeight: 600,
+                      letterSpacing: "0.04em",
+                      cursor: disabled ? "not-allowed" : "pointer",
+                      opacity: disabled ? 0.4 : 1,
+                    }}
+                  >
+                    {confirming ? (
+                      "Confirm?"
+                    ) : (
+                      <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+                        <path d="M2 2l6 6M8 2l-6 6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+                      </svg>
+                    )}
+                  </button>
+                );
+              })()}
             </Reorder.Item>
           );
         })}
