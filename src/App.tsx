@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 import { useAuthStore } from './store/authStore'
 import AuthGuard from './components/AuthGuard'
+import Toast from './components/Toast'
 import Decline from './pages/Decline'
 import NotFound from './pages/NotFound'
 
@@ -55,6 +56,7 @@ function App(): React.JSX.Element {
 
   return (
     <Suspense fallback={<RouteFallback />}>
+      <Toast />
       <Routes>
         <Route path="/" element={<HomeRedirect />} />
         <Route path="/signup" element={<SignUp />} />

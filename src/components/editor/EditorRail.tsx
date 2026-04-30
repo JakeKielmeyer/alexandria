@@ -2,6 +2,7 @@
 
 import React, { useRef, useState } from 'react'
 import { useEditorStore } from '../../store/editorStore'
+import { useToastStore } from '../../store/toastStore'
 import { supabase } from '../../lib/supabase'
 import { ACCEPTED_COVER, coverPath, uploadToPanelsBucket } from '../../lib/upload'
 import type { ContentRating, FillMode, ReadingMode, TransitionStyle } from '../../types'
@@ -51,6 +52,7 @@ export default function EditorRail(): React.JSX.Element {
     updateLayer, updateStory, deleteLayer,
     setActiveLayerId, setSaveStatus,
   } = useEditorStore()
+  const pushToast = useToastStore((s) => s.pushToast)
 
   const [railTab, setRailTab] = useState<'properties' | 'layers'>('properties')
   const selectedTransition: TransitionStyle = story?.transition_style ?? 'stacked'
@@ -177,8 +179,10 @@ export default function EditorRail(): React.JSX.Element {
       if (error) throw error
       updateStory({ cover_url: url })
       setSaveStatus('saved')
-    } catch {
+    } catch (err: unknown) {
       setSaveStatus('error')
+      const msg = err instanceof Error ? err.message : 'Unknown error'
+      pushToast(`Cover upload failed: ${msg}`, 'error')
     } finally {
       setCoverUploading(false)
       if (coverInputRef.current) coverInputRef.current.value = ''

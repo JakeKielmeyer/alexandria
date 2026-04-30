@@ -2,6 +2,7 @@
 
 import React, { useRef, useState, useEffect, useCallback } from 'react'
 import { useEditorStore } from '../../store/editorStore'
+import { useToastStore } from '../../store/toastStore'
 import { supabase } from '../../lib/supabase'
 import { PANEL_HEIGHT_PRESETS, LAYER_DEFAULTS, CINEMATIC_PANEL_HEIGHT } from '../../types'
 import type { PanelHeightPreset, Layer, FillMode } from '../../types'
@@ -337,6 +338,7 @@ export default function EditorCanvas(): React.JSX.Element {
     addLayer, setActiveLayerId, activeLayerId,
     gridVisible, gridSize, toggleGrid,
   } = useEditorStore()
+  const pushToast = useToastStore((s) => s.pushToast)
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
@@ -426,8 +428,10 @@ export default function EditorCanvas(): React.JSX.Element {
       // panel image no longer mutates story.cover_url.
 
       setSaveStatus('saved')
-    } catch {
+    } catch (err: unknown) {
       setSaveStatus('error')
+      const msg = err instanceof Error ? err.message : 'Unknown error'
+      pushToast(`Upload failed: ${msg}`, 'error')
     } finally {
       setUploading(false)
       setAddingLayer(false)
