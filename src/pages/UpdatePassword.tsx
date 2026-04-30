@@ -1,31 +1,53 @@
 // Inline styles retained on inputs and buttons per coding standards (existing code).
 // New structural layout uses auth.css classes only.
 import React, { useState, useEffect } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import GateLogo from '../components/GateLogo'
 import '../styles/auth.css'
 
-export default function SignIn(): React.JSX.Element {
+export default function UpdatePassword(): React.JSX.Element {
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
 
-  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
-  const [confirmed, setConfirmed] = useState(false)
+  const [ready, setReady] = useState(false)
 
+  // Supabase parses the recovery token from the URL on load and emits a
+  // PASSWORD_RECOVERY event with a temporary session. Wait for that event
+  // (or an existing session) before allowing the form to submit; otherwise
+  // updateUser will fail with "Auth session missing".
   useEffect(() => {
-    if (searchParams.get('confirmed') === '1') setConfirmed(true)
-  }, [searchParams])
+    let cancelled = false
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!cancelled && session) setReady(true)
+    })
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (cancelled) return
+      if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && session)) {
+        setReady(true)
+      }
+    })
+
+    return () => {
+      cancelled = true
+      subscription.unsubscribe()
+    }
+  }, [])
 
   const handleSubmit = async () => {
     setFormError(null)
+    if (password.length < 8) {
+      setFormError('Password must be at least 8 characters')
+      return
+    }
     setSubmitting(true)
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      const { error } = await supabase.auth.updateUser({ password })
       if (error) {
         setFormError(error.message)
       } else {
@@ -43,51 +65,26 @@ export default function SignIn(): React.JSX.Element {
       <div className="auth-card">
         <GateLogo />
 
-        <div className="auth-heading">Sign in</div>
-
-        {confirmed && (
-          <div style={{
-            background: 'rgba(61,170,112,0.12)',
-            border: '1px solid rgba(61,170,112,0.3)',
-            borderRadius: '8px',
-            padding: '12px 16px',
-            marginBottom: '16px',
-            fontFamily: "'DM Sans', sans-serif",
-            fontSize: '12px',
-            color: '#3DAA70',
-            textAlign: 'center',
-          }}>
-            Email confirmed — please sign in to continue.
-          </div>
-        )}
+        <div className="auth-heading">Set new password</div>
 
         <div className="auth-fields">
-          {/* Email */}
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            style={{
-              width: '100%',
-              boxSizing: 'border-box' as const,
-              background: 'rgba(245,238,232,0.06)',
-              border: '1px solid rgba(245,238,232,0.1)',
-              borderRadius: '8px',
-              padding: '14px 16px',
+          {!ready && (
+            <div style={{
               fontFamily: "'DM Sans', sans-serif",
-              fontSize: '13px',
-              color: '#F5EEE8',
-              outline: 'none',
-              marginBottom: '12px'
-            }}
-          />
+              fontSize: '12px',
+              color: 'rgba(245,238,232,0.6)',
+              marginBottom: '14px',
+              textAlign: 'center',
+              lineHeight: 1.5,
+            }}>
+              Verifying reset link…
+            </div>
+          )}
 
-          {/* Password with toggle */}
           <div className="auth-password-wrapper">
             <input
               type={showPassword ? 'text' : 'password'}
-              placeholder="Password"
+              placeholder="New password"
               value={password}
               onChange={e => setPassword(e.target.value)}
               style={{
@@ -122,26 +119,11 @@ export default function SignIn(): React.JSX.Element {
             </button>
           </div>
 
-          {/* Forgot password */}
-          <div style={{
-            fontFamily: "'DM Sans', sans-serif",
-            fontSize: '11px',
-            textAlign: 'right',
-            marginTop: '8px',
-            marginBottom: '12px',
-          }}>
-            <span
-              onClick={() => navigate('/reset-password')}
-              style={{ color: 'rgba(245,238,232,0.55)', cursor: 'pointer' }}
-            >Forgot password?</span>
-          </div>
-
-          {/* Submit */}
           <button
             onClick={handleSubmit}
-            disabled={submitting}
+            disabled={submitting || !ready}
             style={{
-              background: submitting ? 'rgba(201,48,96,0.6)' : '#C93060',
+              background: submitting || !ready ? 'rgba(201,48,96,0.6)' : '#C93060',
               color: '#F5EEE8',
               fontFamily: "'DM Sans', sans-serif",
               fontSize: '13px',
@@ -149,31 +131,17 @@ export default function SignIn(): React.JSX.Element {
               padding: '15px 0',
               borderRadius: '8px',
               width: '100%',
+              marginTop: '12px',
               marginBottom: '10px',
               border: 'none',
-              cursor: submitting ? 'default' : 'pointer',
-              display: 'block'
+              cursor: submitting || !ready ? 'default' : 'pointer',
+              display: 'block',
             }}
-          >{submitting ? 'Signing in…' : 'Sign In'}</button>
+          >{submitting ? 'Updating…' : 'Update password'}</button>
 
-          {/* Form error */}
           {formError && (
             <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '12px', color: '#C93060', marginBottom: '10px', textAlign: 'center' }}>{formError}</div>
           )}
-
-          {/* Sign up link */}
-          <div style={{
-            fontFamily: "'DM Sans', sans-serif",
-            fontSize: '12px',
-            color: 'rgba(245,238,232,0.45)',
-            textAlign: 'center'
-          }}>
-            Don't have an account?{' '}
-            <span
-              onClick={() => navigate('/signup')}
-              style={{ color: '#DC5A8A', cursor: 'pointer', textDecoration: 'none' }}
-            >Sign up</span>
-          </div>
         </div>
 
         <div className="auth-legal-links">
