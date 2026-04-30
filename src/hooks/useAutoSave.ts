@@ -55,7 +55,11 @@ export function useAutoSave(): void {
         const { error: panelError } = await supabase
           .from('panels')
           .update({
-            position: i,
+            // Use panel.position (mutated by reorderPanels) rather than the
+            // array index — the panels[] array isn't reordered after a drag,
+            // so writing `position: i` would silently undo the reorder on
+            // the next autosave.
+            position: panel.position,
             height: panel.height,
             image_url: panel.image_url,
           })
