@@ -6,7 +6,7 @@ import { useToastStore } from '../../store/toastStore'
 import { supabase } from '../../lib/supabase'
 import { PANEL_HEIGHT_PRESETS, LAYER_DEFAULTS, CINEMATIC_PANEL_HEIGHT } from '../../types'
 import type { PanelHeightPreset, Layer, FillMode } from '../../types'
-import { ACCEPTED_MEDIA, getMediaType, uploadToPanelsBucket, panelLayerPath, validateMediaFile } from '../../lib/upload'
+import { ACCEPTED_MEDIA, getMediaType, uploadToPanelsBucket, panelLayerPath, validateMediaFile, registerAsset } from '../../lib/upload'
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -411,6 +411,9 @@ export default function EditorCanvas(): React.JSX.Element {
       validateMediaFile(file, 'media')
       const { url: mediaUrl } = await uploadToPanelsBucket(file, panelLayerPath(story.id, activePanel.id, file))
 
+      // Register the upload in the assets table so it can be reused across panels.
+      const assetId = await registerAsset(story.id, mediaType, mediaUrl, file.name)
+
       const nextPosition = activePanelLayers.length
       const defaults = LAYER_DEFAULTS[mediaType]
 
@@ -420,6 +423,7 @@ export default function EditorCanvas(): React.JSX.Element {
         position: nextPosition,
         media_type: mediaType,
         media_url: mediaUrl,
+        asset_id: assetId,
         ...defaults,
       }
 
