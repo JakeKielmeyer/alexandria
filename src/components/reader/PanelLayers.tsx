@@ -73,16 +73,21 @@ interface LayerRendererProps {
 function LayerRenderer({ layer, videoSfxEnabled, videoVolume }: LayerRendererProps): React.JSX.Element | null {
   const videoRef = useRef<HTMLVideoElement>(null)
   const audioRef = useRef<HTMLAudioElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
   const isVisibleRef = useRef(false)
 
   const effectiveMuted = layer.muted || !videoSfxEnabled
   const isMedia = layer.media_type === 'video' || layer.media_type === 'audio'
 
   // ── IntersectionObserver: autoplay at 50% visibility ──────────────────
+  // Observe the wrapping container, not the media element itself: <audio>
+  // has 0×0 dimensions and IO behaves unreliably on zero-size targets,
+  // which was preventing audio playback from ever starting.
   useEffect(() => {
     if (!isMedia) return
+    const target = containerRef.current
     const el = layer.media_type === 'video' ? videoRef.current : audioRef.current
-    if (!el) return
+    if (!target || !el) return
 
     const io = new IntersectionObserver(
       (entries) => {
@@ -94,13 +99,17 @@ function LayerRenderer({ layer, videoSfxEnabled, videoVolume }: LayerRendererPro
             }
           } else {
             el.pause()
-            try { el.currentTime = 0 } catch { /* noop */ }
+            // Only reset video on scroll-away. Audio pauses in place so it
+            // can resume from the same position when the reader scrolls back.
+            if (layer.media_type === 'video') {
+              try { el.currentTime = 0 } catch { /* noop */ }
+            }
           }
         }
       },
       { threshold: 0.5 },
     )
-    io.observe(el)
+    io.observe(target)
     return () => io.disconnect()
     // Re-create IO only when the media element or autoplay flag changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -158,7 +167,7 @@ function LayerRenderer({ layer, videoSfxEnabled, videoVolume }: LayerRendererPro
 
   if (layer.media_type === 'audio') {
     return (
-      <div style={cStyle}>
+      <div ref={containerRef} style={cStyle}>
         <audio
           ref={audioRef}
           src={layer.media_url}
@@ -173,7 +182,7 @@ function LayerRenderer({ layer, videoSfxEnabled, videoVolume }: LayerRendererPro
 
   if (layer.media_type === 'video') {
     return (
-      <div style={cStyle}>
+      <div ref={containerRef} style={cStyle}>
         <video
           ref={videoRef}
           src={layer.media_url}
