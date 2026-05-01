@@ -146,7 +146,7 @@ export default function EditorFilmstrip(): React.JSX.Element {
         }}
       >
         {[...panels].sort((a, b) => a.position - b.position).map((panel, index) => {
-          const thumbHeight = Math.round(panel.height * (THUMB_WIDTH / 304));
+
           const isActive = panel.id === activePanelId;
           return (
             <Reorder.Item
