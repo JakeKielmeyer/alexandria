@@ -114,7 +114,7 @@ export default function EditorFilmstrip(): React.JSX.Element {
     <aside
       className="editor-filmstrip"
       aria-label="Panel filmstrip"
-      style={{ overflowX: "hidden", width: "10%" }}
+      style={{ overflowX: "hidden", width: "275px" }}
     >
       <div
         style={{
@@ -157,7 +157,7 @@ export default function EditorFilmstrip(): React.JSX.Element {
               aria-label={`Panel ${index + 1}${isActive ? ", selected" : ""}`}
               style={{
                 width: "100%",
-                height: `${thumbHeight}px`,
+                height: `300px`,
                 background: "var(--bg-dd)",
                 border: isActive
                   ? "1.5px solid var(--rose-deep)"
