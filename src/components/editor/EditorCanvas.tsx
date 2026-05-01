@@ -85,6 +85,8 @@ interface LayerCanvasProps {
 
 function LayerCanvas({ layer, panelWidth, panelHeight, isActive, onSelect, onUpdate }: LayerCanvasProps): React.JSX.Element {
   const dragRef = useRef<DragState | null>(null)
+  // NEW-B: track active drag to swap cursor from 'grab' → 'grabbing'
+  const [isDragging, setIsDragging] = useState(false)
 
   const handleMouseDown = useCallback((e: React.MouseEvent, type: DragState['type']): void => {
     e.stopPropagation()
@@ -206,12 +208,13 @@ function LayerCanvas({ layer, panelWidth, panelHeight, isActive, onSelect, onUpd
 
   const style = getLayerStyle(layer)
 
-  // Focal-point drag: clicking / dragging on a crop-fill layer sets the
+  // Focal-point drag: dragging on an already-active crop-fill layer sets the
   // object-position anchor. The canvas frame is the reference rectangle.
+  // Only called when the layer is already active (gated below in onMouseDown).
   const handleFocalDrag = useCallback((e: React.MouseEvent): void => {
     e.stopPropagation()
     e.preventDefault()
-    onSelect()
+    setIsDragging(true) // NEW-B: switch cursor to 'grabbing'
 
     const frame = (e.currentTarget as HTMLElement).getBoundingClientRect()
 
@@ -222,13 +225,14 @@ function LayerCanvas({ layer, panelWidth, panelHeight, isActive, onSelect, onUpd
     }
 
     const up = (): void => {
+      setIsDragging(false) // NEW-B: restore cursor to 'grab'
       window.removeEventListener('mousemove', update)
       window.removeEventListener('mouseup', up)
     }
     update(e.nativeEvent)
     window.addEventListener('mousemove', update)
     window.addEventListener('mouseup', up)
-  }, [onSelect, onUpdate])
+  }, [onUpdate])
 
   const renderMedia = (): React.JSX.Element | null => {
     if (!layer.media_url) return null
@@ -257,20 +261,37 @@ function LayerCanvas({ layer, panelWidth, panelHeight, isActive, onSelect, onUpd
 
   const mode = resolvedFillMode(layer)
 
+  // NEW-A: derive cursor based on active state and fill mode
+  // NEW-B: crop-mode cursor is 'grab' (hover) / 'grabbing' (drag) instead of 'crosshair'
+  const cursor = !isActive
+    ? 'default'
+    : mode === 'crop'
+      ? (isDragging ? 'grabbing' : 'grab')
+      : mode === 'custom'
+        ? 'move'
+        : 'default'
+
   return (
     <div
       style={{
         ...style,
-        cursor: mode === 'crop' ? 'crosshair' : mode === 'custom' ? 'move' : 'default',
+        cursor,
         boxSizing: 'border-box',
         border: isActive ? '1.5px solid #DC5A8A' : '1.5px solid transparent',
       }}
       onMouseDown={
-        mode === 'crop'
-          ? handleFocalDrag
-          : mode === 'custom'
-            ? (e) => handleMouseDown(e, 'move')
-            : (e) => { e.stopPropagation(); onSelect() }
+        // NEW-A two-click flow:
+        // • Inactive layer → first click just selects, no drag attached
+        // • Active crop layer → drag updates focal point
+        // • Active custom layer → drag moves/resizes
+        // • Active stretch layer → no drag (stretch has no adjustable position)
+        !isActive
+          ? (e) => { e.stopPropagation(); onSelect() }
+          : mode === 'crop'
+            ? handleFocalDrag
+            : mode === 'custom'
+              ? (e) => handleMouseDown(e, 'move')
+              : (e) => { e.stopPropagation() }
       }
     >
       {renderMedia()}
@@ -337,6 +358,7 @@ export default function EditorCanvas(): React.JSX.Element {
     updatePanel, updateLayer, setSaveStatus,
     addLayer, setActiveLayerId, activeLayerId,
     gridVisible, gridSize, toggleGrid,
+    setRailTab,
   } = useEditorStore()
   const pushToast = useToastStore((s) => s.pushToast)
 
@@ -538,7 +560,7 @@ export default function EditorCanvas(): React.JSX.Element {
       {/* Viewport */}
       <div
         className="editor-canvas-viewport"
-        onMouseDown={() => setActiveLayerId(null)}
+        onMouseDown={() => { setActiveLayerId(null); setRailTab('layers') }}
       >
         {!activePanel ? (
           <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--text-muted)' }}>
@@ -599,7 +621,7 @@ export default function EditorCanvas(): React.JSX.Element {
                   panelWidth={CANVAS_WIDTH}
                   panelHeight={panelHeight}
                   isActive={layer.id === activeLayerId}
-                  onSelect={() => setActiveLayerId(layer.id)}
+                  onSelect={() => { setActiveLayerId(layer.id); setRailTab('layers') }}
                   onUpdate={(updates) => handleLayerUpdate(layer.id, updates)}
                 />
               ))}

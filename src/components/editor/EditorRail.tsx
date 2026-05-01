@@ -51,10 +51,9 @@ export default function EditorRail(): React.JSX.Element {
     panels, layers, story,
     updateLayer, updateStory, deleteLayer,
     setActiveLayerId, setSaveStatus,
+    railTab, setRailTab,
   } = useEditorStore()
   const pushToast = useToastStore((s) => s.pushToast)
-
-  const [railTab, setRailTab] = useState<'properties' | 'layers'>('properties')
   const selectedTransition: TransitionStyle = story?.transition_style ?? 'stacked'
   const transitionDuration = story?.transition_duration_ms ?? 600
   const setSelectedTransition = (id: TransitionStyle): void => {

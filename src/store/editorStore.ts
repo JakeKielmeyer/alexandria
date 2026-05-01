@@ -5,6 +5,7 @@ import type { Story, StoryWithCreator, Panel, Layer } from '../types'
 
 export type SaveStatus = 'saved' | 'saving' | 'unsaved' | 'error'
 export type EditorMode = 'design' | 'publish'
+export type RailTab = 'properties' | 'layers'
 
 interface EditorState {
   story: StoryWithCreator | null
@@ -17,6 +18,7 @@ interface EditorState {
   defaultChunkId: string | null
   gridVisible: boolean
   gridSize: number
+  railTab: RailTab
 
   setStory: (story: StoryWithCreator) => void
   setPanels: (panels: Panel[]) => void
@@ -36,6 +38,7 @@ interface EditorState {
   setDefaultChunkId: (id: string | null) => void
   toggleGrid: () => void
   setGridSize: (size: number) => void
+  setRailTab: (tab: RailTab) => void
   reset: () => void
 }
 
@@ -50,6 +53,7 @@ const initialState = {
   defaultChunkId: null,
   gridVisible: false,
   gridSize: 48,
+  railTab: 'properties' as RailTab,
 }
 
 export const useEditorStore = create<EditorState>((set) => ({
@@ -100,5 +104,6 @@ export const useEditorStore = create<EditorState>((set) => ({
   setDefaultChunkId: (defaultChunkId) => set({ defaultChunkId }),
   toggleGrid: () => set((s) => ({ gridVisible: !s.gridVisible })),
   setGridSize: (gridSize) => set({ gridSize }),
+  setRailTab: (railTab) => set({ railTab }),
   reset: () => set(initialState),
 }))
