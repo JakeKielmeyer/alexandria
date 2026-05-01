@@ -85,6 +85,8 @@ interface LayerCanvasProps {
 
 function LayerCanvas({ layer, panelWidth, panelHeight, isActive, onSelect, onUpdate }: LayerCanvasProps): React.JSX.Element {
   const dragRef = useRef<DragState | null>(null)
+  // NEW-B: track active drag to swap cursor from 'grab' → 'grabbing'
+  const [isDragging, setIsDragging] = useState(false)
 
   const handleMouseDown = useCallback((e: React.MouseEvent, type: DragState['type']): void => {
     e.stopPropagation()
@@ -206,29 +208,36 @@ function LayerCanvas({ layer, panelWidth, panelHeight, isActive, onSelect, onUpd
 
   const style = getLayerStyle(layer)
 
-  // Focal-point drag: clicking / dragging on a crop-fill layer sets the
-  // object-position anchor. The canvas frame is the reference rectangle.
+  // Image-pan drag: dragging an active crop-fill layer pans the image within
+  // its frame by updating focal_x/y_percent relative to the drag delta.
+  // Only called when the layer is already active (gated below in onMouseDown).
   const handleFocalDrag = useCallback((e: React.MouseEvent): void => {
     e.stopPropagation()
     e.preventDefault()
-    onSelect()
+    setIsDragging(true)
 
     const frame = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    const startMouseX = e.clientX
+    const startMouseY = e.clientY
+    const startFocalX = layer.focal_x_percent ?? 50
+    const startFocalY = layer.focal_y_percent ?? 50
 
     const update = (me: MouseEvent): void => {
-      const x = Math.round(Math.max(0, Math.min(100, ((me.clientX - frame.left) / frame.width) * 100)) * 10) / 10
-      const y = Math.round(Math.max(0, Math.min(100, ((me.clientY - frame.top) / frame.height) * 100)) * 10) / 10
+      const dx = ((me.clientX - startMouseX) / frame.width) * 100
+      const dy = ((me.clientY - startMouseY) / frame.height) * 100
+      const x = Math.round(Math.max(0, Math.min(100, startFocalX + dx)) * 10) / 10
+      const y = Math.round(Math.max(0, Math.min(100, startFocalY + dy)) * 10) / 10
       onUpdate({ focal_x_percent: x, focal_y_percent: y })
     }
 
     const up = (): void => {
+      setIsDragging(false)
       window.removeEventListener('mousemove', update)
       window.removeEventListener('mouseup', up)
     }
-    update(e.nativeEvent)
     window.addEventListener('mousemove', update)
     window.addEventListener('mouseup', up)
-  }, [onSelect, onUpdate])
+  }, [layer.focal_x_percent, layer.focal_y_percent, onUpdate])
 
   const renderMedia = (): React.JSX.Element | null => {
     if (!layer.media_url) return null
@@ -257,43 +266,40 @@ function LayerCanvas({ layer, panelWidth, panelHeight, isActive, onSelect, onUpd
 
   const mode = resolvedFillMode(layer)
 
+  // NEW-A: derive cursor based on active state and fill mode
+  // NEW-B: crop-mode cursor is 'grab' (hover) / 'grabbing' (drag) instead of 'crosshair'
+  const cursor = !isActive
+    ? 'default'
+    : mode === 'crop'
+      ? (isDragging ? 'grabbing' : 'grab')
+      : mode === 'custom'
+        ? 'move'
+        : 'default'
+
   return (
     <div
       style={{
         ...style,
-        cursor: mode === 'crop' ? 'crosshair' : mode === 'custom' ? 'move' : 'default',
+        cursor,
         boxSizing: 'border-box',
         border: isActive ? '1.5px solid #DC5A8A' : '1.5px solid transparent',
       }}
       onMouseDown={
-        mode === 'crop'
-          ? handleFocalDrag
-          : mode === 'custom'
-            ? (e) => handleMouseDown(e, 'move')
-            : (e) => { e.stopPropagation(); onSelect() }
+        // NEW-A two-click flow:
+        // • Inactive layer → first click just selects, no drag attached
+        // • Active crop layer → drag updates focal point
+        // • Active custom layer → drag moves/resizes
+        // • Active stretch layer → no drag (stretch has no adjustable position)
+        !isActive
+          ? (e) => { e.stopPropagation(); onSelect() }
+          : mode === 'crop'
+            ? handleFocalDrag
+            : mode === 'custom'
+              ? (e) => handleMouseDown(e, 'move')
+              : (e) => { e.stopPropagation() }
       }
     >
       {renderMedia()}
-
-      {/* Crop focal-point crosshair — shows current anchor and updates on drag */}
-      {isActive && mode === 'crop' && (
-        <div
-          aria-hidden="true"
-          style={{
-            position: 'absolute',
-            left: `${layer.focal_x_percent ?? 50}%`,
-            top: `${layer.focal_y_percent ?? 50}%`,
-            transform: 'translate(-50%, -50%)',
-            pointerEvents: 'none',
-          }}
-        >
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <circle cx="10" cy="10" r="6" stroke="#DC5A8A" strokeWidth="1.5"/>
-            <line x1="10" y1="2" x2="10" y2="18" stroke="#DC5A8A" strokeWidth="1"/>
-            <line x1="2" y1="10" x2="18" y2="10" stroke="#DC5A8A" strokeWidth="1"/>
-          </svg>
-        </div>
-      )}
 
       {layer.media_type === 'audio' && (
         <div style={{
@@ -337,6 +343,7 @@ export default function EditorCanvas(): React.JSX.Element {
     updatePanel, updateLayer, setSaveStatus,
     addLayer, setActiveLayerId, activeLayerId,
     gridVisible, gridSize, toggleGrid,
+    setRailTab,
   } = useEditorStore()
   const pushToast = useToastStore((s) => s.pushToast)
 
@@ -538,7 +545,7 @@ export default function EditorCanvas(): React.JSX.Element {
       {/* Viewport */}
       <div
         className="editor-canvas-viewport"
-        onMouseDown={() => setActiveLayerId(null)}
+        onMouseDown={() => { setActiveLayerId(null); setRailTab('layers') }}
       >
         {!activePanel ? (
           <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--text-muted)' }}>
@@ -599,7 +606,7 @@ export default function EditorCanvas(): React.JSX.Element {
                   panelWidth={CANVAS_WIDTH}
                   panelHeight={panelHeight}
                   isActive={layer.id === activeLayerId}
-                  onSelect={() => setActiveLayerId(layer.id)}
+                  onSelect={() => { setActiveLayerId(layer.id); setRailTab('layers') }}
                   onUpdate={(updates) => handleLayerUpdate(layer.id, updates)}
                 />
               ))}
