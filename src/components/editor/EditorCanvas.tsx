@@ -354,6 +354,7 @@ export default function EditorCanvas(): React.JSX.Element {
   }, [toggleGrid])
 
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const audioInputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
   const [customHeight, setCustomHeight] = useState<string>('')
   const [addingLayer, setAddingLayer] = useState(false)
@@ -436,7 +437,10 @@ export default function EditorCanvas(): React.JSX.Element {
     } finally {
       setUploading(false)
       setAddingLayer(false)
-      if (fileInputRef.current) fileInputRef.current.value = ''
+      // Clear the input that fired so picking the same file again still
+      // emits a change event. We use the event's target rather than the
+      // ref so this works for both the media and audio inputs.
+      if (e.target) e.target.value = ''
     }
   }
 
@@ -500,10 +504,31 @@ export default function EditorCanvas(): React.JSX.Element {
           {uploading ? 'Uploading…' : 'Add Media'}
         </button>
 
+        <button
+          onClick={() => audioInputRef.current?.click()}
+          disabled={!activePanel || uploading || addingLayer}
+          className="canvas-add-btn"
+          aria-label="Upload audio to panel"
+        >
+          <svg width="9" height="9" viewBox="0 0 9 9" fill="none" aria-hidden="true">
+            <path d="M4.5 1v7M1 4.5h7" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+          </svg>
+          Audio
+        </button>
+
         <input
           ref={fileInputRef}
           type="file"
           accept={ACCEPTED_MEDIA}
+          onChange={handleUpload}
+          style={{ display: 'none' }}
+          aria-hidden="true"
+        />
+
+        <input
+          ref={audioInputRef}
+          type="file"
+          accept="audio/mpeg,audio/wav,audio/ogg"
           onChange={handleUpload}
           style={{ display: 'none' }}
           aria-hidden="true"
