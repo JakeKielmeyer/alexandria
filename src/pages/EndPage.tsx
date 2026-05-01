@@ -12,6 +12,7 @@
 // communicate different intent (start over vs. leave the story).
 import React from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { motion, useReducedMotion } from 'framer-motion'
 import Navbar from '../components/Navbar'
 import { useGateStore } from '../store/gateStore'
 import '../styles/reader.css'
@@ -24,6 +25,7 @@ export default function EndPage(): React.JSX.Element {
   const [searchParams] = useSearchParams()
   const previewMode = searchParams.get('preview') === '1'
   const story = useGateStore(state => state.story)
+  const reduce = useReducedMotion()
 
   // In published mode both handlers return to the story's Cover (Reader boots
   // on `screen === 'cover'`). In preview mode the creator wants to land back
@@ -50,10 +52,40 @@ export default function EndPage(): React.JSX.Element {
 
   const endImage = story.cover_url ?? FALLBACK_END_IMAGE
 
+  // Mirror the story's transition_style for the back-cover entrance.
+  // Stacked → 3D rise + scale + rotate (matches CinematicPanelItem's intro).
+  // Fade   → simple opacity fade-in.
+  // Cut    → no animation.
+  // Reduce-motion users always get the fade.
+  const transitionStyle = story.transition_style ?? 'stacked'
+  const transitionDurationMs = story.transition_duration_ms ?? 600
+  const transitionDurationS = transitionDurationMs / 1000
+
+  const useStacked = !reduce && transitionStyle === 'stacked'
+  const useFade = reduce || transitionStyle === 'fade' || transitionStyle === 'cut'
+
+  const cardInitial = useStacked
+    ? { scale: 0.55, y: 180, rotateX: -60, opacity: 0 }
+    : { opacity: 0 }
+  const cardAnimate = useStacked
+    ? {
+        scale: 1, y: 0, rotateX: 0, opacity: 1,
+        transition: { duration: transitionDurationS, ease: [0.22, 1, 0.36, 1] as const },
+      }
+    : {
+        opacity: 1,
+        transition: { duration: useFade ? transitionDurationS : 0, ease: 'easeOut' as const },
+      }
+
   return (
     <div className="reader-stage">
       <div className="reader-panel-slot">
-        <div className="reader-panel-card reader-panel-card--end">
+        <motion.div
+          className="reader-panel-card reader-panel-card--end"
+          initial={cardInitial}
+          animate={cardAnimate}
+          style={useStacked ? { transformStyle: 'preserve-3d', transformOrigin: 'center bottom' } : undefined}
+        >
           <img src={endImage} alt="" className="cover-bg" />
           <div className="cover-gradient" />
 
@@ -92,7 +124,7 @@ export default function EndPage(): React.JSX.Element {
               </button>
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
 
       <div className="reader-navbar-fixed">

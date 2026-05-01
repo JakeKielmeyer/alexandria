@@ -65,13 +65,18 @@ function ScrollReader({ story, panels, previewMode, onReachEnd }: ScrollReaderPr
   const panelMode = isCinematic ? 'cinematic' : 'scroll'
   const transitionStyle = (story.transition_style ?? 'stacked') as 'stacked' | 'fade'
 
-  // Cinematic snaps on the window (document root). Scroll mode does not.
+  // Cinematic stacked mode uses mandatory snap to make each panel feel like
+  // a discrete page flip. Fade mode needs continuous scroll so the opacity
+  // transition has visible frames as the reader moves between panels —
+  // mandatory snap teleports past the fade band on a wheel tick. Scroll
+  // (non-cinematic) mode never snaps.
   useEffect(() => {
     if (!isCinematic) return
+    const snap = transitionStyle === 'fade' ? 'y proximity' : 'y mandatory'
     const prev = document.documentElement.style.scrollSnapType
-    document.documentElement.style.scrollSnapType = 'y mandatory'
+    document.documentElement.style.scrollSnapType = snap
     return () => { document.documentElement.style.scrollSnapType = prev }
-  }, [isCinematic])
+  }, [isCinematic, transitionStyle])
 
   const activeIndex = useMemo(() => {
     const idx = panels.findIndex((p) => p.panelId === activePanelId)

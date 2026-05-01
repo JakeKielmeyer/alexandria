@@ -254,7 +254,7 @@ export default function EditorRail(): React.JSX.Element {
                           <rect x="1" y="1" width="8" height="8" rx="1" stroke="currentColor" strokeWidth="1"/>
                         </svg>
                       </div>
-                      <span className="layer-row-label">{layer.media_type}</span>
+                      <span className="layer-row-label">{layer.name?.trim() || layer.media_type}</span>
                       <div className="layer-row-actions">
                         <button
                           onClick={(e) => { e.stopPropagation(); handleMoveLayer(layer.id, 'up') }}
@@ -301,6 +301,26 @@ export default function EditorRail(): React.JSX.Element {
               </div>
             ) : (
               <>
+                <SectionLabel>Name</SectionLabel>
+                <div className="rail-row" style={{ marginBottom: 8 }}>
+                  <input
+                    type="text"
+                    value={activeLayer.name ?? ''}
+                    onChange={(e) => handleLayerUpdate({ name: e.target.value })}
+                    placeholder={activeLayer.media_type}
+                    aria-label="Layer name"
+                    style={{
+                      flex: 1,
+                      padding: '4px 8px',
+                      fontSize: '12px',
+                      background: 'rgba(0,0,0,0.25)',
+                      color: 'rgba(245,238,232,0.9)',
+                      border: '1px solid rgba(245,238,232,0.15)',
+                      borderRadius: '4px',
+                    }}
+                  />
+                </div>
+
                 {activeLayer.media_type !== 'audio' && (
                 <><SectionLabel>Fill Mode</SectionLabel>
                 {(() => {
@@ -654,7 +674,7 @@ export default function EditorRail(): React.JSX.Element {
               <input
                 type="range"
                 min={200}
-                max={1200}
+                max={2400}
                 step={50}
                 value={transitionDuration}
                 onChange={(e) => setTransitionDuration(Number(e.target.value))}

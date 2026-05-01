@@ -98,10 +98,12 @@ function FadePanelItem({
     offset: ['start end', 'center center', 'end start'],
   })
 
-  // Opacity only — hold full opacity while centred, fade at edges.
+  // Opacity only — near-triangle curve. Fades drive almost the entire scroll
+  // (~45% on each side) with only a 10% peak hold at centre, so the fade is
+  // continuously visible as the reader moves through a panel.
   const opacity = useTransform(
     scrollYProgress,
-    [0, 0.4, 0.5, 0.6, 1],
+    [0, 0.45, 0.5, 0.55, 1],
     reduce ? [1, 1, 1, 1, 1] : [0, 1, 1, 1, 0],
   )
 
