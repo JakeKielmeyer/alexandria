@@ -30,6 +30,18 @@ function getCreatorName(story: StoryWithCreator): string {
   return story.display_name ?? story.username
 }
 
+/**
+ * Drop fullscreen if the page is currently in it. Awaitable so callers can
+ * sequence it before a navigate() — fullscreen is bound to the document root,
+ * so a SPA route change doesn't release it on its own and the next route
+ * (e.g. the editor) ends up stuck in fullscreen.
+ */
+async function exitFullscreenIfActive(): Promise<void> {
+  if (typeof document === 'undefined') return
+  if (!document.fullscreenElement) return
+  try { await document.exitFullscreen() } catch { /* noop */ }
+}
+
 // ── ScrollReader ───────────────────────────────────────────────────────────
 
 interface ScrollReaderProps {
@@ -155,8 +167,18 @@ function ScrollReader({ story, panels, previewMode, onReachEnd }: ScrollReaderPr
   }, [])
 
   const handleExitPreview = useCallback((): void => {
-    navigate(`/editor/${story.id}`)
+    void exitFullscreenIfActive().finally(() => {
+      navigate(`/editor/${story.id}`)
+    })
   }, [navigate, story.id])
+
+  // Defensive: if ScrollReader unmounts for any other reason while still
+  // fullscreen (browser back, EndPage navigation, etc.), drop fullscreen so
+  // the next route doesn't inherit it. The browser doesn't auto-exit on SPA
+  // route changes — fullscreen is bound to <html>.
+  useEffect(() => {
+    return () => { void exitFullscreenIfActive() }
+  }, [])
 
   return (
     <div className="reader-stage">
@@ -341,16 +363,17 @@ export default function Reader(): React.JSX.Element {
 
   const handleReachEnd = useCallback((): void => {
     if (!story) return
-    if (previewMode) {
-      navigate(`/editor/${story.id}`)
-    } else {
-      navigate(`/u/${username}/s/${slug}/end`)
-    }
+    // Preview-mode readers also reach the end page, but with `?preview=1`
+    // so EndPage can swap the Exit button to "Exit Preview" → back to editor.
+    const endPath = `/u/${username}/s/${slug}/end${previewMode ? '?preview=1' : ''}`
+    navigate(endPath)
   }, [story, previewMode, navigate, username, slug])
 
   const handleExitPreview = useCallback((): void => {
     if (!story) return
-    navigate(`/editor/${story.id}`)
+    void exitFullscreenIfActive().finally(() => {
+      navigate(`/editor/${story.id}`)
+    })
   }, [story, navigate])
 
   // ── Loading / error states ─────────────────────────────────────────────
