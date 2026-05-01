@@ -11,7 +11,7 @@
 // The two buttons are functionally identical but kept separate because they
 // communicate different intent (start over vs. leave the story).
 import React from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import { useGateStore } from '../store/gateStore'
 import '../styles/reader.css'
@@ -21,13 +21,22 @@ const FALLBACK_END_IMAGE = 'https://pub-d0a4c9548d2149eb9259096fbf8a9dfe.r2.dev/
 export default function EndPage(): React.JSX.Element {
   const navigate = useNavigate()
   const { username, slug } = useParams<{ username: string; slug: string }>()
+  const [searchParams] = useSearchParams()
+  const previewMode = searchParams.get('preview') === '1'
   const story = useGateStore(state => state.story)
 
-  // Both handlers point at the reader route; Reader boots on the Cover
-  // screen (screen state defaults to 'cover'), so "Exit" naturally lands
-  // on this story's Cover — not the site root or dashboard.
-  const restartPath = username && slug ? `/u/${username}/s/${slug}` : '/'
-  const goHome = (): void => { navigate(restartPath) }
+  // In published mode both handlers return to the story's Cover (Reader boots
+  // on `screen === 'cover'`). In preview mode the creator wants to land back
+  // in the editor, so Exit jumps there directly. Restart still re-enters the
+  // story but keeps the preview flag so the same loop is reproducible.
+  const restartPath = username && slug
+    ? `/u/${username}/s/${slug}${previewMode ? '?preview=1' : ''}`
+    : '/'
+  const exitPath = previewMode && story
+    ? `/editor/${story.id}`
+    : restartPath
+  const goRestart = (): void => { navigate(restartPath) }
+  const goExit = (): void => { navigate(exitPath) }
 
   if (!story) {
     return (
@@ -75,11 +84,11 @@ export default function EndPage(): React.JSX.Element {
             )}
 
             <div className="end-actions">
-              <button className="end-btn end-btn--ghost" onClick={goHome}>
+              <button className="end-btn end-btn--ghost" onClick={goRestart}>
                 Restart
               </button>
-              <button className="end-btn end-btn--primary" onClick={goHome}>
-                Exit
+              <button className="end-btn end-btn--primary" onClick={goExit}>
+                {previewMode ? 'Exit Preview' : 'Exit'}
               </button>
             </div>
           </div>
@@ -89,7 +98,7 @@ export default function EndPage(): React.JSX.Element {
       <div className="reader-navbar-fixed">
         <Navbar
           label="The End"
-          onPrev={goHome}
+          onPrev={goExit}
           onNext={() => {}}
           nextDisabled
         />
