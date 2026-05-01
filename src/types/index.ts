@@ -69,6 +69,8 @@ export interface Layer {
   position: number
   media_type: MediaType
   media_url: string | null
+  // Optional creator-facing label. Falls back to media_type in the Layers tab.
+  name: string | null
   x_percent: number
   y_percent: number
   width_percent: number | null

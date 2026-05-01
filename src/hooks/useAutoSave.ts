@@ -74,6 +74,7 @@ export function useAutoSave(): void {
           .update({
             position: layer.position,
             media_url: layer.media_url,
+            name: layer.name ?? null,
             x_percent: layer.x_percent,
             y_percent: layer.y_percent,
             width_percent: layer.width_percent,
