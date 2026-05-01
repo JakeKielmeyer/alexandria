@@ -485,6 +485,31 @@ export default function EditorRail(): React.JSX.Element {
                         <span className="rail-toggle-thumb" />
                       </button>
                     </div>
+                    <div className="rail-row">
+                      <span className="rail-row-label">Span panels</span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={10}
+                        step={1}
+                        value={activeLayer.panel_span_count ?? 1}
+                        onChange={(e) => {
+                          const raw = parseInt(e.target.value, 10)
+                          const clamped = Number.isFinite(raw) ? Math.min(10, Math.max(1, raw)) : 1
+                          handleLayerUpdate({ panel_span_count: clamped })
+                        }}
+                        aria-label="Number of consecutive panels this audio plays across"
+                        style={{
+                          width: '56px',
+                          padding: '4px 6px',
+                          fontSize: '12px',
+                          background: 'rgba(0,0,0,0.25)',
+                          color: 'rgba(245,238,232,0.9)',
+                          border: '1px solid rgba(245,238,232,0.15)',
+                          borderRadius: '4px',
+                        }}
+                      />
+                    </div>
                   </>
                 )}
 

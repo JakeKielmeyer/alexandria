@@ -87,6 +87,7 @@ export function useAutoSave(): void {
             loop: layer.loop,
             muted: layer.muted,
             playback_rate: layer.playback_rate,
+            panel_span_count: layer.panel_span_count ?? 1,
           })
           .eq('id', layer.id)
         if (layerError) throw new Error(layerError.message)

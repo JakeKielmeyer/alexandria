@@ -20,6 +20,7 @@ import Navbar from '../components/Navbar'
 import GateShell from '../components/GateShell'
 import PanelScrollItem from '../components/reader/PanelScrollItem'
 import PanelLayers from '../components/reader/PanelLayers'
+import StoryAudio, { type SpanAudioEntry } from '../components/reader/StoryAudio'
 import ReaderThumbnailStrip from '../components/reader/ReaderThumbnailStrip'
 import '../styles/reader.css'
 
@@ -67,6 +68,27 @@ function ScrollReader({ story, panels, previewMode, onReachEnd }: ScrollReaderPr
 
   const activePanel = panels[activeIndex] ?? panels[0]
   const navLabel = activePanel ? `Ch. ${activePanel.chapterNumber} · ${activePanel.pageInChapter}` : ''
+
+  // Audio layers with panel_span_count > 1 are rendered once at story level
+  // (see <StoryAudio>). Per-panel rendering would spawn N <audio> elements
+  // that fight each other across panel transitions.
+  const spanAudioEntries = useMemo<SpanAudioEntry[]>(() => {
+    const entries: SpanAudioEntry[] = []
+    panels.forEach((panel, panelIndex) => {
+      for (const layer of panel.layers) {
+        if (layer.media_type !== 'audio') continue
+        if ((layer.panel_span_count ?? 1) > 1) {
+          entries.push({ layer, startPanelIndex: panelIndex })
+        }
+      }
+    })
+    return entries
+  }, [panels])
+
+  const spanAudioLayerIds = useMemo<Set<string>>(
+    () => new Set(spanAudioEntries.map((e) => e.layer.id)),
+    [spanAudioEntries],
+  )
 
   // Button-driven navigation uses a framer-motion tween to honour
   // transition_duration_ms. We toggle scroll-snap off during the tween
@@ -152,7 +174,7 @@ function ScrollReader({ story, panels, previewMode, onReachEnd }: ScrollReaderPr
             {/* Relative container fills the card so absolute-positioned layers work */}
             <div style={{ position: 'relative', width: '100%', height: '100%' }}>
               <PanelLayers
-                layers={panel.layers}
+                layers={panel.layers.filter((l) => !spanAudioLayerIds.has(l.id))}
                 videoSfxEnabled={videoSfxEnabled}
                 videoVolume={videoVolume}
               />
@@ -198,6 +220,13 @@ function ScrollReader({ story, panels, previewMode, onReachEnd }: ScrollReaderPr
           />
         )}
       </AnimatePresence>
+
+      <StoryAudio
+        entries={spanAudioEntries}
+        activePanelIndex={activeIndex}
+        videoSfxEnabled={videoSfxEnabled}
+        videoVolume={videoVolume}
+      />
 
       {previewMode && (
         <button

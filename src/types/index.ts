@@ -87,6 +87,11 @@ export interface Layer {
   loop: boolean
   muted: boolean
   playback_rate: number
+  // Audio-only: how many consecutive panels (starting at this layer's panel)
+  // the audio should keep playing through. 1 = single-panel (current behaviour).
+  // > 1 = the reader mounts the audio at story level, plays it while the active
+  //       panel is within the span, and loops within that range.
+  panel_span_count: number
   created_at: string
 }
 
@@ -116,6 +121,7 @@ export const LAYER_DEFAULTS: Record<MediaType, {
   loop: boolean
   muted: boolean
   playback_rate: number
+  panel_span_count: number
 }> = {
   image: {
     x_percent: 0,
@@ -131,6 +137,7 @@ export const LAYER_DEFAULTS: Record<MediaType, {
     loop: true,
     muted: true,
     playback_rate: 1,
+    panel_span_count: 1,
   },
   gif: {
     x_percent: 0,
@@ -146,6 +153,7 @@ export const LAYER_DEFAULTS: Record<MediaType, {
     loop: true,
     muted: true,
     playback_rate: 1,
+    panel_span_count: 1,
   },
   video: {
     x_percent: 0,
@@ -166,6 +174,7 @@ export const LAYER_DEFAULTS: Record<MediaType, {
     // viewer can't undo.
     muted: false,
     playback_rate: 1,
+    panel_span_count: 1,
   },
   audio: {
     x_percent: 0,
@@ -181,5 +190,6 @@ export const LAYER_DEFAULTS: Record<MediaType, {
     loop: true,
     muted: false,
     playback_rate: 1,
+    panel_span_count: 1,
   },
 }
