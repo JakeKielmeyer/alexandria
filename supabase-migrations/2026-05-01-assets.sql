@@ -19,17 +19,17 @@ ALTER TABLE public.assets ENABLE ROW LEVEL SECURITY;
 -- Policy: users can read assets for their own stories.
 CREATE POLICY "Users can read own story assets"
   ON public.assets FOR SELECT
-  USING (story_id IN (SELECT id FROM public.stories WHERE creator_id = auth.uid()));
+  USING (story_id IN (SELECT id FROM public.stories WHERE user_id = auth.uid()));
 
 -- Policy: users can insert assets for their own stories.
 CREATE POLICY "Users can create assets for own stories"
   ON public.assets FOR INSERT
-  WITH CHECK (story_id IN (SELECT id FROM public.stories WHERE creator_id = auth.uid()));
+  WITH CHECK (story_id IN (SELECT id FROM public.stories WHERE user_id = auth.uid()));
 
 -- Policy: users can delete assets for their own stories.
 CREATE POLICY "Users can delete assets for own stories"
   ON public.assets FOR DELETE
-  USING (story_id IN (SELECT id FROM public.stories WHERE creator_id = auth.uid()));
+  USING (story_id IN (SELECT id FROM public.stories WHERE user_id = auth.uid()));
 
 -- Add asset_id FK column to layers table. Nullable to preserve existing rows during backfill.
 ALTER TABLE public.layers ADD COLUMN IF NOT EXISTS asset_id uuid REFERENCES public.assets(id) ON DELETE SET NULL;
