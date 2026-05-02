@@ -341,7 +341,7 @@ export default function EditorCanvas(): React.JSX.Element {
     updatePanel, updateLayer, setSaveStatus,
     setActiveLayerId, activeLayerId,
     gridVisible, gridSize, toggleGrid,
-    setRailTab, setAssetsModalOpen,
+    setRailTab,
   } = useEditorStore()
 
   useEffect(() => {
