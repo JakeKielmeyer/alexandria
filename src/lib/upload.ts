@@ -6,7 +6,7 @@
 // simple.
 
 import { supabase } from './supabase'
-import type { MediaType } from '../types'
+import type { Asset, MediaType } from '../types'
 
 export const ACCEPTED_MEDIA = 'image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,audio/mpeg,audio/wav,audio/ogg'
 export const ACCEPTED_COVER = 'image/jpeg,image/png,image/webp,image/gif'
@@ -82,4 +82,39 @@ export function coverPath(storyId: string, file: File): string {
 export function panelLayerPath(storyId: string, panelId: string, file: File): string {
   const ext = file.name.split('.').pop() ?? 'bin'
   return `${storyId}/${panelId}/${Date.now()}.${ext}`
+}
+
+// The assets table CHECK constraint uses 'image' | 'video' | 'audio'.
+// GIF is stored as media_type 'image' in assets (it is an image format).
+function toAssetMediaType(mt: MediaType): Asset['media_type'] {
+  if (mt === 'gif') return 'image'
+  return mt
+}
+
+/**
+ * Register a successfully uploaded file as an `assets` row for the story.
+ * Uses upsert on (story_id, filename) so re-uploading the same filename
+ * refreshes the URL rather than erroring. Returns the asset id.
+ */
+export async function registerAsset(
+  storyId: string,
+  mediaType: MediaType,
+  mediaUrl: string,
+  filename: string,
+): Promise<string> {
+  const { data, error } = await supabase
+    .from('assets')
+    .upsert(
+      {
+        story_id: storyId,
+        media_type: toAssetMediaType(mediaType),
+        media_url: mediaUrl,
+        filename,
+      },
+      { onConflict: 'story_id,filename' },
+    )
+    .select('id')
+    .single()
+  if (error || !data) throw error ?? new Error('Failed to register asset')
+  return (data as { id: string }).id
 }

@@ -62,6 +62,15 @@ export interface Panel {
 
 export type FillMode = 'stretch' | 'crop' | 'custom'
 
+export interface Asset {
+  id: string
+  story_id: string
+  media_type: 'image' | 'video' | 'audio'
+  media_url: string
+  filename: string
+  created_at: string
+}
+
 export interface Layer {
   id: string
   panel_id: string
@@ -69,6 +78,8 @@ export interface Layer {
   position: number
   media_type: MediaType
   media_url: string | null
+  // FK to the assets table. Null on legacy rows created before P3-B.
+  asset_id: string | null
   // Optional creator-facing label. Falls back to media_type in the Layers tab.
   name: string | null
   x_percent: number

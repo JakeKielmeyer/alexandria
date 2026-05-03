@@ -52,6 +52,7 @@ export default function EditorRail(): React.JSX.Element {
     updateLayer, updateStory, deleteLayer,
     setActiveLayerId, setSaveStatus,
     railTab, setRailTab,
+    updateAsset,
   } = useEditorStore()
   const pushToast = useToastStore((s) => s.pushToast)
   const selectedTransition: TransitionStyle = story?.transition_style ?? 'stacked'
@@ -117,6 +118,21 @@ export default function EditorRail(): React.JSX.Element {
     if (!activeLayerId) return
     updateLayer(activeLayerId, updates)
     setSaveStatus('unsaved')
+  }
+
+  // When the layer name field blurs, sync the new name back to the asset
+  // record so the assets modal stays consistent.
+  const handleLayerNameBlur = (): void => {
+    const layer = activeLayer
+    if (!layer?.asset_id || !layer.name?.trim()) return
+    const trimmed = layer.name.trim()
+    void supabase
+      .from('assets')
+      .update({ filename: trimmed })
+      .eq('id', layer.asset_id)
+      .then(({ error }) => {
+        if (!error) updateAsset(layer.asset_id!, { filename: trimmed })
+      })
   }
 
   const handleMoveLayer = (layerId: string, direction: 'up' | 'down'): void => {
@@ -306,6 +322,7 @@ export default function EditorRail(): React.JSX.Element {
                     type="text"
                     value={activeLayer.name ?? ''}
                     onChange={(e) => handleLayerUpdate({ name: e.target.value })}
+                    onBlur={handleLayerNameBlur}
                     placeholder={activeLayer.media_type}
                     aria-label="Layer name"
                     style={{
@@ -353,7 +370,7 @@ export default function EditorRail(): React.JSX.Element {
                 {resolvedFillMode(activeLayer) === 'crop' && (
                   <>
                     <SectionLabel>Focal Point</SectionLabel>
-                    <div className="rail-hint" style={{ marginBottom: 6 }}>Drag the crosshair on the canvas, or type values below.</div>
+                    <div className="rail-hint" style={{ marginBottom: 6 }}>Drag the image on the canvas to reposition, or type exact values below.</div>
                     <div className="rail-row">
                       <span className="rail-row-label">X</span>
                       <div className="rail-input-group">
