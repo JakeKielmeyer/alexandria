@@ -166,6 +166,8 @@ export default function AssetsFolder(): React.JSX.Element {
 
     let successCount = 0
 
+    const batchTs = Date.now()
+
     for (let i = 0; i < files.length; i++) {
       const file = files[i]
       setUploadProgress({ current: i + 1, total: files.length })
@@ -176,7 +178,8 @@ export default function AssetsFolder(): React.JSX.Element {
       try {
         validateMediaFile(file, 'media')
 
-        const path = `${story.id}/assets/${Date.now()}_${file.name}`
+        // Use batchTs + index so rapid uploads never share a storage path.
+        const path = `${story.id}/assets/${batchTs}_${i}_${file.name}`
         const { url: mediaUrl } = await uploadToPanelsBucket(file, path)
         const assetId = await registerAsset(story.id, mediaType, mediaUrl, file.name)
 
