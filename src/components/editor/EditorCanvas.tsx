@@ -4,9 +4,14 @@ import React, { useRef, useState, useEffect, useCallback } from 'react'
 import { useEditorStore } from '../../store/editorStore'
 import { useToastStore } from '../../store/toastStore'
 import { supabase } from '../../lib/supabase'
-import { PANEL_HEIGHT_PRESETS, LAYER_DEFAULTS, CINEMATIC_PANEL_HEIGHT } from '../../types'
+import { PANEL_HEIGHT_PRESETS, CINEMATIC_PANEL_HEIGHT, LAYER_DEFAULTS } from '../../types'
 import type { PanelHeightPreset, Layer, FillMode } from '../../types'
-import { ACCEPTED_MEDIA, getMediaType, uploadToPanelsBucket, panelLayerPath, validateMediaFile } from '../../lib/upload'
+import {
+  ACCEPTED_MEDIA, getMediaType,
+  uploadToPanelsBucket, panelLayerPath,
+  validateMediaFile, registerAsset,
+} from '../../lib/upload'
+import AssetsFolder from './AssetsFolder'
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -340,8 +345,8 @@ function LayerCanvas({ layer, panelWidth, panelHeight, isActive, onSelect, onUpd
 export default function EditorCanvas(): React.JSX.Element {
   const {
     panels, activePanelId, story, layers,
-    updatePanel, updateLayer, setSaveStatus,
-    addLayer, setActiveLayerId, activeLayerId,
+    updatePanel, updateLayer, addLayer, setSaveStatus,
+    setActiveLayerId, activeLayerId,
     gridVisible, gridSize, toggleGrid,
     setRailTab,
   } = useEditorStore()
@@ -360,11 +365,49 @@ export default function EditorCanvas(): React.JSX.Element {
     return () => window.removeEventListener('keydown', onKey)
   }, [toggleGrid])
 
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const audioInputRef = useRef<HTMLInputElement>(null)
-  const [uploading, setUploading] = useState(false)
   const [customHeight, setCustomHeight] = useState<string>('')
-  const [addingLayer, setAddingLayer] = useState(false)
+  const [isPanelUploading, setIsPanelUploading] = useState(false)
+  const panelFileInputRef = useRef<HTMLInputElement>(null)
+
+  const handlePanelUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
+    const file = e.target.files?.[0]
+    if (!file || !story || !activePanelId) return
+    if (e.target) e.target.value = ''
+
+    const mediaType = getMediaType(file)
+    if (!mediaType) return
+
+    try {
+      validateMediaFile(file, 'media')
+      setIsPanelUploading(true)
+      setSaveStatus('saving')
+
+      const path = panelLayerPath(story.id, activePanelId, file)
+      const { url: mediaUrl } = await uploadToPanelsBucket(file, path)
+      const assetId = await registerAsset(story.id, mediaType, mediaUrl, file.name)
+
+      const panelLayers = layers.filter((l) => l.panel_id === activePanelId)
+      const newLayer = {
+        panel_id: activePanelId,
+        story_id: story.id,
+        position: panelLayers.length,
+        media_type: mediaType,
+        media_url: mediaUrl,
+        asset_id: assetId,
+        name: file.name,
+        ...LAYER_DEFAULTS[mediaType],
+      }
+      const { data, error } = await supabase.from('layers').insert(newLayer).select().single()
+      if (error || !data) throw error
+      addLayer(data as Layer)
+      setSaveStatus('saved')
+    } catch (err) {
+      pushToast(`Upload failed: ${err instanceof Error ? err.message : 'Unknown error'}`, 'error')
+      setSaveStatus('error')
+    } finally {
+      setIsPanelUploading(false)
+    }
+  }, [story, activePanelId, layers, addLayer, setSaveStatus, pushToast])
 
   const activePanel = panels.find((p) => p.id === activePanelId) ?? null
   const activePanelLayers = layers
@@ -393,61 +436,6 @@ export default function EditorCanvas(): React.JSX.Element {
       const clamped = Math.min(800, Math.max(80, num))
       updatePanel(activePanelId, { height: clamped })
       setSaveStatus('unsaved')
-    }
-  }
-
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
-    const file = e.target.files?.[0]
-    if (!file || !activePanel || !story) return
-
-    const mediaType = getMediaType(file)
-    if (!mediaType) return
-
-    setUploading(true)
-    setAddingLayer(true)
-    setSaveStatus('saving')
-
-    try {
-      validateMediaFile(file, 'media')
-      const { url: mediaUrl } = await uploadToPanelsBucket(file, panelLayerPath(story.id, activePanel.id, file))
-
-      const nextPosition = activePanelLayers.length
-      const defaults = LAYER_DEFAULTS[mediaType]
-
-      const newLayer = {
-        panel_id: activePanel.id,
-        story_id: story.id,
-        position: nextPosition,
-        media_type: mediaType,
-        media_url: mediaUrl,
-        ...defaults,
-      }
-
-      const { data, error: insertError } = await supabase
-        .from('layers')
-        .insert(newLayer)
-        .select()
-        .single()
-      if (insertError || !data) throw insertError
-
-      addLayer(data as Layer)
-      setActiveLayerId((data as Layer).id)
-
-      // Cover is now uploaded explicitly via the Publish rail — uploading a
-      // panel image no longer mutates story.cover_url.
-
-      setSaveStatus('saved')
-    } catch (err: unknown) {
-      setSaveStatus('error')
-      const msg = err instanceof Error ? err.message : 'Unknown error'
-      pushToast(`Upload failed: ${msg}`, 'error')
-    } finally {
-      setUploading(false)
-      setAddingLayer(false)
-      // Clear the input that fired so picking the same file again still
-      // emits a change event. We use the event's target rather than the
-      // ref so this works for both the media and audio inputs.
-      if (e.target) e.target.value = ''
     }
   }
 
@@ -498,49 +486,13 @@ export default function EditorCanvas(): React.JSX.Element {
             <div style={{ width: '1px', height: '20px', background: 'var(--border)', flexShrink: 0 }} />
           </>
         )}
-
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          disabled={!activePanel || uploading || addingLayer}
-          className="canvas-add-btn"
-          aria-label="Upload media to panel"
-        >
-          <svg width="9" height="9" viewBox="0 0 9 9" fill="none" aria-hidden="true">
-            <path d="M4.5 1v7M1 4.5h7" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-          </svg>
-          {uploading ? 'Uploading…' : 'Add Media'}
-        </button>
-
-        <button
-          onClick={() => audioInputRef.current?.click()}
-          disabled={!activePanel || uploading || addingLayer}
-          className="canvas-add-btn"
-          aria-label="Upload audio to panel"
-        >
-          <svg width="9" height="9" viewBox="0 0 9 9" fill="none" aria-hidden="true">
-            <path d="M4.5 1v7M1 4.5h7" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-          </svg>
-          Audio
-        </button>
-
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept={ACCEPTED_MEDIA}
-          onChange={handleUpload}
-          style={{ display: 'none' }}
-          aria-hidden="true"
-        />
-
-        <input
-          ref={audioInputRef}
-          type="file"
-          accept="audio/mpeg,audio/wav,audio/ogg"
-          onChange={handleUpload}
-          style={{ display: 'none' }}
-          aria-hidden="true"
-        />
       </div>
+
+      {/* Canvas body: assets column + scrollable viewport */}
+      <div className="editor-canvas-body">
+        <div className="assets-column">
+          <AssetsFolder />
+        </div>
 
       {/* Viewport */}
       <div
@@ -566,19 +518,29 @@ export default function EditorCanvas(): React.JSX.Element {
                 flexShrink: 0,
               }}
             >
-              {activePanelLayers.length === 0 && (
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploading}
-                  className="canvas-empty-upload"
-                  aria-label="Upload media to panel"
-                >
-                  <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
-                    <rect x="2" y="2" width="24" height="24" rx="4" stroke="currentColor" strokeWidth="1.5"/>
-                    <path d="M14 9v10M9 14h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                  </svg>
-                  {uploading ? 'Uploading…' : 'Upload media'}
-                </button>
+              {!activePanelLayers.some((l) => l.media_type !== 'audio') && (
+                <>
+                  <button
+                    onClick={() => panelFileInputRef.current?.click()}
+                    disabled={isPanelUploading}
+                    className="canvas-empty-upload"
+                    aria-label="Add media to panel"
+                  >
+                    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+                      <rect x="2" y="2" width="24" height="24" rx="4" stroke="currentColor" strokeWidth="1.5"/>
+                      <path d="M14 9v10M9 14h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                    </svg>
+                    {isPanelUploading ? 'Uploading…' : 'Add media'}
+                  </button>
+                  <input
+                    ref={panelFileInputRef}
+                    type="file"
+                    accept={ACCEPTED_MEDIA}
+                    onChange={handlePanelUpload}
+                    style={{ display: 'none' }}
+                    aria-hidden="true"
+                  />
+                </>
               )}
 
               {gridVisible && (
@@ -615,6 +577,7 @@ export default function EditorCanvas(): React.JSX.Element {
           </div>
         )}
       </div>
+      </div>{/* end editor-canvas-body */}
     </div>
   )
 }

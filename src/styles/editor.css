@@ -105,6 +105,22 @@
   flex-shrink: 0;
 }
 
+/* Row that holds the assets column + the scrollable viewport */
+.editor-canvas-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Narrow left gutter — sits between the filmstrip and the panel frame */
+.assets-column {
+  width: 200px;
+  flex-shrink: 0;
+  background: var(--bg-editor);
+  border-right: 1px solid var(--border-subtle);
+  position: relative; /* anchor for the dropdown */
+}
+
 .editor-canvas-viewport {
   flex: 1;
   overflow: auto;
@@ -664,4 +680,335 @@
 
 .layer-action-btn--delete:hover {
   color: var(--rose-accent);
+}
+
+/* ── Assets Folder dropdown trigger + panel ───────────────────────────────── */
+
+/* Wrapper sits in the assets column; positions the dropdown beneath. */
+.assets-folder-wrapper {
+  position: relative;
+  display: flex;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+/* Trigger button — spans the full filmstrip width with space-between layout. */
+.assets-folder-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 6px;
+  font-family: DM Sans, sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  padding: 12px 16px;
+  cursor: pointer;
+  border-radius: 0;
+  transition: color 0.12s, background 0.12s;
+}
+
+.assets-folder-trigger:hover {
+  color: var(--rose-accent);
+  background: var(--btn-ghost-bg);
+}
+
+.assets-folder-trigger--open {
+  color: var(--rose-accent);
+}
+
+.assets-folder-chevron {
+  transition: transform 0.15s;
+  flex-shrink: 0;
+}
+
+/* Dropdown — opens downward from the assets column trigger.
+   Width is capped so it stays within the left gutter + some canvas space
+   but never reaches the panel frame (30vw, centred in the canvas area). */
+.assets-folder-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 50;
+  width: min(420px, calc(100vw - 700px));
+  max-height: 75vh;
+  background: var(--bg-rail);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.assets-folder-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+}
+
+/* Used by both the dropdown body and any future modal-style empty state. */
+.asset-modal-empty {
+  font-family: DM Sans, sans-serif;
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 48px 0;
+}
+
+/* ── Asset grid ─────────────────────────────────────────────────────────────── */
+
+.asset-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.asset-card {
+  background: var(--bg-dd);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.15s;
+}
+
+.asset-card:hover {
+  border-color: var(--border);
+}
+
+/* ── Thumbnail ───────────────────────────────────────────────────────────── */
+
+.asset-thumb {
+  aspect-ratio: 4 / 3;
+  background: rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.asset-thumb--icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}
+
+.asset-thumb-media {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.asset-thumb-play {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+/* ── Card info ────────────────────────────────────────────────────────────── */
+
+.asset-card-info {
+  padding: 8px 10px 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.asset-card-name {
+  font-family: DM Sans, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 5px;
+}
+
+.asset-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.asset-type-badge {
+  font-family: DM Sans, sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  background: rgba(245, 238, 232, 0.06);
+  border: 1px solid var(--border-subtle);
+  border-radius: 3px;
+  padding: 2px 5px;
+}
+
+.asset-usage-count {
+  font-family: DM Sans, sans-serif;
+  font-size: 10px;
+  color: var(--text-faint);
+}
+
+/* ── Card actions ─────────────────────────────────────────────────────────── */
+
+.asset-card-actions {
+  padding: 6px 10px 10px;
+  display: flex;
+  gap: 6px;
+}
+
+.asset-btn {
+  font-family: DM Sans, sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  border-radius: 4px;
+  border: 1px solid;
+  cursor: pointer;
+  padding: 4px 8px;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  white-space: nowrap;
+}
+
+.asset-btn--primary {
+  background: var(--btn-rose-bg);
+  border-color: var(--btn-rose-brd);
+  color: var(--rose-soft);
+  flex: 1;
+}
+
+.asset-btn--primary:hover:not(:disabled) {
+  background: rgba(201, 48, 96, 0.28);
+}
+
+.asset-btn--primary:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.asset-btn--ghost {
+  background: var(--btn-ghost-bg);
+  border-color: var(--btn-ghost-brd);
+  color: var(--text-muted);
+}
+
+.asset-btn--ghost:hover {
+  color: var(--rose-accent);
+  border-color: var(--rose-dark);
+}
+
+.asset-btn--danger {
+  background: rgba(201, 48, 96, 0.22);
+  border-color: rgba(201, 48, 96, 0.5);
+  color: var(--rose-soft);
+}
+
+.asset-btn--confirm {
+  animation: pulse-danger 0.25s ease;
+}
+
+@keyframes pulse-danger {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+
+/* ── Asset modal upload strip ─────────────────────────────────────────────── */
+
+.asset-upload-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.asset-upload-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: DM Sans, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--btn-ghost-bg);
+  border: 1px solid var(--btn-ghost-brd);
+  border-radius: 5px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.asset-upload-btn:hover:not(:disabled) {
+  background: var(--btn-rose-bg);
+  border-color: var(--btn-rose-brd);
+  color: var(--rose-soft);
+}
+
+.asset-upload-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.asset-upload-hint {
+  font-family: DM Sans, sans-serif;
+  font-size: 11px;
+  color: var(--text-faint);
+  margin-left: 4px;
+}
+
+/* ── Asset card inline rename ─────────────────────────────────────────────── */
+
+.asset-card-name--btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: text;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  color: var(--text-secondary);
+}
+
+.asset-card-name--btn:hover {
+  color: var(--text-primary);
+}
+
+.asset-rename-icon {
+  opacity: 0;
+  flex-shrink: 0;
+  color: var(--text-faint);
+  transition: opacity 0.1s;
+}
+
+.asset-card-name--btn:hover .asset-rename-icon {
+  opacity: 1;
+}
+
+.asset-rename-input {
+  font-family: DM Sans, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: var(--input-bg);
+  border: 1px solid var(--rose-accent);
+  border-radius: 3px;
+  padding: 2px 6px;
+  width: 100%;
+  outline: none;
+  box-sizing: border-box;
 }

@@ -1,7 +1,7 @@
 // src/store/editorStore.ts
 
 import { create } from 'zustand'
-import type { Story, StoryWithCreator, Panel, Layer } from '../types'
+import type { Asset, Story, StoryWithCreator, Panel, Layer } from '../types'
 
 export type SaveStatus = 'saved' | 'saving' | 'unsaved' | 'error'
 export type EditorMode = 'design' | 'publish'
@@ -19,6 +19,8 @@ interface EditorState {
   gridVisible: boolean
   gridSize: number
   railTab: RailTab
+  assets: Asset[]
+  assetsModalOpen: boolean
 
   setStory: (story: StoryWithCreator) => void
   setPanels: (panels: Panel[]) => void
@@ -39,6 +41,10 @@ interface EditorState {
   toggleGrid: () => void
   setGridSize: (size: number) => void
   setRailTab: (tab: RailTab) => void
+  setAssets: (assets: Asset[]) => void
+  removeAsset: (id: string) => void
+  updateAsset: (id: string, updates: Partial<Asset>) => void
+  setAssetsModalOpen: (open: boolean) => void
   reset: () => void
 }
 
@@ -54,6 +60,8 @@ const initialState = {
   gridVisible: false,
   gridSize: 48,
   railTab: 'properties' as RailTab,
+  assets: [],
+  assetsModalOpen: false,
 }
 
 export const useEditorStore = create<EditorState>((set) => ({
@@ -105,5 +113,11 @@ export const useEditorStore = create<EditorState>((set) => ({
   toggleGrid: () => set((s) => ({ gridVisible: !s.gridVisible })),
   setGridSize: (gridSize) => set({ gridSize }),
   setRailTab: (railTab) => set({ railTab }),
+  setAssets: (assets) => set({ assets }),
+  removeAsset: (id) => set((state) => ({ assets: state.assets.filter((a) => a.id !== id) })),
+  updateAsset: (id, updates) => set((state) => ({
+    assets: state.assets.map((a) => a.id === id ? { ...a, ...updates } : a),
+  })),
+  setAssetsModalOpen: (assetsModalOpen) => set({ assetsModalOpen }),
   reset: () => set(initialState),
 }))
