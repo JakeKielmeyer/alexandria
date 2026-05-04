@@ -17,6 +17,7 @@ const ResetPassword = lazy(() => import('./pages/ResetPassword'))
 const UpdatePassword = lazy(() => import('./pages/UpdatePassword'))
 const Editor = lazy(() => import('./pages/Editor'))
 const Dashboard = lazy(() => import('./pages/Dashboard'))
+const Profile = lazy(() => import('./pages/Profile'))
 const Terms = lazy(() => import('./pages/legal/Terms'))
 const Privacy = lazy(() => import('./pages/legal/Privacy'))
 const DMCA = lazy(() => import('./pages/legal/DMCA'))
@@ -65,6 +66,7 @@ function App(): React.JSX.Element {
         <Route path="/update-password" element={<UpdatePassword />} />
         <Route path="/u/:username/s/:slug" element={<Reader />} />
         <Route path="/u/:username/s/:slug/end" element={<EndPage />} />
+        <Route path="/u/:username" element={<Profile />} />
         <Route path="/decline" element={<Decline />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/privacy" element={<Privacy />} />

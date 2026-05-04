@@ -12,6 +12,7 @@ interface DashboardStory {
   cover_url: string | null
   content_rating: 'mature' | 'explicit'
   panel_count: number
+  read_count: number
   created_at: string
   updated_at: string
 }
@@ -45,7 +46,7 @@ export default function Dashboard(): React.JSX.Element {
     try {
       const { data, error: fetchError } = await supabase
         .from('stories')
-        .select('id, title, slug, is_published, cover_url, content_rating, created_at, updated_at, panels(count)')
+        .select('id, title, slug, is_published, cover_url, content_rating, read_count, created_at, updated_at, panels(count)')
         .eq('user_id', user.id)
         .order('updated_at', { ascending: false })
 
@@ -58,6 +59,7 @@ export default function Dashboard(): React.JSX.Element {
         is_published: boolean
         cover_url: string | null
         content_rating: 'mature' | 'explicit'
+        read_count: number
         created_at: string
         updated_at: string
         panels: { count: number }[] | null
@@ -72,6 +74,7 @@ export default function Dashboard(): React.JSX.Element {
           cover_url: story.cover_url,
           content_rating: story.content_rating,
           panel_count: story.panels?.[0]?.count ?? 0,
+          read_count: story.read_count ?? 0,
           created_at: story.created_at,
           updated_at: story.updated_at,
         }))
@@ -284,6 +287,13 @@ export default function Dashboard(): React.JSX.Element {
                           <path d="M1 7l2.5-2.5 2 2 1.5-1.5 3 3" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
                         {story.panel_count} {story.panel_count === 1 ? 'panel' : 'panels'}
+                      </span>
+                      <span className="story-stat">
+                        <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden="true">
+                          <path d="M1 5.5C1 3 3 1 5.5 1S10 3 10 5.5 8 10 5.5 10 1 8 1 5.5z" stroke="currentColor" strokeWidth="1"/>
+                          <circle cx="5.5" cy="5.5" r="1.5" fill="currentColor"/>
+                        </svg>
+                        {story.read_count} {story.read_count === 1 ? 'read' : 'reads'}
                       </span>
                     </div>
 

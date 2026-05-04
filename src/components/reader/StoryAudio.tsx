@@ -28,15 +28,15 @@ export interface SpanAudioEntry {
 interface StoryAudioProps {
   entries: SpanAudioEntry[]
   activePanelIndex: number
-  videoSfxEnabled: boolean
+  musicEnabled: boolean
   videoVolume: number
 }
 
 function SpanAudioElement({
-  layer, startPanelIndex, activePanelIndex, videoSfxEnabled, videoVolume,
+  layer, startPanelIndex, activePanelIndex, musicEnabled, videoVolume,
 }: SpanAudioEntry & {
   activePanelIndex: number
-  videoSfxEnabled: boolean
+  musicEnabled: boolean
   videoVolume: number
 }): React.JSX.Element | null {
   const ref = useRef<HTMLAudioElement>(null)
@@ -46,7 +46,8 @@ function SpanAudioElement({
     activePanelIndex >= startPanelIndex &&
     activePanelIndex < startPanelIndex + span
 
-  const effectiveMuted = layer.muted || !videoSfxEnabled
+  // Span-mode audio layers are always audio-only, so they use the Sound toggle.
+  const effectiveMuted = layer.muted || !musicEnabled
 
   // Drive play / pause off the in-range flag.
   useEffect(() => {
@@ -92,7 +93,7 @@ function SpanAudioElement({
 }
 
 export default function StoryAudio({
-  entries, activePanelIndex, videoSfxEnabled, videoVolume,
+  entries, activePanelIndex, musicEnabled, videoVolume,
 }: StoryAudioProps): React.JSX.Element {
   return (
     <div aria-hidden style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>
@@ -102,7 +103,7 @@ export default function StoryAudio({
           layer={entry.layer}
           startPanelIndex={entry.startPanelIndex}
           activePanelIndex={activePanelIndex}
-          videoSfxEnabled={videoSfxEnabled}
+          musicEnabled={musicEnabled}
           videoVolume={videoVolume}
         />
       ))}

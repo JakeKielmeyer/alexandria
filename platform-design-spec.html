@@ -122,7 +122,7 @@ body{
   </div>
   <div class="doc-eyebrow">Platform Design Specification · V2 MVP Build · Cinematic + Scroll Webtoon</div>
   <div class="doc-title">Design & Product Specification</div>
-  <div class="doc-sub">Last updated April 25, 2026 · Reader layer pipeline rebuilt · All editor state now renders in reader · Fill modes (Crop / Stretch / Custom) with focal-point drag · Per-panel height in reader · Scroll mode continuous (no 3D) · Preview same-tab · End-cover image fixed · Volume slider · Auto-advance removed</div>
+  <div class="doc-sub">Last updated May 3, 2026 · Assets system live · Layer naming · Panel span audio · Multi-file upload deduplication · Two-click canvas select · Grab cursor in crop mode · Editor polish · Spec updated to reflect May 2026 build state</div>
 </div>
 
 <!-- ── STATUS ── -->
@@ -133,7 +133,9 @@ body{
   <div class="status-item"><div class="status-dot dot-green"></div>Layers architecture live — April 18, 2026</div>
   <div class="status-item"><div class="status-dot dot-green"></div>Reader rebuild · book-page cards · audio pipeline unified · autosave fix — April 22, 2026</div>
   <div class="status-item"><div class="status-dot dot-green"></div>Layer pipeline rebuilt · fill modes · scroll/cinematic split · 10 bugs fixed — April 25, 2026</div>
-  <div class="status-item"><div class="status-dot dot-rose"></div>Next: run fill-mode SQL migration, founding creator test prep</div>
+  <div class="status-item"><div class="status-dot dot-green"></div>Assets system · layer naming · panel span audio · cascade delete — May 1–2, 2026</div>
+  <div class="status-item"><div class="status-dot dot-green"></div>Two-click canvas select · grab cursor · editor polish · multi-file upload fix — May 3, 2026</div>
+  <div class="status-item"><div class="status-dot dot-rose"></div>Next: beta gap closure (Sound wiring, password protection, read counts) → Founding Creator Test</div>
 </div>
 
 <!-- ── TOC ── -->
@@ -188,6 +190,8 @@ body{
   <div class="section-title">Project Timeline</div>
   <div class="section-divider"></div>
 
+  <div class="change-note"><strong>Updated May 3, 2026 — Two-click canvas select, grab cursor, editor polish, multi-file upload fix.</strong> <code>EditorCanvas</code> now requires two clicks to select a layer — first click selects the panel, second click selects the layer — preventing accidental layer grabs when switching panels. Drag cursor in crop mode changed to <code>grab</code>/<code>grabbing</code> for spatial clarity. Layer naming now surfaces in the rail Properties tab. Fade transition drama increased. Dashboard story card sizing adjusted. End-page transition refined. Multi-file upload path collision in AssetsFolder fixed — each file now gets a unique timestamped path.</div>
+  <div class="change-note"><strong>Updated May 1–2, 2026 — Assets system + audio panel span + layer naming.</strong> <code>assets</code> table created: <code>id, story_id, media_type, media_url, filename, created_at</code> with RLS. <code>layers.asset_id</code> foreign key added with <code>ON DELETE CASCADE</code> so deleting an asset removes dependent layers automatically. <code>layers.panel_span_count</code> integer column added for multi-panel audio spans — audio layers can now declare how many panels they span, letting <code>StoryAudio.tsx</code> manage a single audio element across transitions. <code>layers.name</code> text column added for creator-facing layer labels, visible in the rail Properties tab. AssetsFolder component added to EditorCanvas for quick access to a story's media library. Migrations: <code>2026-05-01-assets.sql</code>, <code>2026-05-01-audio-panel-span.sql</code>, <code>2026-05-01-layer-name.sql</code>, <code>2026-05-02-assets-update-and-cascade.sql</code>.</div>
   <div class="change-note"><strong>Updated April 25, 2026 — Layer pipeline rebuild &amp; 10-bug fix pass.</strong> <code>useReaderData</code> now exposes full <code>layers: Layer[]</code> array on every <code>PanelWithMeta</code> instead of collapsing to a single <code>image_url</code> — all z-ordered layers with position, size, fill mode, opacity, and playback settings now render in the reader. New <code>PanelLayers.tsx</code> component renders each layer with <code>IntersectionObserver</code> autoplay, imperative muted/playback-rate sync, and focal-point <code>object-position</code>. Fill modes: <code>crop</code> (cover + focal point drag in editor), <code>stretch</code> (fill objectFit), <code>custom</code> (absolute position/size). DB migration adds <code>fill_mode</code>, <code>focal_x_percent</code>, <code>focal_y_percent</code> columns to layers table. <code>PanelScrollItem</code> split into <code>ScrollPanelItem</code> (plain div, per-panel height, no 3D) and <code>CinematicPanelItem</code> (original framer-motion 3D) dispatched by <code>mode</code> prop — scroll mode is now truly continuous with no transforms. <code>EditorTopBar</code> preview changed from <code>window.open(_blank)</code> to same-tab <code>navigate()</code>. End-cover background image distortion fixed by adding <code>.reader-panel-card--end .cover-bg</code> CSS rule. Fullscreen now targets <code>document.documentElement</code> so window scroll continues driving framer-motion transforms. Auto-advance on last panel removed — next arrow only. Volume slider added to Navbar (range input, 0–1, step 0.02) driven by new <code>readerStore.videoVolume</code>. <code>FillMode</code> type and <code>fill_mode</code> / <code>focal_x_percent</code> / <code>focal_y_percent</code> added to Layer interface and <code>LAYER_DEFAULTS</code>. <code>EditorRail</code> fill toggle replaced with three-way Crop / Stretch / Custom button group. <code>EditorCanvas</code> adds focal-point crosshair drag in crop mode. Canvas size label fixed (400 × 640).</div>
   <div class="change-note"><strong>Updated April 22, 2026 — Reader polish pass.</strong> Reader rebuilt on a <code>.reader-stage</code> / <code>.reader-panel-slot</code> / <code>.reader-panel-card</code> system (35vw × 95vh desktop, 100vw × 95vh mobile). CSS <code>perspective</code> moved from stage to slot so fixed-position descendants (Navbar) are not trapped in a containing block. Cover → first-panel dramatic one-shot intro via AnimatePresence opacity crossfade plus an inner <code>introVariant="first"</code> scale/rotate/y animation nested inside the scroll-driven transform. End page now uses the same book-page card layout (<code>.reader-panel-card--end</code>); PhoneShell dropped. Transition button navigation uses framer-motion <code>animate()</code> honoring <code>story.transition_duration_ms</code> with temporary <code>scroll-snap-type: none</code> during the tween. Audio pipeline unified: single <code>readerStore.videoSfxEnabled</code> flag, imperative <code>videoRef.current.muted</code> sync, <code>effectiveMuted = panel.muted || !videoSfxEnabled</code> in PanelMedia. <strong>Autosave bug fixed</strong> — <code>useAutoSave.ts</code> layer UPDATE payload now includes <code>autoplay, loop, muted, playback_rate</code> (previously silently dropped, so editor toggles never reached the DB). <strong>LAYER_DEFAULTS.video.muted flipped from <code>true</code> → <code>false</code></strong> so new video layers defer to the viewer's global Video &amp; SFX preference; creator-set Muted ON remains a hard-override. End-page Restart and Exit buttons now both route to <code>/u/:username/s/:slug</code> (the story cover) rather than home / dashboard.</div>
   <div class="change-note"><strong>Updated April 18, 2026 — Layers architecture complete.</strong> DB migration run (reading_mode column, layers table created, overlays dropped). Types, editorStore, useAutoSave, Editor, EditorCanvas, EditorRail fully rewritten for layers. Media upload for image/GIF/video/audio. 8-handle resize (4 corners + 4 edges) with shift-constrained proportional scaling. Fill vs positioned layer modes. Layer selection bubbling, arrow direction, filmstrip thumbnails all fixed same day.</div>
@@ -222,18 +226,28 @@ body{
     </tr>
     <tr>
       <td>Build — Editor pivot + rewrite</td><td>1–2 weeks</td>
+      <td><span class="td-done">Complete</span></td>
+      <td>Overlays replaced with full layers system. Media upload, drag/resize handles, z-order, fill modes, focal point, scroll/cinematic split. Completed May 2, 2026.</td>
+    </tr>
+    <tr>
+      <td>Build — Assets system + editor polish</td><td>3 days</td>
+      <td><span class="td-done">Complete</span></td>
+      <td>Assets table, layer naming, panel span audio, cascade delete migration, two-click canvas select, grab cursor, dashboard sizing. May 1–3, 2026.</td>
+    </tr>
+    <tr>
+      <td>Beta gap closure</td><td>~1 week</td>
       <td><span class="td-v3">In progress</span></td>
-      <td>Remove overlays. Build layers system: media upload, drag/resize handles, z-order. Two reading modes. DB migrations. Started April 17, 2026.</td>
+      <td>Sound toggle wiring, password protection in editor, read count tracking, Sentry setup. Pre-requisites for Founding Creator Test.</td>
     </tr>
     <tr>
       <td>Founding Creator Test</td><td>3 weeks</td>
-      <td>Not started</td>
-      <td>3–5 founding creators, 25–50 readers. Feedback collection. Starts when editor rewrite is stable.</td>
+      <td>Ready to start</td>
+      <td>3–5 founding creators, 25–50 readers. Feedback collection. All editor prerequisites met as of May 2, 2026.</td>
     </tr>
     <tr>
       <td>V3 Build</td><td>6–8 weeks</td>
       <td>Not started</td>
-      <td>Feedback implementation, chapter breaks, drag-to-reorder filmstrip, font picker, video upload (Cloudflare Stream), payment processing, Pro tier.</td>
+      <td>Feedback implementation, chapter breaks, font picker, video upload (Cloudflare Stream), payment processing, Pro tier.</td>
     </tr>
     <tr>
       <td>Paid Launch</td><td>~15–17 weeks from start</td>
@@ -622,7 +636,7 @@ body{
     <div class="sub-title">Editor layout — five regions (unchanged)</div>
     <div class="ann-block">
       <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>Top bar:</strong> Logo (back to dashboard with unsaved-changes guard) · Add button · Mode tabs (Design / Transitions) · Story title + save status (centered) · Publish button (right).</div></div>
-      <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>Filmstrip (left rail):</strong> Panel thumbnails in reading order. Add panel, delete panel. Active panel: Deep Rose outline. Drag-to-reorder deferred to V3.</div></div>
+      <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>Filmstrip (left rail):</strong> Panel thumbnails in reading order. Add panel, delete panel. Active panel: Deep Rose outline. Drag-to-reorder implemented in V2 via Framer Motion Reorder.Group.</div></div>
       <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>Canvas toolbar:</strong> Height presets (Scroll mode only) · Add media button. Always present.</div></div>
       <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>Canvas viewport:</strong> Active panel at reference size. Dot grid background. Navbar preview below panel. Selected layer gets rose outline + drag/resize handles.</div></div>
       <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>Right rail:</strong> Context-sensitive. No layer selected: panel height controls (Scroll mode) / reading mode indicator. Layer selected: layer position/size/fill toggle. Layers tab: z-order list, reorder, delete. Transitions mode: presets + duration (Cinematic only). Publish mode: share URL, content rating, reading mode toggle, go live.</div></div>
@@ -636,7 +650,7 @@ body{
       <tr><td>Text overlays (speech bubbles, captions, narration, thought bubbles, title cards)</td><td>Adds significant complexity. Creators can embed text in their artwork. Simplifying to MVP gets the platform in creators' hands faster.</td><td>V3 if creator feedback demands it</td></tr>
       <tr><td>Font editor / Google Fonts picker</td><td>Depends on text overlay system — removed with it.</td><td>V3 with overlays</td></tr>
       <tr><td>Transparent video layers</td><td>Inconsistent browser support for WebM alpha. PNG with transparency covers the use case for MVP.</td><td>Post-MVP when creator feedback confirms demand</td></tr>
-      <tr><td>Drag-to-reorder filmstrip</td><td>Deferred — not blocking MVP. Creators can delete and re-add panels for now.</td><td>V3</td></tr>
+      <tr><td>Drag-to-reorder filmstrip</td><td>Built in V2 — Framer Motion Reorder.Group with onReorder callback. Full drag-to-reorder functional.</td><td><span class="badge badge-done">Shipped V2</span></td></tr>
       <tr><td>Chapter breaks</td><td>Deferred — not blocking MVP.</td><td>V3</td></tr>
     </table>
   </div>
@@ -727,22 +741,27 @@ body{
     <table class="spec-table">
       <tr><th>Table</th><th>Key fields</th><th>Status</th><th>Notes</th></tr>
       <tr><td>users</td><td><code>id, username, display_name, bio, avatar_url, created_at</code></td><td class="td-done">Live</td><td>UUID = Supabase Auth UID. Username permanent, globally unique, URL-safe. Populated by handle_new_user trigger on signup.</td></tr>
-      <tr><td>stories</td><td><code>id, user_id, title, slug, content_rating, password_hash, is_published, cover_url, font_manifest, creator_bio, creator_links, reading_mode, created_at, updated_at</code></td><td class="td-done">Live</td><td>reading_mode: 'cinematic' | 'scroll', default 'cinematic'. Migration pending. cover_url auto-set from first panel upload at position 0.</td></tr>
+      <tr><td>stories</td><td><code>id, user_id, title, slug, content_rating, password_hash, is_published, cover_url, font_manifest, creator_bio, creator_links, reading_mode, transition_style, transition_duration_ms, created_at, updated_at</code></td><td class="td-done">Live</td><td>reading_mode: 'cinematic' | 'scroll', default 'cinematic'. cover_url auto-set from first panel upload at position 0.</td></tr>
       <tr><td>chunks</td><td><code>id, story_id, chapter_number, chapter_title, position, created_at</code></td><td class="td-done">Live</td><td>First-class records. Panels reference their chunk. Chapter numbers derived at read time.</td></tr>
       <tr><td>panels</td><td><code>id, chunk_id (nullable), story_id, position, height, created_at</code></td><td class="td-done">Live</td><td>height is raw integer px. chunk_id nullable. No media_url on panel — media lives on layers table.</td></tr>
-      <tr><td>layers</td><td><code>id, panel_id, story_id, position (z-order), media_type, media_url, x_percent, y_percent, width_percent, height_percent, is_fill, fill_mode, focal_x_percent, focal_y_percent, opacity, autoplay, loop, muted, playback_rate, created_at</code></td><td class="td-done">Live</td><td>Replaces overlays table. media_type: 'image' | 'gif' | 'video' | 'audio'. is_fill kept for backward compat; fill_mode ('crop' | 'stretch' | 'custom') supersedes it — reader resolves fill_mode ?? (is_fill ? 'crop' : 'custom'). focal_x_percent / focal_y_percent (0–100, default 50/50) drive CSS object-position in crop mode. Playback fields (autoplay, loop, muted, playback_rate) harmless on non-video rows — readers ignore. <strong>April 22:</strong> autosave now persists all four playback fields (previously dropped silently). Default <code>muted</code> for new video layers is <code>false</code> so the viewer's global Video &amp; SFX toggle controls audio; creator can hard-override to true. <strong>April 25:</strong> fill_mode, focal_x_percent, focal_y_percent columns added via migration.</td></tr>
+      <tr><td>layers</td><td><code>id, panel_id, story_id, position (z-order), media_type, media_url, asset_id, name, x_percent, y_percent, width_percent, height_percent, is_fill, fill_mode, focal_x_percent, focal_y_percent, opacity, autoplay, loop, muted, playback_rate, panel_span_count, created_at</code></td><td class="td-done">Live</td><td>Replaces overlays table. media_type: 'image' | 'gif' | 'video' | 'audio'. fill_mode ('crop' | 'stretch' | 'custom') supersedes is_fill. focal_x_percent / focal_y_percent drive CSS object-position in crop mode. <strong>May 1:</strong> asset_id FK (ON DELETE CASCADE to assets table), name (creator label), panel_span_count (integer, for multi-panel audio spans).</td></tr>
+      <tr><td>assets</td><td><code>id, story_id, media_type, media_url, filename, created_at</code></td><td class="td-done">Live</td><td>Story-scoped media library. Each upload registers here. AssetsFolder in editor shows this list. Deleting an asset cascades to layers.asset_id. Added May 1, 2026.</td></tr>
       <tr><td>overlays</td><td>—</td><td class="td-complete">Dropped</td><td>Table and all code removed April 18, 2026.</td></tr>
     </table>
   </div>
 
   <div class="sub">
-    <div class="sub-title">Pending migrations — run before next editor build session</div>
+    <div class="sub-title">Applied migrations — all current as of May 3, 2026</div>
     <div class="ann-block">
-      <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>1. Add reading_mode to stories:</strong> <code>ALTER TABLE stories ADD COLUMN IF NOT EXISTS reading_mode text DEFAULT 'cinematic';</code></div></div>
-      <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>2. Create layers table:</strong> <code>CREATE TABLE layers (id uuid DEFAULT gen_random_uuid() PRIMARY KEY, panel_id uuid REFERENCES panels(id) ON DELETE CASCADE, story_id uuid REFERENCES stories(id) ON DELETE CASCADE, position integer DEFAULT 0, media_type text NOT NULL, media_url text, x_percent numeric DEFAULT 0, y_percent numeric DEFAULT 0, width_percent numeric DEFAULT 100, height_percent numeric DEFAULT 100, is_fill boolean DEFAULT true, created_at timestamptz DEFAULT now()); ALTER TABLE layers ENABLE ROW LEVEL SECURITY;</code></div></div>
-      <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>3. Drop overlays table:</strong> <code>DROP TABLE IF EXISTS overlays;</code> — run only after all overlay code is removed from the codebase. <strong>Completed April 18, 2026.</strong></div></div>
-      <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>4. Backfill legacy muted video rows (April 22, 2026):</strong> <code>UPDATE layers SET muted = false WHERE media_type = 'video' AND muted = true;</code> — one-time fix for rows created before the autosave bug was patched. All those rows were stuck <code>muted = true</code> because the editor's Muted toggle never reached the DB.</div></div>
-      <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>5. Fill-mode columns (April 25, 2026) — file: <code>supabase-migrations/2026-04-24-fill-mode.sql</code>:</strong> <code>ALTER TABLE layers ADD COLUMN IF NOT EXISTS fill_mode text; ALTER TABLE layers ADD COLUMN IF NOT EXISTS focal_x_percent numeric NOT NULL DEFAULT 50; ALTER TABLE layers ADD COLUMN IF NOT EXISTS focal_y_percent numeric NOT NULL DEFAULT 50; UPDATE layers SET fill_mode = 'crop' WHERE fill_mode IS NULL AND is_fill = true; UPDATE layers SET fill_mode = 'custom' WHERE fill_mode IS NULL AND is_fill = false;</code> — run each statement individually in Supabase SQL editor using the <code>postgres</code> superuser role (role dropdown, top-right). If ALTER TABLE fails with a permissions error, switch from the default anon key to the postgres role.</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>1. reading_mode column on stories</strong> — <span class="td-done">Applied</span> April 17, 2026.</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>2. layers table created</strong> — <span class="td-done">Applied</span> April 18, 2026.</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>3. overlays table dropped</strong> — <span class="td-done">Applied</span> April 18, 2026.</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>4. Backfill legacy muted video rows</strong> — <span class="td-done">Applied</span> April 22, 2026.</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>5. fill_mode, focal_x_percent, focal_y_percent on layers</strong> — file: <code>supabase-migrations/2026-04-24-fill-mode.sql</code> — <span class="td-done">Applied</span> April 25, 2026.</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>6. assets table + RLS</strong> — file: <code>supabase-migrations/2026-05-01-assets.sql</code> — <span class="td-done">Applied</span> May 1, 2026.</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>7. layers.panel_span_count integer column</strong> — file: <code>supabase-migrations/2026-05-01-audio-panel-span.sql</code> — <span class="td-done">Applied</span> May 1, 2026.</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>8. layers.name text column</strong> — file: <code>supabase-migrations/2026-05-01-layer-name.sql</code> — <span class="td-done">Applied</span> May 1, 2026.</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>9. layers.asset_id FK + ON DELETE CASCADE</strong> — file: <code>supabase-migrations/2026-05-02-assets-update-and-cascade.sql</code> — <span class="td-done">Applied</span> May 2, 2026.</div></div>
     </div>
   </div>
 </div>
@@ -832,7 +851,7 @@ body{
       <tr><td>Three <code>react-hooks/exhaustive-deps</code> warnings silenced with scoped <code>eslint-disable-next-line</code> + justification comments (stable Zustand setters explicitly excluded from dep arrays).</td><td class="td-done">Done</td></tr>
       <tr><td>TypeScript build error fixed in <code>PanelScrollItem.tsx</code>: cubic-bezier tuple annotated <code>as const</code> so framer-motion's <code>Easing</code> type inference doesn't widen to <code>number[]</code>.</td><td class="td-done">Done</td></tr>
     </table>
-    <div class="change-note" style="margin-top:12px"><strong>Pending operator action:</strong> run the one-time SQL backfill <code>UPDATE layers SET muted = false WHERE media_type = 'video' AND muted = true;</code> against the Supabase project so existing video layers created before the autosave bug was patched pick up the new default.</div>
+    <div class="change-note" style="margin-top:12px"><strong>Migration applied:</strong> one-time SQL backfill <code>UPDATE layers SET muted = false WHERE media_type = 'video' AND muted = true;</code> was run. All legacy video layers now respect the viewer's Video &amp; SFX preference.</div>
   </div>
 
   <div class="sub">
@@ -855,7 +874,37 @@ body{
       <tr><td><code>src/components/editor/EditorRail.tsx</code> — "Fill panel" boolean toggle replaced with three-way Crop / Stretch / Custom button group. Focal point X/Y numeric inputs shown in crop mode. Position/size inputs only shown in custom mode. <code>fill_mode</code> and <code>is_fill</code> both updated on change for backward compat.</td><td class="td-done">Done</td></tr>
       <tr><td>TypeScript build (<code>npx tsc --noEmit</code>) — zero errors. Vite build — clean in 1.17s.</td><td class="td-done">Done</td></tr>
     </table>
-    <div class="change-note" style="margin-top:12px"><strong>Pending operator action:</strong> run <code>supabase-migrations/2026-04-24-fill-mode.sql</code> against the Supabase project (postgres superuser role, statements individually). Until migration runs, <code>fill_mode</code> column does not exist and the editor's three-way fill control will not persist to the DB.</div>
+    <div class="change-note" style="margin-top:12px"><strong>Migration applied May 1, 2026:</strong> <code>supabase-migrations/2026-04-24-fill-mode.sql</code> has been run. <code>fill_mode</code>, <code>focal_x_percent</code>, <code>focal_y_percent</code> columns are live.</div>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">Build Session — May 1–2, 2026 — Assets system + layer naming + audio panel span</div>
+    <table class="spec-table">
+      <tr><th>Deliverable</th><th>Status</th></tr>
+      <tr><td><code>supabase-migrations/2026-05-01-assets.sql</code> — <code>assets</code> table created with <code>id, story_id, media_type, media_url, filename, created_at</code>, RLS enabled.</td><td class="td-done">Done</td></tr>
+      <tr><td><code>supabase-migrations/2026-05-01-audio-panel-span.sql</code> — <code>layers.panel_span_count</code> integer column added. Enables multi-panel audio that plays continuously across transitions.</td><td class="td-done">Done</td></tr>
+      <tr><td><code>supabase-migrations/2026-05-01-layer-name.sql</code> — <code>layers.name</code> text column added for creator-facing layer labels.</td><td class="td-done">Done</td></tr>
+      <tr><td><code>supabase-migrations/2026-05-02-assets-update-and-cascade.sql</code> — <code>layers.asset_id</code> FK to assets table added with <code>ON DELETE CASCADE</code>.</td><td class="td-done">Done</td></tr>
+      <tr><td><code>src/types/index.ts</code> — Layer interface updated with <code>asset_id</code>, <code>name</code>, <code>panel_span_count</code>. Asset interface added.</td><td class="td-done">Done</td></tr>
+      <tr><td>AssetsFolder component added to EditorCanvas — renders story's uploaded media as a grid, allows quick-add to panel. Asset registration on upload wired to assets table.</td><td class="td-done">Done</td></tr>
+      <tr><td><code>src/components/reader/StoryAudio.tsx</code> — handles audio layers with <code>panel_span_count &gt; 1</code>, prevents duplicate audio elements fighting during panel transitions.</td><td class="td-done">Done</td></tr>
+      <tr><td><code>src/lib/upload.ts</code> — deduplication path collision fix; assets registered in assets table on upload.</td><td class="td-done">Done</td></tr>
+      <tr><td>Layer name input added to EditorRail Properties tab.</td><td class="td-done">Done</td></tr>
+    </table>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">Build Session — May 3, 2026 — Editor canvas UX polish + multi-file upload fix</div>
+    <table class="spec-table">
+      <tr><th>Deliverable</th><th>Status</th></tr>
+      <tr><td>Two-click canvas select — first click selects panel, second click selects layer. Prevents accidental layer grabs when switching panels.</td><td class="td-done">Done</td></tr>
+      <tr><td>Grab cursor in crop mode — <code>cursor: grab</code> while idle, <code>cursor: grabbing</code> during focal-point drag.</td><td class="td-done">Done</td></tr>
+      <tr><td>Layer naming display in EditorRail Properties tab — layer name shows in heading when set.</td><td class="td-done">Done</td></tr>
+      <tr><td>Fade transition drama increased — stronger opacity/scale values for outgoing panel in Fade preset.</td><td class="td-done">Done</td></tr>
+      <tr><td>End-page transition refined.</td><td class="td-done">Done</td></tr>
+      <tr><td>Dashboard story card sizing adjusted.</td><td class="td-done">Done</td></tr>
+      <tr><td>Multi-file upload path collision in AssetsFolder fixed — each file gets a unique timestamped path, preventing overwrites when uploading multiple files with the same name.</td><td class="td-done">Done</td></tr>
+    </table>
   </div>
 
   <div class="sub">

@@ -70,6 +70,9 @@ export default function EditorRail(): React.JSX.Element {
   const [publishConfirm, setPublishConfirm] = useState(false)
   const [coverUploading, setCoverUploading] = useState(false)
   const coverInputRef = useRef<HTMLInputElement>(null)
+  const [passwordInput, setPasswordInput] = useState('')
+  const [passwordSaving, setPasswordSaving] = useState(false)
+  const [showPasswordInput, setShowPasswordInput] = useState(false)
 
   const activePanel = panels.find((p) => p.id === activePanelId) ?? null
   const activeLayer = layers.find((l) => l.id === activeLayerId) ?? null
@@ -105,6 +108,40 @@ export default function EditorRail(): React.JSX.Element {
         setPublishConfirm(true)
         setTimeout(() => setPublishConfirm(false), 3000)
       }
+    }
+  }
+
+  const handlePasswordClear = async (): Promise<void> => {
+    if (!story) return
+    setPasswordSaving(true)
+    const { error } = await supabase
+      .from('stories')
+      .update({ password_hash: null, updated_at: new Date().toISOString() })
+      .eq('id', story.id)
+    setPasswordSaving(false)
+    if (!error) {
+      updateStory({ password_hash: null })
+      setPasswordInput('')
+      setShowPasswordInput(false)
+    }
+  }
+
+  const handlePasswordSet = async (): Promise<void> => {
+    if (!story || !passwordInput.trim()) return
+    setPasswordSaving(true)
+    const raw = passwordInput.trim()
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw))
+    const hash = Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('')
+    const { error } = await supabase
+      .from('stories')
+      .update({ password_hash: hash, updated_at: new Date().toISOString() })
+      .eq('id', story.id)
+    setPasswordSaving(false)
+    if (!error) {
+      updateStory({ password_hash: hash })
+      setPasswordInput('')
+      setShowPasswordInput(false)
+      pushToast('Password set', 'success')
     }
   }
 
@@ -721,11 +758,65 @@ export default function EditorRail(): React.JSX.Element {
         </div>
 
         <SectionLabel>Access</SectionLabel>
-        <div className="rail-row" style={{ opacity: 0.4 }}>
+        <div className="rail-row">
           <span className="rail-row-label">Password protect</span>
-          <div className="rail-toggle" aria-disabled="true" />
+          <div
+            role="switch"
+            aria-checked={!!story?.password_hash}
+            tabIndex={0}
+            className={story?.password_hash ? 'rail-toggle rail-toggle--on' : 'rail-toggle'}
+            style={{ cursor: passwordSaving ? 'wait' : 'pointer' }}
+            onClick={() => {
+              if (passwordSaving) return
+              if (story?.password_hash) { void handlePasswordClear() }
+              else { setShowPasswordInput((v) => !v) }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault()
+                if (passwordSaving) return
+                if (story?.password_hash) { void handlePasswordClear() }
+                else { setShowPasswordInput((v) => !v) }
+              }
+            }}
+          >
+            <div className="rail-toggle-thumb" />
+          </div>
         </div>
-        <div className="rail-hint">Coming in next phase</div>
+        {story?.password_hash ? (
+          <div className="rail-hint" style={{ color: '#3DAA70' }}>Protected — readers need a password to open this story.</div>
+        ) : showPasswordInput ? (
+          <div style={{ display: 'flex', gap: 6, marginTop: 6, alignItems: 'center' }}>
+            <input
+              type="password"
+              className="rail-text-input"
+              placeholder="Set password…"
+              value={passwordInput}
+              autoFocus
+              onChange={(e) => setPasswordInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') void handlePasswordSet() }}
+              style={{ flex: 1 }}
+            />
+            <button
+              type="button"
+              className="rail-link-add"
+              onClick={() => void handlePasswordSet()}
+              disabled={!passwordInput.trim() || passwordSaving}
+            >{passwordSaving ? '…' : 'Set'}</button>
+            <button
+              type="button"
+              className="rail-link-remove"
+              onClick={() => { setShowPasswordInput(false); setPasswordInput('') }}
+              aria-label="Cancel"
+            >
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+                <path d="M2 2l6 6M8 2l-6 6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+              </svg>
+            </button>
+          </div>
+        ) : (
+          <div className="rail-hint">No password — anyone with the link can read.</div>
+        )}
 
         <SectionLabel>Creator Bio</SectionLabel>
         <div className="rail-section-inner">

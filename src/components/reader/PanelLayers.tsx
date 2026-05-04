@@ -67,16 +67,21 @@ function mediaStyle(layer: Layer): React.CSSProperties {
 interface LayerRendererProps {
   layer: Layer
   videoSfxEnabled: boolean
+  musicEnabled: boolean
   videoVolume: number
 }
 
-function LayerRenderer({ layer, videoSfxEnabled, videoVolume }: LayerRendererProps): React.JSX.Element | null {
+function LayerRenderer({ layer, videoSfxEnabled, musicEnabled, videoVolume }: LayerRendererProps): React.JSX.Element | null {
   const videoRef = useRef<HTMLVideoElement>(null)
   const audioRef = useRef<HTMLAudioElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const isVisibleRef = useRef(false)
 
-  const effectiveMuted = layer.muted || !videoSfxEnabled
+  // Audio-only layers respect the Sound (musicEnabled) toggle; video layers
+  // respect the Video & SFX toggle. This lets readers control them independently.
+  const effectiveMuted = layer.media_type === 'audio'
+    ? (layer.muted || !musicEnabled)
+    : (layer.muted || !videoSfxEnabled)
   const isMedia = layer.media_type === 'video' || layer.media_type === 'audio'
 
   // ── IntersectionObserver: autoplay at 50% visibility ──────────────────
@@ -210,10 +215,11 @@ function LayerRenderer({ layer, videoSfxEnabled, videoVolume }: LayerRendererPro
 interface PanelLayersProps {
   layers: Layer[]
   videoSfxEnabled: boolean
+  musicEnabled: boolean
   videoVolume: number
 }
 
-export default function PanelLayers({ layers, videoSfxEnabled, videoVolume }: PanelLayersProps): React.JSX.Element {
+export default function PanelLayers({ layers, videoSfxEnabled, musicEnabled, videoVolume }: PanelLayersProps): React.JSX.Element {
   // layers are already sorted ascending (low position = behind) by useReaderData
   return (
     <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
@@ -222,6 +228,7 @@ export default function PanelLayers({ layers, videoSfxEnabled, videoVolume }: Pa
           key={layer.id}
           layer={layer}
           videoSfxEnabled={videoSfxEnabled}
+          musicEnabled={musicEnabled}
           videoVolume={videoVolume}
         />
       ))}

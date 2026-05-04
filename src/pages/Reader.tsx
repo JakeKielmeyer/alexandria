@@ -54,6 +54,7 @@ interface ScrollReaderProps {
 function ScrollReader({ story, panels, previewMode, onReachEnd }: ScrollReaderProps): React.JSX.Element {
   const videoSfxEnabled = useReaderStore((s) => s.videoSfxEnabled)
   const toggleVideoSfx = useReaderStore((s) => s.toggleVideoSfx)
+  const musicEnabled = useReaderStore((s) => s.musicEnabled)
   const videoVolume = useReaderStore((s) => s.videoVolume)
   const setVideoVolume = useReaderStore((s) => s.setVideoVolume)
   const navigate = useNavigate()
@@ -203,6 +204,7 @@ function ScrollReader({ story, panels, previewMode, onReachEnd }: ScrollReaderPr
               <PanelLayers
                 layers={panel.layers.filter((l) => !spanAudioLayerIds.has(l.id))}
                 videoSfxEnabled={videoSfxEnabled}
+                musicEnabled={musicEnabled}
                 videoVolume={videoVolume}
               />
               {panel.layers.length === 0 && (
@@ -251,7 +253,7 @@ function ScrollReader({ story, panels, previewMode, onReachEnd }: ScrollReaderPr
       <StoryAudio
         entries={spanAudioEntries}
         activePanelIndex={activeIndex}
-        videoSfxEnabled={videoSfxEnabled}
+        musicEnabled={musicEnabled}
         videoVolume={videoVolume}
       />
 
@@ -434,6 +436,7 @@ export default function Reader(): React.JSX.Element {
     if (nextGate === 'interstitial') {
       return (
         <Interstitial
+          storyId={story.id}
           storyTitle={story.title}
           creatorName={getCreatorName(story)}
           onClear={() => handleClearGate('interstitial')}

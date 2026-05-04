@@ -32,6 +32,7 @@ export interface Story {
   creator_links: { label: string; url: string }[]
   transition_style: TransitionStyle | null
   transition_duration_ms: number | null
+  read_count: number
   created_at: string
   updated_at: string
 }

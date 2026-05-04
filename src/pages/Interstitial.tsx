@@ -2,18 +2,26 @@ import React from 'react'
 import GateShell from '../components/GateShell'
 import GateLogo from '../components/GateLogo'
 import { useReaderStore } from '../store/readerStore'
+import { supabase } from '../lib/supabase'
 
 interface InterstitialProps {
   onClear: () => void
+  storyId: string
   storyTitle: string
   creatorName: string
 }
 
-export default function Interstitial({ onClear, storyTitle, creatorName }: InterstitialProps): React.JSX.Element {
+export default function Interstitial({ onClear, storyId, storyTitle, creatorName }: InterstitialProps): React.JSX.Element {
   const videoSfx = useReaderStore((s) => s.videoSfxEnabled)
   const music = useReaderStore((s) => s.musicEnabled)
   const setVideoSfx = useReaderStore((s) => s.setVideoSfx)
   const setMusic = useReaderStore((s) => s.setMusic)
+
+  const handleEnter = (): void => {
+    // Fire-and-forget atomic increment — reader isn't blocked by this.
+    void supabase.rpc('increment_story_read_count', { story_id: storyId })
+    onClear()
+  }
 
   return (
     <GateShell>
@@ -108,7 +116,7 @@ export default function Interstitial({ onClear, storyTitle, creatorName }: Inter
               <circle cx="13" cy="12" r="2" stroke="#DC5A8A" strokeWidth="1.4"/>
             </svg>
             <div>
-              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '11px', color: 'rgba(245,238,232,0.65)' }}>Music</div>
+              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '11px', color: 'rgba(245,238,232,0.65)' }}>Sound</div>
               <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '9px', color: 'rgba(245,238,232,0.32)', marginTop: '2px' }}>Background music & composed</div>
             </div>
           </div>
@@ -123,7 +131,7 @@ export default function Interstitial({ onClear, storyTitle, creatorName }: Inter
               }}
               role="switch"
               aria-checked={music}
-              aria-label="Toggle music"
+              aria-label="Toggle sound"
               tabIndex={0}
               style={{
                 width: '34px', height: '20px',
@@ -151,7 +159,7 @@ export default function Interstitial({ onClear, storyTitle, creatorName }: Inter
         </div>
       </div>
 
-      <button onClick={onClear} style={{
+      <button onClick={handleEnter} style={{
         background: '#C93060',
         color: '#F5EEE8',
         fontFamily: "'DM Sans', sans-serif",
