@@ -43,7 +43,7 @@ Non-negotiable. Follow exactly.
 10. **Never make unrequested changes.** Flag first, ask, then act.
 11. **All Claude Code instructions in one copyable block per task.** Never split unnecessarily — but never make blocks so large they crash Claude Code. Use judgment: if a block touches more than 3 files or 200 lines, split it.
 12. **Always include effort level with every Claude Code instruction block.** Format: "Effort: Normal" or "Effort: Max" on the line immediately before the code block. Use Normal for simple mechanical tasks (paste this code, delete this file, rename this). Use Max for anything requiring reading multiple files, making decisions, or writing interconnected code.
-13. **Always include a recommended model with effort level.** Use claude-sonnet-4-5 for Normal tasks, claude-opus-4-5 for Max tasks.
+13. **Always include a recommended model with effort level.** Use claude-haiku-4-5 for mechanical additions and null-check patches. Use claude-sonnet-4-6 for standard UI implementation and established patterns. Use claude-opus-4-7 for complex interaction logic, React edge cases, and multi-concern changes. Auto-adjust per task — do not use the same model for everything.
 14. **Never use inline styles for new components.** Existing inline styles in already-built pages are acceptable for now — do not refactor unless asked.
 15. **MVP focus is absolute.** Every decision must serve getting to a working MVP. If it doesn't, push back.
 16. **The user's environment accepts all commands without interruption** — Bash, pnpm, Claude Code tool calls, file writes. Do not pause to ask for permission to run commands. Execute the full instruction block without stopping.
@@ -208,15 +208,10 @@ Panel 3: https://pub-d0a4c9548d2149eb9259096fbf8a9dfe.r2.dev/Panel%203.jpg
 - **stories** — id, user_id, title, slug, content_rating (`mature`|`explicit`), password_hash, is_published, cover_url, font_manifest (JSONB), creator_bio, creator_links (JSONB), reading_mode (`cinematic`|`scroll`, default `cinematic`), created_at, updated_at
 - **chunks** — id, story_id, chapter_number, chapter_title, position, created_at
 - **panels** — id, chunk_id (nullable), story_id, position, height (integer px), created_at
-- **layers** — id, panel_id, story_id, position (z-order), media_type (`image`|`gif`|`video`|`audio`), media_url, x_percent, y_percent, width_percent, height_percent, is_fill (boolean — true = fill panel, false = custom size/position), created_at
+- **layers** — id, panel_id, story_id, position (z-order), media_type (`image`|`gif`|`video`|`audio`|`text`), media_url, name, x_percent, y_percent, width_percent, height_percent, is_fill (boolean, legacy), fill_mode (`crop`|`stretch`|`custom`), focal_x_percent, focal_y_percent, opacity, autoplay, loop, muted, playback_rate, panel_span_count, text_content, font_family, font_size, text_color, font_weight, text_align, line_height, letter_spacing, created_at
 
 **Removed tables:**
-- `overlays` — deleted. All text/speech bubble functionality removed from MVP.
-
-**Pending migrations needed (next session):**
-- Add `reading_mode` column to `stories` table
-- Create `layers` table (replaces `overlays`)
-- Drop `overlays` table
+- `overlays` — deleted.
 
 **URL structure:** `/u/[username]/s/[slug]`
 **Panel heights:** Cinematic mode: always 640px. Scroll mode: raw pixel integers via presets.
@@ -243,10 +238,10 @@ Panel 3: https://pub-d0a4c9548d2149eb9259096fbf8a9dfe.r2.dev/Panel%203.jpg
 
 ### What the editor does
 - Creators build panels by uploading media (image, GIF, video, audio) into pre-sized panel frames
-- Each panel can have multiple media items (layers)
+- Each panel can have multiple media items (layers), including text layers
 - Layers can be repositioned and resized on the canvas using drag handles
 - Layers have z-order (managed in the Layers rail tab)
-- No text tools, no speech bubbles, no font editor in MVP
+- Text layers: inline-editable textarea in editor; styled static div in reader
 
 ### Media types
 | Type | Fill panel | Custom size/position | Visible to reader |
@@ -255,6 +250,7 @@ Panel 3: https://pub-d0a4c9548d2149eb9259096fbf8a9dfe.r2.dev/Panel%203.jpg
 | GIF | ✅ | ✅ | ✅ |
 | Video | ✅ | ✅ | ✅ |
 | Audio | N/A | N/A | ❌ (toggle in navbar) |
+| Text | N/A | ✅ always custom | ✅ styled div |
 
 ### Transparent video
 Deferred post-MVP. PNG with transparency covers the foreground layering use case for now. Log as known limitation.
@@ -293,8 +289,9 @@ Deferred post-MVP. PNG with transparency covers the foreground layering use case
 - `src/components/AuthGuard.tsx` — wraps protected routes
 - `src/components/editor/EditorTopBar.tsx` — logo (back to dashboard), title, save status, mode tabs, publish button
 - `src/components/editor/EditorFilmstrip.tsx` — panel thumbnails, add/delete panels
-- `src/components/editor/EditorCanvas.tsx` — media upload, LayerCanvas with drag-to-move and 8-handle resize (4 corners + 4 edges, shift-key constrains proportional scale on corners), fill vs positioned layers (cover vs fill objectFit), cinematic/scroll mode aware
-- `src/components/editor/EditorRail.tsx` — Properties tab (fill toggle, x/y/w/h inputs, opacity slider, delete), Layers tab (z-order list with up/down arrows and delete), Transitions mode, Publish mode (reading mode toggle, content rating, go live)
+- `src/components/editor/EditorCanvas.tsx` — media upload, LayerCanvas with drag-to-move and 8-handle resize (4 corners + 4 edges, shift-key constrains proportional scale on corners), fill vs positioned layers (cover vs fill objectFit), cinematic/scroll mode aware; text layer branch renders inline-editable `<textarea>` with transparent styling
+- `src/components/editor/EditorRail.tsx` — Properties tab (fill toggle, x/y/w/h inputs, opacity slider, delete); text properties panel (font picker with Google Fonts list, size, weight, align, color, line-height, letter-spacing, content textarea); Layers tab (z-order list with up/down arrows and delete), Transitions mode, Publish mode (reading mode toggle, content rating, go live)
+- `src/components/reader/PanelLayers.tsx` — renders all layers on a panel in z-order; text layers render as styled static divs (pointerEvents:none); video/audio use IntersectionObserver for autoplay at 50% visibility
 
 ### Pages Built
 | Page | File | Status | Notes |
@@ -315,8 +312,11 @@ Deferred post-MVP. PNG with transparency covers the foreground layering use case
 
 ### Stores
 - `src/store/authStore.ts` — user, loading, setUser, setLoading, signOut
-- `src/store/editorStore.ts` — layers state (addLayer, updateLayer, deleteLayer, activeLayerId)
+- `src/store/editorStore.ts` — layers state (addLayer, updateLayer, deleteLayer, activeLayerId), panels, story, saveStatus
 - `src/store/gateStore.ts` — gate flow state for reader
+
+### Libraries
+- `src/lib/fonts.ts` — curated 24-font Google Fonts list (dark romance/horror aesthetic). `loadFont(label)` injects a `<link>` tag by font label; `loadFontManifest(manifest)` loads all fonts from a string array. Called in editor (on font select) and reader (on mount from story.font_manifest).
 
 ### Hooks
 - `src/hooks/useAutoSave.ts` — saves story, panels, and layers. 2s debounce.
@@ -352,17 +352,14 @@ Deferred post-MVP. PNG with transparency covers the foreground layering use case
 - Password.tsx has no real validation logic — hash validation deferred
 - No session persistence for gate flow — in-memory only, by design
 - Free tier branding always shown — tier logic not yet implemented
-- PhoneShell injects Google Fonts link tag inside component render — clean up later
 - panels Storage bucket RLS policy is permissive — tighten to story ownership later
 - chunk_id on panels table is nullable
 - useAutoSave fires N sequential Supabase calls for N panels — acceptable for MVP
 - cover_url backfill not retroactive for stories created before the fix
 - Transparent video deferred — PNG with transparency covers foreground layering for MVP
-- OverlayCanvas.tsx exists but is being deleted — do not build on top of it
-- overlay.css exists but is being deleted — do not build on top of it
-- overlays table in Supabase exists but is being dropped — do not write to it
 - Assets modal not yet built — uploaded files accumulate in Supabase storage with no management UI.
 - Filmstrip drag-to-reorder deferred.
+- Text layer feature shipped May 5, 2026. User noted "edits need to be made" — ask user to enumerate specific issues before starting next session's work on text layers.
 
 ---
 
@@ -401,11 +398,19 @@ Deferred post-MVP. PNG with transparency covers the foreground layering use case
 - APRIL 18 2026 — LayerCanvas renderMedia uses objectFit: fill for positioned layers, objectFit: cover for fill layers.
 - APRIL 18 2026 — "Navbar — visible to reader" label removed from EditorCanvas.
 - APRIL 19 2026 — Reader updated to branch on reading_mode. Scroll mode renders ScrollReader component: sticky header, 400px centered feed, panels stacked with 3px gap, chapter breaks rendered above panels as section dividers. Cinematic mode unchanged. src/styles/reader.css created.
+- MAY 5 2026 — Text layers shipped. New media_type 'text' added. DB migration: 8 text columns + constraint update (supabase-migrations/2026-05-05-text-layers.sql). Text layers always fill_mode:'custom'; default position bottom-third (y:75%, h:20%), 80% wide. Inline-editable textarea in editor; static styled div in reader.
+- MAY 5 2026 — Google Fonts system added (src/lib/fonts.ts). 24 curated fonts for dark romance/horror aesthetic. loadFont() injects link tag by label; called in EditorRail on font select and in Reader on story load from font_manifest.
+- MAY 5 2026 — story.font_manifest auto-synced by useAutoSave: after layer saves, unique font_family values from text layers are merged into font_manifest and saved to stories table if changed.
+- MAY 5 2026 — EditorCanvas: "T Text" button added to persistent "Add" bar below panel frame (alongside "+ Media"). Text layer selected → inline textarea; deselected → static display. Cursor and mouseDown handling special-cased for text to prevent drag-to-move on active text layers.
+- MAY 5 2026 — EditorRail: full text properties section added (content textarea, font select, size, weight, align, color picker + hex input, line-height, letter-spacing). Fill mode selector hidden for text layers; position/size inputs always shown.
+- MAY 5 2026 — EditorFilmstrip: text layers excluded from thumbnail candidate filter. Text-only panels show "T" placeholder; panels with a visible media layer on top continue to show that media as thumbnail.
+- MAY 5 2026 — Model auto-adjustment adopted: claude-haiku-4-5 for mechanical tasks, claude-sonnet-4-6 for standard UI, claude-opus-4-7 for complex logic. Apply per-task, not globally.
 
 ---
 
 ## What Comes Next (in order)
 
+0. **Text layer edits** — user confirmed feature works but noted "edits need to be made." Ask the user to enumerate specific issues before starting work. Could be UX polish, positioning bugs, font picker behavior, or editor interaction edge cases. Model: claude-sonnet-4-6 / claude-opus-4-7 depending on complexity.
 1. **Assets modal** — new feature. Requires new story_assets Supabase table (migration first), modal UI showing all story uploads, two upload entry points (canvas toolbar + modal), delete with confirmation (removes from storage + all layers using that URL), re-use from modal to place on any panel.
 2. **Drag-to-reorder layers** — add alongside existing arrow buttons in the Layers tab.
 3. **Filmstrip drag-to-reorder panels** — deferred, low priority.
@@ -421,6 +426,20 @@ Deferred post-MVP. PNG with transparency covers the foreground layering use case
 **Permitted:** Mature themes, horror, grimdark, dark romance, explicit violence, gore, adult language, explicit sexual content (illustrated only, adult characters only, no real people).
 
 **Absolute prohibitions:** Sexual content involving minors (immediate termination), sexual content depicting real people, photographs of people, targeted harassment of private individuals.
+
+---
+
+## Model / Effort Guide
+
+Auto-adjust the model per task. Do not use the same model for everything.
+
+| Model | When to use | Examples |
+|-------|------------|---------|
+| `claude-haiku-4-5` | Mechanical additions, simple reads, null-check patches | Adding a column to an update payload, fixing a type, inserting a guard clause |
+| `claude-sonnet-4-6` | Standard UI implementation, established patterns | Building a new rail section, wiring a new button, adding a CSS rule |
+| `claude-opus-4-7` | Complex interaction logic, React edge cases, multi-concern changes | Drag systems, contentEditable behavior, store + DB + UI in one change, any feature with 3+ interacting concerns |
+
+Effort levels map to models: Normal = haiku or sonnet, Max = opus.
 
 ---
 
@@ -446,6 +465,7 @@ Always attach all of the following when starting a new chat:
 
 ### Source files (attach all)
 - `src/types/index.ts`
+- `src/lib/fonts.ts`
 - `src/store/editorStore.ts`
 - `src/store/authStore.ts`
 - `src/store/gateStore.ts`
@@ -462,6 +482,7 @@ Always attach all of the following when starting a new chat:
 - `src/components/editor/EditorFilmstrip.tsx`
 - `src/components/editor/EditorCanvas.tsx`
 - `src/components/editor/EditorRail.tsx`
+- `src/components/reader/PanelLayers.tsx`
 - `src/styles/editor.css`
 - `src/styles/dashboard.css`
 - `src/styles/auth.css`

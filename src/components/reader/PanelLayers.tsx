@@ -165,6 +165,34 @@ function LayerRenderer({ layer, videoSfxEnabled, musicEnabled, videoVolume }: La
     }
   }, [layer.media_type, videoVolume])
 
+  if (layer.media_type === 'text') {
+    return (
+      <div style={containerStyle(layer)}>
+        <div
+          style={{
+            width: '100%',
+            height: '100%',
+            padding: '6px 8px',
+            boxSizing: 'border-box',
+            fontFamily: `'${layer.font_family ?? 'DM Sans'}', sans-serif`,
+            fontSize: `${layer.font_size ?? 24}px`,
+            fontWeight: layer.font_weight ?? '400',
+            color: layer.text_color ?? '#F5EEE8',
+            textAlign: (layer.text_align ?? 'left') as React.CSSProperties['textAlign'],
+            lineHeight: layer.line_height ?? 1.4,
+            letterSpacing: `${layer.letter_spacing ?? 0}px`,
+            overflow: 'hidden',
+            wordBreak: 'break-word',
+            whiteSpace: 'pre-wrap',
+            pointerEvents: 'none',
+          }}
+        >
+          {layer.text_content ?? ''}
+        </div>
+      </div>
+    )
+  }
+
   if (!layer.media_url) return null
 
   const cStyle = containerStyle(layer)

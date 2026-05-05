@@ -1155,10 +1155,26 @@ body{
     </table>
   </div>
 
+  <div class="sub">
+    <div class="sub-title">Text layers &amp; font system — May 5, 2026</div>
+    <table class="spec-table">
+      <tr><th>Decision</th><th>Outcome</th></tr>
+      <tr><td>Text layers added to MVP</td><td>Reversed April 17 decision. <code>media_type = 'text'</code> added. Text enables dialogue boxes, captions, chapter headings without external artwork tooling. DB migration: 8 nullable columns (<code>text_content, font_family, font_size, text_color, font_weight, text_align, line_height, letter_spacing</code>) + constraint update (<code>supabase-migrations/2026-05-05-text-layers.sql</code>).</td></tr>
+      <tr><td>Text layer fill mode</td><td>Always <code>fill_mode: 'custom'</code>. No crop/stretch option — text boxes are always positioned. Default placement: bottom-third of panel (y: 75%, height: 20%, width: 80%), typical caption placement. Creator drags/resizes with existing handles.</td></tr>
+      <tr><td>Text editing in editor</td><td>Controlled <code>&lt;textarea&gt;</code> with transparent background, not <code>contentEditable</code>. React reconciliation is unreliable with contentEditable after user edits. onChange fires per keystroke → updateLayer({text_content}) → 2s auto-save debounce. Deselected text layers render as a static display div.</td></tr>
+      <tr><td>Text drag interaction</td><td>Active text layers: cursor = default, outer onMouseDown = undefined (so text selection works). Inactive text layers: normal drag-to-move behavior. Resize handles work for both states via their own mousedown handlers.</td></tr>
+      <tr><td>Google Fonts system</td><td>New file <code>src/lib/fonts.ts</code>. Curated 24-font list grouped as: Literary serif (Playfair Display, EB Garamond, Cormorant Garamond, Crimson Text, Lora, Merriweather, Libre Baskerville, GFS Didot), Gothic/display (Cinzel, Cinzel Decorative, UnifrakturMaguntia), Modern sans (DM Sans, DM Serif Display, Raleway, Montserrat, Oswald), Script/elegant (Great Vibes, Tangerine, Alex Brush, Pinyon Script), Atmosphere/rough (Special Elite, Creepster, Nosifer, Abril Fatface). <code>loadFont(label)</code> injects a Google Fonts <code>&lt;link&gt;</code> tag by family label (no-ops if already loaded). <code>loadFontManifest(manifest)</code> loads all fonts from a string array.</td></tr>
+      <tr><td>font_manifest persistence</td><td><code>story.font_manifest</code> (JSONB) is auto-synced by <code>useAutoSave</code>: after saving layers, unique <code>font_family</code> values from text layers are merged with current manifest and written to stories if changed. Reader calls <code>loadFontManifest(story.font_manifest)</code> on mount so fonts are preloaded before panels render.</td></tr>
+      <tr><td>Reader text rendering</td><td><code>PanelLayers.tsx LayerRenderer</code> has a 'text' branch that renders a styled div (<code>pointerEvents: none</code>) wrapped in <code>containerStyle(layer)</code> — which already handles custom fill mode absolute positioning and opacity. No JS, no interaction.</td></tr>
+      <tr><td>Filmstrip text thumbnails</td><td>Text layers excluded from thumbnail candidate filter (<code>media_type !== 'text' &amp;&amp; media_url</code>). Text-only panels show a "T" glyph placeholder. Panels with a visible media layer above text continue to show that media as thumbnail.</td></tr>
+      <tr><td>Model auto-adjustment adopted</td><td>All sessions now auto-adjust model per task. claude-haiku-4-5 for mechanical additions; claude-sonnet-4-6 for standard UI patterns; claude-opus-4-7 for complex multi-concern logic. Effort level labels (Normal/Max) map to model choice. Never use one model for everything.</td></tr>
+    </table>
+  </div>
+
 <!-- FOOTER -->
 <div class="doc-footer">
-  <span class="footer-text">Alexandria · Platform Design Specification · Updated April 25, 2026</span>
-  <span class="footer-text">Layer pipeline rebuilt · fill modes · scroll/cinematic split · 10 bugs fixed · volume slider</span>
+  <span class="footer-text">Alexandria · Platform Design Specification · Updated May 5, 2026</span>
+  <span class="footer-text">Text layers shipped · Google Fonts system · font_manifest persistence · model auto-adjustment</span>
 </div>
 
 </body>

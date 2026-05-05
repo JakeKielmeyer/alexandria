@@ -87,8 +87,8 @@ export function panelLayerPath(storyId: string, panelId: string, file: File): st
 // The assets table CHECK constraint uses 'image' | 'video' | 'audio'.
 // GIF is stored as media_type 'image' in assets (it is an image format).
 function toAssetMediaType(mt: MediaType): Asset['media_type'] {
-  if (mt === 'gif') return 'image'
-  return mt
+  if (mt === 'gif' || mt === 'text') return 'image'
+  return mt as Asset['media_type']
 }
 
 /**

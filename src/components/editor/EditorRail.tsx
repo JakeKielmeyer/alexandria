@@ -5,6 +5,7 @@ import { useEditorStore } from '../../store/editorStore'
 import { useToastStore } from '../../store/toastStore'
 import { supabase } from '../../lib/supabase'
 import { ACCEPTED_COVER, coverPath, uploadToPanelsBucket, validateMediaFile } from '../../lib/upload'
+import { GOOGLE_FONTS, loadFont } from '../../lib/fonts'
 import type { ContentRating, FillMode, ReadingMode, TransitionStyle } from '../../types'
 
 function resolvedFillMode(layer: { fill_mode: FillMode | null; is_fill: boolean }): FillMode {
@@ -374,7 +375,193 @@ export default function EditorRail(): React.JSX.Element {
                   />
                 </div>
 
-                {activeLayer.media_type !== 'audio' && (
+                {activeLayer.media_type === 'text' && (
+                  <>
+                    <SectionLabel>Text</SectionLabel>
+                    <div className="rail-section-inner" style={{ marginBottom: 8 }}>
+                      <textarea
+                        className="rail-textarea"
+                        placeholder="Layer text content"
+                        value={activeLayer.text_content ?? ''}
+                        onChange={(e) => handleLayerUpdate({ text_content: e.target.value })}
+                        aria-label="Text content"
+                        rows={3}
+                      />
+                    </div>
+
+                    <SectionLabel>Font</SectionLabel>
+                    <div className="rail-row" style={{ marginBottom: 8 }}>
+                      <select
+                        value={activeLayer.font_family ?? 'DM Sans'}
+                        onChange={(e) => {
+                          loadFont(e.target.value)
+                          handleLayerUpdate({ font_family: e.target.value })
+                        }}
+                        aria-label="Font family"
+                        style={{
+                          flex: 1,
+                          padding: '4px 6px',
+                          fontSize: '12px',
+                          background: 'rgba(0,0,0,0.25)',
+                          color: 'rgba(245,238,232,0.9)',
+                          border: '1px solid rgba(245,238,232,0.15)',
+                          borderRadius: '4px',
+                        }}
+                      >
+                        {GOOGLE_FONTS.map((f) => (
+                          <option key={f.label} value={f.label}>{f.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="rail-row" style={{ marginBottom: 8 }}>
+                      <span className="rail-row-label">Size</span>
+                      <div className="rail-input-group">
+                        <input
+                          type="number"
+                          value={activeLayer.font_size ?? 24}
+                          min={8} max={200} step={1}
+                          onChange={(e) => handleLayerUpdate({ font_size: parseInt(e.target.value, 10) || 24 })}
+                          className="rail-number-input"
+                          aria-label="Font size in pixels"
+                        />
+                        <span className="rail-input-unit">px</span>
+                      </div>
+                      <div style={{ display: 'flex', gap: '4px', marginLeft: '8px' }}>
+                        {(['400', '700'] as const).map((w) => (
+                          <button
+                            key={w}
+                            type="button"
+                            onClick={() => handleLayerUpdate({ font_weight: w })}
+                            className={(activeLayer.font_weight ?? '400') === w ? 'rail-option-btn rail-option-btn--active' : 'rail-option-btn'}
+                            aria-pressed={(activeLayer.font_weight ?? '400') === w}
+                            style={{ padding: '4px 8px', fontSize: '11px', fontWeight: w === '700' ? 700 : 400 }}
+                          >
+                            {w === '400' ? 'Reg' : 'Bold'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="rail-row" style={{ marginBottom: 8 }}>
+                      <span className="rail-row-label">Align</span>
+                      <div style={{ display: 'flex', gap: '4px' }}>
+                        {(['left', 'center', 'right'] as const).map((a) => (
+                          <button
+                            key={a}
+                            type="button"
+                            onClick={() => handleLayerUpdate({ text_align: a })}
+                            className={(activeLayer.text_align ?? 'left') === a ? 'rail-option-btn rail-option-btn--active' : 'rail-option-btn'}
+                            aria-pressed={(activeLayer.text_align ?? 'left') === a}
+                            style={{ padding: '4px 8px', fontSize: '11px' }}
+                          >
+                            {a.charAt(0).toUpperCase() + a.slice(1)}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="rail-row" style={{ marginBottom: 8 }}>
+                      <span className="rail-row-label">Color</span>
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                        <input
+                          type="color"
+                          value={activeLayer.text_color ?? '#F5EEE8'}
+                          onChange={(e) => handleLayerUpdate({ text_color: e.target.value })}
+                          aria-label="Text color"
+                          style={{ width: '28px', height: '24px', padding: '1px', border: '1px solid rgba(245,238,232,0.15)', borderRadius: '3px', background: 'none', cursor: 'pointer' }}
+                        />
+                        <input
+                          type="text"
+                          value={activeLayer.text_color ?? '#F5EEE8'}
+                          onChange={(e) => {
+                            const v = e.target.value
+                            if (/^#[0-9A-Fa-f]{0,6}$/.test(v)) handleLayerUpdate({ text_color: v })
+                          }}
+                          maxLength={7}
+                          aria-label="Text color hex value"
+                          style={{
+                            width: '70px',
+                            padding: '4px 6px',
+                            fontSize: '11px',
+                            fontFamily: 'monospace',
+                            background: 'rgba(0,0,0,0.25)',
+                            color: 'rgba(245,238,232,0.9)',
+                            border: '1px solid rgba(245,238,232,0.15)',
+                            borderRadius: '4px',
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="rail-row" style={{ marginBottom: 8 }}>
+                      <span className="rail-row-label">Leading</span>
+                      <div className="rail-input-group">
+                        <input
+                          type="number"
+                          value={activeLayer.line_height ?? 1.4}
+                          min={0.5} max={4} step={0.1}
+                          onChange={(e) => handleLayerUpdate({ line_height: parseFloat(e.target.value) || 1.4 })}
+                          className="rail-number-input"
+                          aria-label="Line height"
+                        />
+                      </div>
+                      <span className="rail-row-label" style={{ marginLeft: '12px' }}>Tracking</span>
+                      <div className="rail-input-group">
+                        <input
+                          type="number"
+                          value={activeLayer.letter_spacing ?? 0}
+                          min={-5} max={30} step={0.5}
+                          onChange={(e) => handleLayerUpdate({ letter_spacing: parseFloat(e.target.value) || 0 })}
+                          className="rail-number-input"
+                          aria-label="Letter spacing in pixels"
+                        />
+                        <span className="rail-input-unit">px</span>
+                      </div>
+                    </div>
+
+                    <SectionLabel>Position</SectionLabel>
+                    <div className="rail-row">
+                      <span className="rail-row-label">X</span>
+                      <div className="rail-input-group">
+                        <input type="number" value={Math.round(activeLayer.x_percent * 10) / 10} min={0} max={100} step={0.5}
+                          onChange={(e) => handleLayerUpdate({ x_percent: parseFloat(e.target.value) })}
+                          className="rail-number-input" aria-label="X position percent" />
+                        <span className="rail-input-unit">%</span>
+                      </div>
+                    </div>
+                    <div className="rail-row">
+                      <span className="rail-row-label">Y</span>
+                      <div className="rail-input-group">
+                        <input type="number" value={Math.round(activeLayer.y_percent * 10) / 10} min={0} max={100} step={0.5}
+                          onChange={(e) => handleLayerUpdate({ y_percent: parseFloat(e.target.value) })}
+                          className="rail-number-input" aria-label="Y position percent" />
+                        <span className="rail-input-unit">%</span>
+                      </div>
+                    </div>
+                    <SectionLabel>Size</SectionLabel>
+                    <div className="rail-row">
+                      <span className="rail-row-label">W</span>
+                      <div className="rail-input-group">
+                        <input type="number" value={Math.round((activeLayer.width_percent ?? 80) * 10) / 10} min={5} max={100} step={0.5}
+                          onChange={(e) => handleLayerUpdate({ width_percent: parseFloat(e.target.value) })}
+                          className="rail-number-input" aria-label="Layer width percent" />
+                        <span className="rail-input-unit">%</span>
+                      </div>
+                    </div>
+                    <div className="rail-row">
+                      <span className="rail-row-label">H</span>
+                      <div className="rail-input-group">
+                        <input type="number" value={Math.round((activeLayer.height_percent ?? 20) * 10) / 10} min={5} max={100} step={0.5}
+                          onChange={(e) => handleLayerUpdate({ height_percent: parseFloat(e.target.value) })}
+                          className="rail-number-input" aria-label="Layer height percent" />
+                        <span className="rail-input-unit">%</span>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {activeLayer.media_type !== 'audio' && activeLayer.media_type !== 'text' && (
                 <><SectionLabel>Fill Mode</SectionLabel>
                 {(() => {
                   const currentMode = resolvedFillMode(activeLayer)
@@ -503,7 +690,7 @@ export default function EditorRail(): React.JSX.Element {
                   </>
                 )}
 
-                </>) /* end audio guard */}
+                </>) /* end audio + text guard */}
 
                 <SectionLabel>Opacity</SectionLabel>
                 <div className="rail-row">

@@ -2,7 +2,7 @@
 
 export type ContentRating = 'mature' | 'explicit'
 
-export type MediaType = 'image' | 'gif' | 'video' | 'audio'
+export type MediaType = 'image' | 'gif' | 'video' | 'audio' | 'text'
 
 export type ReadingMode = 'cinematic' | 'scroll'
 
@@ -106,6 +106,15 @@ export interface Layer {
   // > 1 = the reader mounts the audio at story level, plays it while the active
   //       panel is within the span, and loops within that range.
   panel_span_count: number
+  // Text layer fields. Null on all non-text rows.
+  text_content:   string | null
+  font_family:    string | null
+  font_size:      number | null
+  text_color:     string | null
+  font_weight:    string | null
+  text_align:     string | null
+  line_height:    number | null
+  letter_spacing: number | null
   created_at: string
 }
 
@@ -136,6 +145,15 @@ export const LAYER_DEFAULTS: Record<MediaType, {
   muted: boolean
   playback_rate: number
   panel_span_count: number
+  // Text-specific defaults. Present only on the 'text' entry; undefined on others.
+  text_content?: string
+  font_family?: string
+  font_size?: number
+  text_color?: string
+  font_weight?: string
+  text_align?: string
+  line_height?: number
+  letter_spacing?: number
 }> = {
   image: {
     x_percent: 0,
@@ -205,5 +223,29 @@ export const LAYER_DEFAULTS: Record<MediaType, {
     muted: false,
     playback_rate: 1,
     panel_span_count: 1,
+  },
+  text: {
+    x_percent: 10,
+    y_percent: 75,
+    width_percent: 80,
+    height_percent: 20,
+    is_fill: false,
+    fill_mode: 'custom',
+    focal_x_percent: 50,
+    focal_y_percent: 50,
+    opacity: 1,
+    autoplay: false,
+    loop: false,
+    muted: true,
+    playback_rate: 1,
+    panel_span_count: 1,
+    text_content: 'Type here',
+    font_family: 'DM Sans',
+    font_size: 24,
+    text_color: '#F5EEE8',
+    font_weight: '400',
+    text_align: 'left',
+    line_height: 1.4,
+    letter_spacing: 0,
   },
 }

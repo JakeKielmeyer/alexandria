@@ -8,6 +8,7 @@ import { useGateStore } from '../store/gateStore'
 import { useReaderStore } from '../store/readerStore'
 import { useReaderData } from '../hooks/useReaderData'
 import { useDocumentHead } from '../hooks/useDocumentHead'
+import { loadFontManifest } from '../lib/fonts'
 import type { StoryWithCreator } from '../types'
 import type { GateName } from '../lib/gateFlow'
 import type { PanelWithMeta } from '../hooks/useReaderData'
@@ -346,6 +347,15 @@ export default function Reader(): React.JSX.Element {
     return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [username, slug, previewMode, currentUser])
+
+  // Load Google Fonts required by text layers before panels render.
+  useEffect(() => {
+    if (story?.font_manifest?.length) {
+      loadFontManifest(story.font_manifest)
+    }
+  // Re-run only when the story changes (manifest won't change while reading).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [story?.id])
 
   const { panels, loading: panelsLoading, error: panelsError } = useReaderData(story)
 

@@ -11,6 +11,7 @@ import {
   uploadToPanelsBucket, panelLayerPath,
   validateMediaFile, registerAsset,
 } from '../../lib/upload'
+import { loadFont } from '../../lib/fonts'
 import AssetsFolder from './AssetsFolder'
 
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -245,6 +246,45 @@ function LayerCanvas({ layer, panelWidth, panelHeight, isActive, onSelect, onUpd
   }, [layer.focal_x_percent, layer.focal_y_percent, onUpdate])
 
   const renderMedia = (): React.JSX.Element | null => {
+    if (layer.media_type === 'text') {
+      return (
+        <textarea
+          value={layer.text_content ?? ''}
+          placeholder={isActive ? '' : 'Type here'}
+          onChange={(e) => onUpdate({ text_content: e.target.value })}
+          onMouseDown={(e) => {
+            if (!isActive) {
+              e.preventDefault()
+              onSelect()
+            } else {
+              e.stopPropagation()
+            }
+          }}
+          style={{
+            width: '100%',
+            height: '100%',
+            background: 'transparent',
+            border: 'none',
+            outline: 'none',
+            resize: 'none',
+            padding: '6px 8px',
+            boxSizing: 'border-box',
+            fontFamily: `'${layer.font_family ?? 'DM Sans'}', sans-serif`,
+            fontSize: `${layer.font_size ?? 24}px`,
+            fontWeight: layer.font_weight ?? '400',
+            color: layer.text_color ?? '#F5EEE8',
+            textAlign: (layer.text_align ?? 'left') as React.CSSProperties['textAlign'],
+            lineHeight: layer.line_height ?? 1.4,
+            letterSpacing: `${layer.letter_spacing ?? 0}px`,
+            overflow: 'hidden',
+            wordBreak: 'break-word',
+            whiteSpace: 'pre-wrap',
+            cursor: isActive ? 'text' : 'default',
+            pointerEvents: 'auto',
+          }}
+        />
+      )
+    }
     if (!layer.media_url) return null
     if (layer.media_type === 'audio') return null
     const fitStyle = getMediaObjectFit(layer)
@@ -271,15 +311,17 @@ function LayerCanvas({ layer, panelWidth, panelHeight, isActive, onSelect, onUpd
 
   const mode = resolvedFillMode(layer)
 
-  // NEW-A: derive cursor based on active state and fill mode
-  // NEW-B: crop-mode cursor is 'grab' (hover) / 'grabbing' (drag) instead of 'crosshair'
+  // Cursor: text layers hand off cursor control to the textarea inside.
+  // For media layers: grab for crop, move for custom.
   const cursor = !isActive
     ? 'default'
-    : mode === 'crop'
-      ? (isDragging ? 'grabbing' : 'grab')
-      : mode === 'custom'
-        ? 'move'
-        : 'default'
+    : layer.media_type === 'text'
+      ? 'default'
+      : mode === 'crop'
+        ? (isDragging ? 'grabbing' : 'grab')
+        : mode === 'custom'
+          ? 'move'
+          : 'default'
 
   return (
     <div
@@ -290,18 +332,21 @@ function LayerCanvas({ layer, panelWidth, panelHeight, isActive, onSelect, onUpd
         border: isActive ? '1.5px solid #DC5A8A' : '1.5px solid transparent',
       }}
       onMouseDown={
-        // NEW-A two-click flow:
-        // • Inactive layer → first click just selects, no drag attached
-        // • Active crop layer → drag updates focal point
-        // • Active custom layer → drag moves/resizes
-        // • Active stretch layer → no drag (stretch has no adjustable position)
+        // Two-click flow:
+        // • Inactive layer → first click just selects (textarea handles its own click)
+        // • Active text layer → outer div does nothing; textarea handles clicks
+        // • Active crop layer �� drag updates focal point
+        // • Active custom layer → drag moves the layer
+        // • Active stretch layer → no drag
         !isActive
           ? (e) => { e.stopPropagation(); onSelect() }
-          : mode === 'crop'
-            ? handleFocalDrag
-            : mode === 'custom'
-              ? (e) => handleMouseDown(e, 'move')
-              : (e) => { e.stopPropagation() }
+          : layer.media_type === 'text'
+            ? undefined
+            : mode === 'crop'
+              ? handleFocalDrag
+              : mode === 'custom'
+                ? (e) => handleMouseDown(e, 'move')
+                : (e) => { e.stopPropagation() }
       }
     >
       {renderMedia()}
@@ -321,6 +366,8 @@ function LayerCanvas({ layer, panelWidth, panelHeight, isActive, onSelect, onUpd
           </svg>
         </div>
       )}
+
+      {/* Resize handles for text and custom-mode layers */}
 
       {isActive && mode === 'custom' && (
         <>
@@ -367,6 +414,7 @@ export default function EditorCanvas(): React.JSX.Element {
 
   const [customHeight, setCustomHeight] = useState<string>('')
   const [isPanelUploading, setIsPanelUploading] = useState(false)
+  const [isAddingText, setIsAddingText] = useState(false)
   const panelFileInputRef = useRef<HTMLInputElement>(null)
 
   const handlePanelUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
@@ -438,6 +486,53 @@ export default function EditorCanvas(): React.JSX.Element {
       setSaveStatus('unsaved')
     }
   }
+
+  const handleAddTextLayer = useCallback(async (): Promise<void> => {
+    if (!activePanelId || !story) return
+    setIsAddingText(true)
+    const panelLayers = layers.filter((l) => l.panel_id === activePanelId)
+    const newLayer = {
+      panel_id: activePanelId,
+      story_id: story.id,
+      position: panelLayers.length,
+      media_type: 'text' as const,
+      media_url: null,
+      asset_id: null,
+      name: null,
+      x_percent: 10,
+      y_percent: 75,
+      width_percent: 80,
+      height_percent: 20,
+      is_fill: false,
+      fill_mode: 'custom' as const,
+      focal_x_percent: 50,
+      focal_y_percent: 50,
+      opacity: 1,
+      autoplay: false,
+      loop: false,
+      muted: true,
+      playback_rate: 1,
+      panel_span_count: 1,
+      text_content: 'Type here',
+      font_family: 'DM Sans',
+      font_size: 24,
+      text_color: '#F5EEE8',
+      font_weight: '400',
+      text_align: 'left',
+      line_height: 1.4,
+      letter_spacing: 0,
+    }
+    const { data, error } = await supabase.from('layers').insert(newLayer).select().single()
+    setIsAddingText(false)
+    if (error || !data) {
+      pushToast('Failed to add text layer', 'error')
+      return
+    }
+    addLayer(data as Layer)
+    setActiveLayerId((data as Layer).id)
+    setRailTab('properties')
+    setSaveStatus('unsaved')
+  }, [activePanelId, story, layers, addLayer, setActiveLayerId, setRailTab, setSaveStatus, pushToast])
 
   const handleLayerUpdate = useCallback((layerId: string, updates: Partial<Layer>): void => {
     updateLayer(layerId, updates)
@@ -518,30 +613,30 @@ export default function EditorCanvas(): React.JSX.Element {
                 flexShrink: 0,
               }}
             >
-              {!activePanelLayers.some((l) => l.media_type !== 'audio') && (
-                <>
-                  <button
-                    onClick={() => panelFileInputRef.current?.click()}
-                    disabled={isPanelUploading}
-                    className="canvas-empty-upload"
-                    aria-label="Add media to panel"
-                  >
-                    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
-                      <rect x="2" y="2" width="24" height="24" rx="4" stroke="currentColor" strokeWidth="1.5"/>
-                      <path d="M14 9v10M9 14h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                    </svg>
-                    {isPanelUploading ? 'Uploading…' : 'Add media'}
-                  </button>
-                  <input
-                    ref={panelFileInputRef}
-                    type="file"
-                    accept={ACCEPTED_MEDIA}
-                    onChange={handlePanelUpload}
-                    style={{ display: 'none' }}
-                    aria-hidden="true"
-                  />
-                </>
+              {!activePanelLayers.some((l) => l.media_type !== 'audio' && l.media_type !== 'text') && (
+                <button
+                  onClick={() => panelFileInputRef.current?.click()}
+                  disabled={isPanelUploading}
+                  className="canvas-empty-upload"
+                  aria-label="Add media to panel"
+                >
+                  <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+                    <rect x="2" y="2" width="24" height="24" rx="4" stroke="currentColor" strokeWidth="1.5"/>
+                    <path d="M14 9v10M9 14h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                  </svg>
+                  {isPanelUploading ? 'Uploading…' : 'Add media'}
+                </button>
               )}
+
+              {/* Hidden file input — always mounted so the add bar can reach it */}
+              <input
+                ref={panelFileInputRef}
+                type="file"
+                accept={ACCEPTED_MEDIA}
+                onChange={handlePanelUpload}
+                style={{ display: 'none' }}
+                aria-hidden="true"
+              />
 
               {gridVisible && (
                 <div
@@ -574,6 +669,25 @@ export default function EditorCanvas(): React.JSX.Element {
               ))}
             </div>
 
+            {/* Persistent add bar — always visible when a panel is active */}
+            <div style={{ display: 'flex', gap: '6px', marginTop: '8px', justifyContent: 'center' }}>
+              <button
+                onClick={() => panelFileInputRef.current?.click()}
+                disabled={isPanelUploading}
+                className="canvas-preset-btn"
+                aria-label="Add media layer"
+              >
+                {isPanelUploading ? 'Uploading…' : '+ Media'}
+              </button>
+              <button
+                onClick={() => void handleAddTextLayer()}
+                disabled={isAddingText}
+                className="canvas-preset-btn"
+                aria-label="Add text layer"
+              >
+                T Text
+              </button>
+            </div>
           </div>
         )}
       </div>
