@@ -171,15 +171,19 @@ export default function EditorFilmstrip(): React.JSX.Element {
               }}
             >
               {(() => {
-                const panelLayers = layers
+                const allPanelLayers = layers.filter((l) => l.panel_id === panel.id);
+                const panelLayers = allPanelLayers
                   .filter(
                     (l) =>
-                      l.panel_id === panel.id &&
                       l.media_type !== "audio" &&
+                      l.media_type !== "text" &&
                       l.media_url,
                   )
                   .sort((a, b) => b.position - a.position);
                 const topLayer = panelLayers[0];
+                const hasTextOnly =
+                  !topLayer &&
+                  allPanelLayers.some((l) => l.media_type === "text");
                 if (!topLayer?.media_url) {
                   return (
                     <div
@@ -192,6 +196,9 @@ export default function EditorFilmstrip(): React.JSX.Element {
                         pointerEvents: "none",
                       }}
                     >
+                      {hasTextOnly ? (
+                        <span style={{ fontSize: "24px", fontWeight: 700, color: "var(--text-secondary)", opacity: 0.4, fontFamily: "DM Serif Display, serif" }}>T</span>
+                      ) : (
                       <svg
                         width="20"
                         height="20"
@@ -204,6 +211,7 @@ export default function EditorFilmstrip(): React.JSX.Element {
                         <path d="M1 14l5-5 4 4 3-3 6 6" stroke="var(--text-primary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                         <circle cx="6.5" cy="6.5" r="1.5" stroke="var(--text-primary)" strokeWidth="1.2" />
                       </svg>
+                      )}
                     </div>
                   );
                 }

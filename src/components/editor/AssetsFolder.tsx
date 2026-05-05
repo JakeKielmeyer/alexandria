@@ -186,7 +186,7 @@ export default function AssetsFolder(): React.JSX.Element {
         const newAsset: Asset = {
           id: assetId,
           story_id: story.id,
-          media_type: mediaType === 'gif' ? 'image' : mediaType,
+          media_type: (mediaType === 'gif' || mediaType === 'text') ? 'image' : mediaType as Asset['media_type'],
           media_url: mediaUrl,
           filename: file.name,
           created_at: new Date().toISOString(),
