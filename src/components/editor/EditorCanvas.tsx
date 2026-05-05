@@ -11,7 +11,6 @@ import {
   uploadToPanelsBucket, panelLayerPath,
   validateMediaFile, registerAsset,
 } from '../../lib/upload'
-import { loadFont } from '../../lib/fonts'
 import AssetsFolder from './AssetsFolder'
 
 // ── Constants ──────────────────────────────────────────────────────────────
