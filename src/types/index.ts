@@ -169,6 +169,10 @@ export const LAYER_DEFAULTS: Record<MediaType, {
   text_align?: string
   line_height?: number
   letter_spacing?: number
+  text_layer_type?: TextLayerType | null
+  background_color?: string | null
+  has_tail?: boolean
+  border_radius?: number | null
 }> = {
   image: {
     x_percent: 0,

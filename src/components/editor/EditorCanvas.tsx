@@ -516,13 +516,11 @@ function LayerCanvas({ layer, panelWidth, panelHeight, isActive, onSelect, onUpd
 
   const cursor = !isActive
     ? 'default'
-    : layer.media_type === 'text'
-      ? 'default'
-      : mode === 'crop'
-        ? (isDragging ? 'grabbing' : 'grab')
-        : mode === 'custom'
-          ? 'move'
-          : 'default'
+    : mode === 'crop'
+      ? (isDragging ? 'grabbing' : 'grab')
+      : mode === 'custom'
+        ? 'move'
+        : 'default'
 
   return (
     <div
@@ -535,13 +533,11 @@ function LayerCanvas({ layer, panelWidth, panelHeight, isActive, onSelect, onUpd
       onMouseDown={
         !isActive
           ? (e) => { e.stopPropagation(); onSelect() }
-          : layer.media_type === 'text'
-            ? undefined
-            : mode === 'crop'
-              ? handleFocalDrag
-              : mode === 'custom'
-                ? (e) => handleMouseDown(e, 'move')
-                : (e) => { e.stopPropagation() }
+          : mode === 'crop'
+            ? handleFocalDrag
+            : mode === 'custom'
+              ? (e) => handleMouseDown(e, 'move')
+              : (e) => { e.stopPropagation() }
       }
     >
       {renderMedia()}
