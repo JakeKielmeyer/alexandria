@@ -55,11 +55,24 @@
   scroll-snap-stop: always;
 }
 
-/* Scroll-mode slots: same 95vh height as cinematic but continuous (no snap).
-   Disable perspective so no 3D transforms apply; stretch so card fills slot. */
+/* Scroll-mode slots: height driven by card aspect-ratio, not fixed vh. */
 .reader-panel-slot--scroll {
+  height: auto;
+  min-height: auto;
   perspective: none;
   align-items: stretch;
+}
+
+/* Scroll-mode card: height derived from aspect-ratio set via inline style. */
+.reader-panel-card--scroll {
+  height: auto;
+  width: 35vw;
+}
+
+@media (max-width: 640px) {
+  .reader-panel-card--scroll {
+    width: 100vw;
+  }
 }
 
 /* The book-page card. Height is fixed at 95vh across devices; width

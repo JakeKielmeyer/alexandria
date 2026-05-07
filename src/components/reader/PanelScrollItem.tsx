@@ -51,7 +51,7 @@ interface PanelScrollItemProps {
 // ── Scroll mode (plain block, no 3D) ──────────────────────────────────────
 
 function ScrollPanelItem({
-  onActivate, id, slotClassName, cardClassName, children,
+  heightPx, onActivate, id, slotClassName, cardClassName, children,
 }: Omit<PanelScrollItemProps, 'mode' | 'introVariant'>): React.JSX.Element {
   const ref = useRef<HTMLDivElement>(null)
 
@@ -78,7 +78,10 @@ function ScrollPanelItem({
       id={id}
       className={`reader-panel-slot reader-panel-slot--scroll${slotClassName ? ' ' + slotClassName : ''}`}
     >
-      <div className={`reader-panel-card${cardClassName ? ' ' + cardClassName : ''}`}>
+      <div
+        className={`reader-panel-card reader-panel-card--scroll${cardClassName ? ' ' + cardClassName : ''}`}
+        style={{ aspectRatio: `400 / ${heightPx ?? 640}` }}
+      >
         {children}
       </div>
     </div>

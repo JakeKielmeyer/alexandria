@@ -4,6 +4,14 @@ export type ContentRating = 'mature' | 'explicit'
 
 export type MediaType = 'image' | 'gif' | 'video' | 'audio' | 'text'
 
+export type TextLayerType = 'dialogue' | 'narrative' | 'caption' | 'sound_fx' | 'plain'
+
+export type TailDirection =
+  | 'top-left' | 'top' | 'top-right'
+  | 'right'
+  | 'bottom-right' | 'bottom' | 'bottom-left'
+  | 'left'
+
 export type ReadingMode = 'cinematic' | 'scroll'
 
 export type TransitionStyle = 'stacked' | 'fade' | 'cut'
@@ -107,23 +115,30 @@ export interface Layer {
   //       panel is within the span, and loops within that range.
   panel_span_count: number
   // Text layer fields. Null on all non-text rows.
-  text_content:   string | null
-  font_family:    string | null
-  font_size:      number | null
-  text_color:     string | null
-  font_weight:    string | null
-  text_align:     string | null
-  line_height:    number | null
-  letter_spacing: number | null
+  text_content:    string | null
+  font_family:     string | null
+  font_size:       number | null
+  text_color:      string | null
+  font_weight:     string | null
+  text_align:      string | null
+  line_height:     number | null
+  letter_spacing:  number | null
+  // Text layer type system. Null on legacy plain-text rows — treated as 'plain'.
+  text_layer_type: TextLayerType | null
+  background_color: string | null
+  has_tail:         boolean
+  border_radius:    number | null
+  // Tail position. Non-nullable — DB defaults: direction='bottom', offset=50.
+  tail_direction:      TailDirection
+  tail_offset_percent: number
+  tail_length:         number
   created_at: string
 }
 
 export const PANEL_HEIGHT_PRESETS = {
-  ACCENT: 160,
-  STANDARD: 240,
-  DRAMATIC: 320,
-  CINEMATIC: 480,
-  FULL: 620,
+  WEBTOON: 640,
+  BOOK:    1200,
+  COMIC:   800,
 } as const
 
 export type PanelHeightPreset = keyof typeof PANEL_HEIGHT_PRESETS
@@ -247,5 +262,139 @@ export const LAYER_DEFAULTS: Record<MediaType, {
     text_align: 'left',
     line_height: 1.4,
     letter_spacing: 0,
+    text_layer_type: null,
+    background_color: null,
+    has_tail: false,
+    border_radius: null,
+  },
+}
+
+export interface TextLayerTypeDefaults {
+  text_layer_type: TextLayerType
+  font_family: string
+  font_size: number
+  text_color: string
+  font_weight: string
+  text_align: string
+  line_height: number
+  letter_spacing: number
+  background_color: string | null
+  border_radius: number | null
+  has_tail: boolean
+  tail_direction: TailDirection
+  tail_offset_percent: number
+  tail_length: number
+  x_percent: number
+  y_percent: number
+  width_percent: number
+  height_percent: number
+  text_content: string
+}
+
+export const TEXT_LAYER_TYPE_DEFAULTS: Record<TextLayerType, TextLayerTypeDefaults> = {
+  dialogue: {
+    text_layer_type: 'dialogue',
+    font_family: 'Bangers',
+    font_size: 22,
+    text_color: '#1A1A1A',
+    font_weight: '400',
+    text_align: 'center',
+    line_height: 1.4,
+    letter_spacing: 0,
+    background_color: '#FFFFFF',
+    border_radius: 16,
+    has_tail: true,
+    tail_direction: 'bottom',
+    tail_offset_percent: 50,
+    tail_length: 40,
+    x_percent: 5,
+    y_percent: 5,
+    width_percent: 65,
+    height_percent: 22,
+    text_content: 'Dialogue...',
+  },
+  narrative: {
+    text_layer_type: 'narrative',
+    font_family: 'DM Sans',
+    font_size: 18,
+    text_color: '#F5EEE8',
+    font_weight: '400',
+    text_align: 'left',
+    line_height: 1.6,
+    letter_spacing: 0,
+    background_color: 'rgba(14,6,8,0.78)',
+    border_radius: 0,
+    has_tail: false,
+    tail_direction: 'bottom',
+    tail_offset_percent: 50,
+    tail_length: 40,
+    x_percent: 0,
+    y_percent: 0,
+    width_percent: 100,
+    height_percent: 18,
+    text_content: 'Narration...',
+  },
+  caption: {
+    text_layer_type: 'caption',
+    font_family: 'DM Sans',
+    font_size: 20,
+    text_color: '#FFFFFF',
+    font_weight: '500',
+    text_align: 'center',
+    line_height: 1.4,
+    letter_spacing: 0.5,
+    background_color: null,
+    border_radius: null,
+    has_tail: false,
+    tail_direction: 'bottom',
+    tail_offset_percent: 50,
+    tail_length: 40,
+    x_percent: 10,
+    y_percent: 82,
+    width_percent: 80,
+    height_percent: 14,
+    text_content: 'Caption',
+  },
+  sound_fx: {
+    text_layer_type: 'sound_fx',
+    font_family: 'Bangers',
+    font_size: 52,
+    text_color: '#F5EEE8',
+    font_weight: '400',
+    text_align: 'center',
+    line_height: 1.1,
+    letter_spacing: 2,
+    background_color: null,
+    border_radius: null,
+    has_tail: false,
+    tail_direction: 'bottom',
+    tail_offset_percent: 50,
+    tail_length: 40,
+    x_percent: 20,
+    y_percent: 35,
+    width_percent: 60,
+    height_percent: 22,
+    text_content: 'BOOM!',
+  },
+  plain: {
+    text_layer_type: 'plain',
+    font_family: 'DM Sans',
+    font_size: 24,
+    text_color: '#F5EEE8',
+    font_weight: '400',
+    text_align: 'left',
+    line_height: 1.4,
+    letter_spacing: 0,
+    background_color: null,
+    border_radius: null,
+    has_tail: false,
+    tail_direction: 'bottom',
+    tail_offset_percent: 50,
+    tail_length: 40,
+    x_percent: 10,
+    y_percent: 75,
+    width_percent: 80,
+    height_percent: 20,
+    text_content: 'Type here',
   },
 }

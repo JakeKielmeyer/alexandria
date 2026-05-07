@@ -69,7 +69,7 @@ export function useAutoSave(): void {
 
       for (const layer of layers) {
         if (isStale()) return
-        const { error: layerError } = await supabase
+        const { data: updatedLayer, error: layerError } = await supabase
           .from('layers')
           .update({
             position: layer.position,
@@ -97,9 +97,19 @@ export function useAutoSave(): void {
             text_align: layer.text_align ?? null,
             line_height: layer.line_height ?? null,
             letter_spacing: layer.letter_spacing ?? null,
+            text_layer_type: layer.text_layer_type ?? null,
+            background_color: layer.background_color ?? null,
+            has_tail: layer.has_tail ?? false,
+            border_radius: layer.border_radius ?? null,
+            tail_direction: layer.tail_direction ?? 'bottom',
+            tail_offset_percent: layer.tail_offset_percent ?? 50,
+            tail_length: layer.tail_length ?? 40,
           })
           .eq('id', layer.id)
+          .select('id')
+          .single()
         if (layerError) throw new Error(layerError.message)
+        if (!updatedLayer) throw new Error(`Layer ${layer.id} not found — possible session expiry or RLS violation`)
       }
 
       // Sync font_manifest: collect all unique fonts used by text layers and

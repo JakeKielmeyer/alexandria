@@ -105,28 +105,21 @@
   flex-shrink: 0;
 }
 
-/* Row that holds the assets column + the scrollable viewport */
+/* Scrollable viewport — now fills the full canvas area below the toolbar */
 .editor-canvas-body {
   display: flex;
   flex: 1;
   overflow: hidden;
 }
 
-/* Narrow left gutter — sits between the filmstrip and the panel frame */
-.assets-column {
-  width: 200px;
-  flex-shrink: 0;
-  background: var(--bg-editor);
-  border-right: 1px solid var(--border-subtle);
-  position: relative; /* anchor for the dropdown */
-}
-
 .editor-canvas-viewport {
   flex: 1;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 16px;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
   background-image: radial-gradient(circle, var(--canvas-grid) 1px, transparent 1px);
   background-size: 36px 36px;
 }
@@ -148,6 +141,12 @@
   background: var(--active-bg);
   border-color: var(--active-brd);
   color: var(--rose-accent);
+}
+
+/* Format presets that are placeholders for future formats */
+.canvas-preset-btn--format-disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
 }
 
 .canvas-preset-btn:disabled {
@@ -684,39 +683,40 @@
 
 /* ── Assets Folder dropdown trigger + panel ───────────────────────────────── */
 
-/* Wrapper sits in the assets column; positions the dropdown beneath. */
+/* Wrapper now lives in the toolbar; positions the dropdown beneath. */
 .assets-folder-wrapper {
   position: relative;
   display: flex;
-  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
 }
 
-/* Trigger button — spans the full filmstrip width with space-between layout. */
+/* Trigger button — compact toolbar style to match the other toolbar buttons. */
 .assets-folder-trigger {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  gap: 6px;
+  gap: 5px;
   font-family: DM Sans, sans-serif;
-  font-size: 15px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  background: none;
-  border: none;
-  padding: 12px 16px;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-muted);
+  background: var(--btn-ghost-bg);
+  border: 1px solid var(--btn-ghost-brd);
+  padding: 4px 8px;
+  border-radius: 4px;
   cursor: pointer;
-  border-radius: 0;
-  transition: color 0.12s, background 0.12s;
+  white-space: nowrap;
+  transition: color 0.12s, background 0.12s, border-color 0.12s;
 }
 
 .assets-folder-trigger:hover {
   color: var(--rose-accent);
-  background: var(--btn-ghost-bg);
+  border-color: var(--active-brd);
 }
 
 .assets-folder-trigger--open {
   color: var(--rose-accent);
+  background: var(--active-bg);
+  border-color: var(--active-brd);
 }
 
 .assets-folder-chevron {
@@ -724,16 +724,14 @@
   flex-shrink: 0;
 }
 
-/* Dropdown — opens downward from the assets column trigger.
-   Width is capped so it stays within the left gutter + some canvas space
-   but never reaches the panel frame (30vw, centred in the canvas area). */
+/* Dropdown — opens downward from the toolbar trigger. */
 .assets-folder-dropdown {
   position: absolute;
-  top: calc(100% + 4px);
+  top: calc(100% + 6px);
   left: 0;
   z-index: 50;
-  width: min(420px, calc(100vw - 700px));
-  max-height: 75vh;
+  width: min(460px, calc(100vw - 600px));
+  max-height: 72vh;
   background: var(--bg-rail);
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -741,6 +739,59 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+/* ── Text type dropdown menu ─────────────────────────────────────────────── */
+
+.text-type-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 50;
+  width: 180px;
+  background: var(--bg-rail);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+  padding: 4px;
+}
+
+.text-type-menu-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  width: 100%;
+  padding: 8px 10px;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s;
+}
+
+.text-type-menu-item:hover {
+  background: var(--btn-ghost-bg);
+}
+
+.text-type-menu-item:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.text-type-menu-label {
+  font-family: DM Sans, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.text-type-menu-desc {
+  font-family: DM Sans, sans-serif;
+  font-size: 10px;
+  color: var(--text-muted);
 }
 
 .assets-folder-body {
@@ -1011,4 +1062,89 @@
   width: 100%;
   outline: none;
   box-sizing: border-box;
+}
+
+/* ── Font Select ──────────────────────────────────────────────────────────── */
+
+.font-select {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.font-select-trigger {
+  width: 100%;
+  padding: 5px 8px;
+  background: var(--input-bg);
+  color: var(--text-secondary);
+  border: 1px solid var(--input-brd);
+  border-radius: 4px;
+  text-align: left;
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.font-select-trigger:hover {
+  border-color: rgba(245,238,232,0.28);
+}
+
+.font-select-trigger-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.font-select-dropdown {
+  position: absolute;
+  top: calc(100% + 3px);
+  left: 0;
+  right: 0;
+  max-height: 260px;
+  overflow-y: auto;
+  background: var(--bg-rail);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  z-index: 200;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(245,238,232,0.15) transparent;
+}
+
+.font-select-category {
+  padding: 6px 10px 3px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  border-top: 1px solid var(--border-subtle);
+  font-family: 'DM Sans', sans-serif;
+}
+
+.font-select-category:first-child {
+  border-top: none;
+}
+
+.font-option {
+  padding: 7px 10px;
+  font-size: 14px;
+  cursor: pointer;
+  user-select: none;
+  color: var(--text-secondary);
+}
+
+.font-option:hover {
+  background: rgba(245,238,232,0.05);
+}
+
+.font-option--active {
+  color: var(--rose-accent);
+  background: var(--active-bg);
+}
+
+.font-option--active:hover {
+  background: rgba(201,48,96,0.22);
 }
