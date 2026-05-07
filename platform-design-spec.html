@@ -122,7 +122,7 @@ body{
   </div>
   <div class="doc-eyebrow">Platform Design Specification · V2 MVP Build · Cinematic + Scroll Webtoon</div>
   <div class="doc-title">Design & Product Specification</div>
-  <div class="doc-sub">Last updated May 3, 2026 · Assets system live · Layer naming · Panel span audio · Multi-file upload deduplication · Two-click canvas select · Grab cursor in crop mode · Editor polish · Spec updated to reflect May 2026 build state</div>
+  <div class="doc-sub">Last updated May 7, 2026 · Text layer type system · SVG speech bubble tails (8 directions, draggable tip + edge handles) · Panel height aspect-ratio fix (editor + reader) · 130-font categorized FontSelect · Merge conflict resolution · Cloudflare build fixed</div>
 </div>
 
 <!-- ── STATUS ── -->
@@ -135,7 +135,8 @@ body{
   <div class="status-item"><div class="status-dot dot-green"></div>Layer pipeline rebuilt · fill modes · scroll/cinematic split · 10 bugs fixed — April 25, 2026</div>
   <div class="status-item"><div class="status-dot dot-green"></div>Assets system · layer naming · panel span audio · cascade delete — May 1–2, 2026</div>
   <div class="status-item"><div class="status-dot dot-green"></div>Two-click canvas select · grab cursor · editor polish · multi-file upload fix — May 3, 2026</div>
-  <div class="status-item"><div class="status-dot dot-rose"></div>Next: beta gap closure (Sound wiring, password protection, read counts) → Founding Creator Test</div>
+  <div class="status-item"><div class="status-dot dot-green"></div>Text layer types · SVG tails (8-dir, draggable) · FontSelect (130 fonts) · panel height fix — May 7, 2026</div>
+  <div class="status-item"><div class="status-dot dot-rose"></div>Next: interactive speech bubble (draggable tip, perimeter ray-intersection, spring animation)</div>
 </div>
 
 <!-- ── TOC ── -->
@@ -744,14 +745,14 @@ body{
       <tr><td>stories</td><td><code>id, user_id, title, slug, content_rating, password_hash, is_published, cover_url, font_manifest, creator_bio, creator_links, reading_mode, transition_style, transition_duration_ms, created_at, updated_at</code></td><td class="td-done">Live</td><td>reading_mode: 'cinematic' | 'scroll', default 'cinematic'. cover_url auto-set from first panel upload at position 0.</td></tr>
       <tr><td>chunks</td><td><code>id, story_id, chapter_number, chapter_title, position, created_at</code></td><td class="td-done">Live</td><td>First-class records. Panels reference their chunk. Chapter numbers derived at read time.</td></tr>
       <tr><td>panels</td><td><code>id, chunk_id (nullable), story_id, position, height, created_at</code></td><td class="td-done">Live</td><td>height is raw integer px. chunk_id nullable. No media_url on panel — media lives on layers table.</td></tr>
-      <tr><td>layers</td><td><code>id, panel_id, story_id, position (z-order), media_type, media_url, asset_id, name, x_percent, y_percent, width_percent, height_percent, is_fill, fill_mode, focal_x_percent, focal_y_percent, opacity, autoplay, loop, muted, playback_rate, panel_span_count, created_at</code></td><td class="td-done">Live</td><td>Replaces overlays table. media_type: 'image' | 'gif' | 'video' | 'audio'. fill_mode ('crop' | 'stretch' | 'custom') supersedes is_fill. focal_x_percent / focal_y_percent drive CSS object-position in crop mode. <strong>May 1:</strong> asset_id FK (ON DELETE CASCADE to assets table), name (creator label), panel_span_count (integer, for multi-panel audio spans).</td></tr>
+      <tr><td>layers</td><td><code>id, panel_id, story_id, position (z-order), media_type, media_url, asset_id, name, x_percent, y_percent, width_percent, height_percent, is_fill, fill_mode, focal_x_percent, focal_y_percent, opacity, autoplay, loop, muted, playback_rate, panel_span_count, text_content, font_family, font_size, text_color, font_weight, text_align, line_height, letter_spacing, text_layer_type, background_color, has_tail, border_radius, tail_direction, tail_offset_percent, tail_length, created_at</code></td><td class="td-done">Live</td><td>media_type: 'image'|'gif'|'video'|'audio'|'text'. fill_mode ('crop'|'stretch'|'custom') supersedes is_fill. <strong>May 1:</strong> asset_id FK, name, panel_span_count. <strong>May 5–7:</strong> full text layer columns + text_layer_type ('dialogue'|'narrative'|'caption'|'sound_fx'|'plain') + background_color, has_tail, border_radius + tail_direction (8 compass values, NOT NULL DEFAULT 'bottom'), tail_offset_percent (real NOT NULL DEFAULT 50), tail_length (integer NOT NULL DEFAULT 40).</td></tr>
       <tr><td>assets</td><td><code>id, story_id, media_type, media_url, filename, created_at</code></td><td class="td-done">Live</td><td>Story-scoped media library. Each upload registers here. AssetsFolder in editor shows this list. Deleting an asset cascades to layers.asset_id. Added May 1, 2026.</td></tr>
       <tr><td>overlays</td><td>—</td><td class="td-complete">Dropped</td><td>Table and all code removed April 18, 2026.</td></tr>
     </table>
   </div>
 
   <div class="sub">
-    <div class="sub-title">Applied migrations — all current as of May 3, 2026</div>
+    <div class="sub-title">Applied migrations — all current as of May 7, 2026</div>
     <div class="ann-block">
       <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>1. reading_mode column on stories</strong> — <span class="td-done">Applied</span> April 17, 2026.</div></div>
       <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>2. layers table created</strong> — <span class="td-done">Applied</span> April 18, 2026.</div></div>
@@ -762,6 +763,10 @@ body{
       <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>7. layers.panel_span_count integer column</strong> — file: <code>supabase-migrations/2026-05-01-audio-panel-span.sql</code> — <span class="td-done">Applied</span> May 1, 2026.</div></div>
       <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>8. layers.name text column</strong> — file: <code>supabase-migrations/2026-05-01-layer-name.sql</code> — <span class="td-done">Applied</span> May 1, 2026.</div></div>
       <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>9. layers.asset_id FK + ON DELETE CASCADE</strong> — file: <code>supabase-migrations/2026-05-02-assets-update-and-cascade.sql</code> — <span class="td-done">Applied</span> May 2, 2026.</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>10. Text layer columns</strong> (text_content, font_family, font_size, text_color, font_weight, text_align, line_height, letter_spacing) — file: <code>supabase-migrations/2026-05-05-text-layers.sql</code> — <span class="td-done">Applied</span> May 5, 2026.</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>11. Text layer type columns</strong> (text_layer_type, background_color, has_tail, border_radius) — file: <code>supabase-migrations/2026-05-07-text-layer-types.sql</code> — <span class="td-done">Applied</span> May 7, 2026.</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>12. tail_direction + tail_offset_percent</strong> (NOT NULL DEFAULT 'bottom'/50, 4-value CHECK) — file: <code>supabase-migrations/2026-05-07-tail-direction.sql</code> — <span class="td-done">Applied</span> May 7, 2026.</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>13. tail_length + expand tail_direction to 8 values</strong> (NOT NULL DEFAULT 40, CHECK constraint expanded) — file: <code>supabase-migrations/2026-05-07-tail-length.sql</code> — <span class="td-done">Applied</span> May 7, 2026.</div></div>
     </div>
   </div>
 </div>
@@ -904,6 +909,22 @@ body{
       <tr><td>End-page transition refined.</td><td class="td-done">Done</td></tr>
       <tr><td>Dashboard story card sizing adjusted.</td><td class="td-done">Done</td></tr>
       <tr><td>Multi-file upload path collision in AssetsFolder fixed — each file gets a unique timestamped path, preventing overwrites when uploading multiple files with the same name.</td><td class="td-done">Done</td></tr>
+    </table>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">Build Session — May 7, 2026 — Text layer types · SVG tails · Panel height fix · FontSelect</div>
+    <table class="spec-table">
+      <tr><th>Deliverable</th><th>Status</th></tr>
+      <tr><td>Text layer type system. <code>TextLayerType = 'dialogue' | 'narrative' | 'caption' | 'sound_fx' | 'plain'</code>. <code>TEXT_LAYER_TYPE_DEFAULTS</code> record with per-type font/size/color/position/background/tail defaults. Dialogue: Bangers 22px, white bg, border-radius 16px, tail on. Narrative: DM Sans 18px, dark rgba bg, full-width top strip. Caption: DM Sans 20px, no bg, bottom 82%. Sound FX: Bangers 52px, no bg, center. Plain: DM Sans 24px, no bg.</td><td class="td-done">Done</td></tr>
+      <tr><td>SVG tail renderer (<code>TailSVG</code> component) replacing CSS border trick. Supports all 8 compass directions: <code>top-left, top, top-right, right, bottom-right, bottom, bottom-left, left</code>. Cardinal tails: SVG polygon rotated/positioned per edge. Corner tails: 1×1 SVG with overflow:visible and 45° diagonal triangle geometry (<code>d = length × 0.707</code>). Used in both <code>EditorCanvas.tsx</code> and <code>PanelLayers.tsx</code>.</td><td class="td-done">Done</td></tr>
+      <tr><td>Two drag handles in editor. Edge-slide handle (pink circle): drags along edge to set <code>tail_offset_percent</code>; cardinal directions only. Tip handle (white/pink circle): measures pixel distance from bubble edge/corner to set <code>tail_length</code> (10–120px); all 8 directions. Corner tips use diagonal distance math (<code>√(dx²+dy²) / 0.707</code>).</td><td class="td-done">Done</td></tr>
+      <tr><td>3×3 compass grid in EditorRail replaces 4-button row for tail direction. COMPASS/ARROWS constant maps. Length (px) input always shown when tail on. Position (%) input hidden for corner directions.</td><td class="td-done">Done</td></tr>
+      <tr><td>DB migrations applied: <code>2026-05-07-text-layer-types.sql</code> (4 columns), <code>2026-05-07-tail-direction.sql</code> (direction + offset, 4-value CHECK), <code>2026-05-07-tail-length.sql</code> (tail_length + expanded 8-value CHECK). All NOT NULL with safe defaults.</td><td class="td-done">Done</td></tr>
+      <tr><td>Panel frame layout fixed. <code>EditorCanvas</code>: <code>width:100%; maxWidth:30vw; aspectRatio:400/${panelHeight}</code> replaces hardcoded <code>30vw × 88vh</code>. <code>ResizeObserver</code> tracks actual rendered size → passed to <code>LayerCanvas</code> for accurate drag delta calculations. Editor viewport: <code>align-items:center</code> (was stretch), <code>overflow-x:hidden</code>.</td><td class="td-done">Done</td></tr>
+      <tr><td>Reader scroll-mode panel height fixed. <code>ScrollPanelItem</code> applies <code>heightPx</code> as <code>aspectRatio:400/${heightPx}</code> inline style. <code>.reader-panel-card--scroll</code> CSS class overrides hardcoded <code>height:95vh</code>. Cinematic mode unchanged.</td><td class="td-done">Done</td></tr>
+      <tr><td><code>FontSelect.tsx</code> — custom dropdown rendering each font option in its own typeface, grouped by category. 130 fonts across 11 categories (Comic/Lettering, Horror/Occult, Fantasy/Medieval, Gothic/Serif, Script/Romance, Action/Bold, Sci-Fi/Futuristic, Western/Adventure, Pixel/Retro, Handwritten/Natural, Clean Body Text). <code>GoogleFont</code> interface gains <code>category</code> field. Loads all fonts on first open.</td><td class="td-done">Done</td></tr>
+      <tr><td>Merge conflict resolution. <code>feature/text-layers</code> branch conflicted with <code>master</code> (PR #17 had earlier text layer version). All 22 conflict markers resolved keeping HEAD in all 6 files. 3 post-merge TS build errors fixed: removed dead <code>=== 'text'</code> comparisons after early return (TS2367); added text bubble fields to <code>LAYER_DEFAULTS</code> type annotation (TS2353). Cloudflare build passes.</td><td class="td-done">Done</td></tr>
     </table>
   </div>
 
