@@ -208,7 +208,7 @@ Panel 3: https://pub-d0a4c9548d2149eb9259096fbf8a9dfe.r2.dev/Panel%203.jpg
 - **stories** — id, user_id, title, slug, content_rating (`mature`|`explicit`), password_hash, is_published, cover_url, font_manifest (JSONB), creator_bio, creator_links (JSONB), reading_mode (`cinematic`|`scroll`, default `cinematic`), created_at, updated_at
 - **chunks** — id, story_id, chapter_number, chapter_title, position, created_at
 - **panels** — id, chunk_id (nullable), story_id, position, height (integer px), created_at
-- **layers** — id, panel_id, story_id, position (z-order), media_type (`image`|`gif`|`video`|`audio`|`text`), media_url, name, x_percent, y_percent, width_percent, height_percent, is_fill (boolean, legacy), fill_mode (`crop`|`stretch`|`custom`), focal_x_percent, focal_y_percent, opacity, autoplay, loop, muted, playback_rate, panel_span_count, text_content, font_family, font_size, text_color, font_weight, text_align, line_height, letter_spacing, created_at
+- **layers** — id, panel_id, story_id, position (z-order), media_type (`image`|`gif`|`video`|`audio`|`text`), media_url, name, x_percent, y_percent, width_percent, height_percent, is_fill (boolean, legacy), fill_mode (`crop`|`stretch`|`custom`), focal_x_percent, focal_y_percent, opacity, autoplay, loop, muted, playback_rate, panel_span_count, text_content, font_family, font_size, text_color, font_weight, text_align, line_height, letter_spacing, text_layer_type (`dialogue`|`narrative`|`caption`|`sound_fx`|`plain`, nullable), background_color (nullable text), has_tail (boolean NOT NULL DEFAULT false), border_radius (nullable integer px), tail_direction (text NOT NULL DEFAULT 'bottom', constrained to 8 compass values), tail_offset_percent (real NOT NULL DEFAULT 50), tail_length (integer NOT NULL DEFAULT 40), created_at
 
 **Removed tables:**
 - `overlays` — deleted.
@@ -289,9 +289,11 @@ Deferred post-MVP. PNG with transparency covers the foreground layering use case
 - `src/components/AuthGuard.tsx` — wraps protected routes
 - `src/components/editor/EditorTopBar.tsx` — logo (back to dashboard), title, save status, mode tabs, publish button
 - `src/components/editor/EditorFilmstrip.tsx` — panel thumbnails, add/delete panels
-- `src/components/editor/EditorCanvas.tsx` — media upload, LayerCanvas with drag-to-move and 8-handle resize (4 corners + 4 edges, shift-key constrains proportional scale on corners), fill vs positioned layers (cover vs fill objectFit), cinematic/scroll mode aware; text layer branch renders inline-editable `<textarea>` with transparent styling
-- `src/components/editor/EditorRail.tsx` — Properties tab (fill toggle, x/y/w/h inputs, opacity slider, delete); text properties panel (font picker with Google Fonts list, size, weight, align, color, line-height, letter-spacing, content textarea); Layers tab (z-order list with up/down arrows and delete), Transitions mode, Publish mode (reading mode toggle, content rating, go live)
-- `src/components/reader/PanelLayers.tsx` — renders all layers on a panel in z-order; text layers render as styled static divs (pointerEvents:none); video/audio use IntersectionObserver for autoplay at 50% visibility
+- `src/components/editor/EditorCanvas.tsx` — toolbar: format presets (Webtoon active, Book/Comic disabled placeholders) + custom px input + AssetsFolder trigger + "+ Media" + "T ▾" text type dropdown. LayerCanvas: drag-to-move, 8-handle resize, text layers with background/border_radius/speech-bubble SVG tail. Panel frame: `width:100%, maxWidth:30vw, aspectRatio:400/${panelHeight}` via ResizeObserver — no more hardcoded 88vh. Editor viewport: X-scroll prevented, Y-scroll allowed. TailSVG component: SVG polygon tails for all 8 compass directions (4 cardinal + 4 corners). Edge-slide drag handle (pink dot, cardinal only) for tail_offset_percent; tip drag handle (white/pink circle, all 8 directions) for tail_length. Single-click selects + drag, double-click enters text edit mode, Escape exits.
+- `src/components/editor/EditorRail.tsx` — Properties tab: text type selector (Dialogue/Narrative/Caption/Sound FX/Plain), font/size/weight/align/color/leading/tracking, background fill (color picker + text input, clear button), corner radius (shown when bg set), speech tail toggle (shown for dialogue type), 3×3 compass grid for tail direction (8 positions), Length input (px, always shown when tail on), Position input (%, hidden for corner directions); fill mode (Crop/Stretch/Custom), focal point, position/size, opacity, video/audio settings, delete. Layers tab (z-order), Transitions, Publish mode.
+- `src/components/editor/FontSelect.tsx` — custom font dropdown. Renders each option in its own typeface, grouped by category (130 fonts, 11 categories). Loads all fonts on first open via loadFont().
+- `src/components/reader/PanelLayers.tsx` — renders all layers on a panel in z-order; text layers render as styled static divs with background/border_radius/SVG tail (same TailSVG component as editor, 8 directions); video/audio use IntersectionObserver for autoplay at 50% visibility
+- `src/components/reader/PanelScrollItem.tsx` — scroll mode: heightPx prop applied as `aspectRatio: 400/${heightPx}` on card div (.reader-panel-card--scroll); reader.css overrides hardcoded 95vh so panel height reflects creator-set value
 
 ### Pages Built
 | Page | File | Status | Notes |
@@ -316,7 +318,7 @@ Deferred post-MVP. PNG with transparency covers the foreground layering use case
 - `src/store/gateStore.ts` — gate flow state for reader
 
 ### Libraries
-- `src/lib/fonts.ts` — curated 24-font Google Fonts list (dark romance/horror aesthetic). `loadFont(label)` injects a `<link>` tag by font label; `loadFontManifest(manifest)` loads all fonts from a string array. Called in editor (on font select) and reader (on mount from story.font_manifest).
+- `src/lib/fonts.ts` — 130-font Google Fonts list across 11 categories (comic/webtoon focus; Comic/Lettering, Horror/Occult, Fantasy/Medieval, Gothic/Serif, Script/Romance, Action/Bold, Sci-Fi/Futuristic, Western/Adventure, Pixel/Retro, Handwritten/Natural, Clean Body Text). `GoogleFont` interface has `label`, `family`, `weights`, `category` fields. `loadFont(label)` injects a `<link>` tag; `loadFontManifest(manifest)` loads all fonts from a string array. Called in editor (on font select, on dropdown open) and reader (on mount from story.font_manifest).
 
 ### Hooks
 - `src/hooks/useAutoSave.ts` — saves story, panels, and layers. 2s debounce.
@@ -359,7 +361,10 @@ Deferred post-MVP. PNG with transparency covers the foreground layering use case
 - Transparent video deferred — PNG with transparency covers foreground layering for MVP
 - Assets modal not yet built — uploaded files accumulate in Supabase storage with no management UI.
 - Filmstrip drag-to-reorder deferred.
-- Text layer feature shipped May 5, 2026. User noted "edits need to be made" — ask user to enumerate specific issues before starting next session's work on text layers.
+- Text layers confirmed working end-to-end. Content, font, background, tail all persist and render in Reader.
+- Speech bubble tail SVG rendering confirmed working for all 8 directions in editor and reader. Tip drag handle (tail_length) and edge-slide handle (tail_offset_percent) both functional.
+- Panel height now correctly drives aspect-ratio in both editor and reader scroll mode.
+- feature/text-layers PR has been merged into master via GitHub. Build fixed after resolving 3 post-merge TS errors.
 
 ---
 
@@ -401,23 +406,92 @@ Deferred post-MVP. PNG with transparency covers the foreground layering use case
 - MAY 5 2026 — Text layers shipped. New media_type 'text' added. DB migration: 8 text columns + constraint update (supabase-migrations/2026-05-05-text-layers.sql). Text layers always fill_mode:'custom'; default position bottom-third (y:75%, h:20%), 80% wide. Inline-editable textarea in editor; static styled div in reader.
 - MAY 5 2026 — Google Fonts system added (src/lib/fonts.ts). 24 curated fonts for dark romance/horror aesthetic. loadFont() injects link tag by label; called in EditorRail on font select and in Reader on story load from font_manifest.
 - MAY 5 2026 — story.font_manifest auto-synced by useAutoSave: after layer saves, unique font_family values from text layers are merged into font_manifest and saved to stories table if changed.
-- MAY 5 2026 — EditorCanvas: "T Text" button added to persistent "Add" bar below panel frame (alongside "+ Media"). Text layer selected → inline textarea; deselected → static display. Cursor and mouseDown handling special-cased for text to prevent drag-to-move on active text layers.
+- MAY 5 2026 — EditorCanvas: "T Text" button added to add bar (alongside "+ Media"). Text layer selected → inline textarea; deselected → static display. Cursor and mouseDown handling special-cased for text to prevent drag-to-move on active text layers.
 - MAY 5 2026 — EditorRail: full text properties section added (content textarea, font select, size, weight, align, color picker + hex input, line-height, letter-spacing). Fill mode selector hidden for text layers; position/size inputs always shown.
 - MAY 5 2026 — EditorFilmstrip: text layers excluded from thumbnail candidate filter. Text-only panels show "T" placeholder; panels with a visible media layer on top continue to show that media as thumbnail.
 - MAY 5 2026 — Model auto-adjustment adopted: claude-haiku-4-5 for mechanical tasks, claude-sonnet-4-6 for standard UI, claude-opus-4-7 for complex logic. Apply per-task, not globally.
+- MAY 5 2026 (session 2) — Text layer persistence confirmed working end-to-end: content saves, reloads, renders in Reader. Font manifest syncs correctly.
+- MAY 7 2026 — Editor toolbar consolidated. Height presets renamed to format presets: Webtoon (640px, active), Book and Comic (disabled placeholders for future formats). Custom px input retained. AssetsFolder trigger moved from left sidebar into toolbar row. Separate add-buttons row above panel frame removed — "+ Media" and "T ▾" text type dropdown now live in toolbar.
+- MAY 7 2026 — Text layer type system shipped. New `TextLayerType = 'dialogue' | 'narrative' | 'caption' | 'sound_fx' | 'plain'`. DB migration adds 4 columns to layers: `text_layer_type`, `background_color`, `has_tail` (bool NOT NULL DEFAULT false), `border_radius`. TEXT_LAYER_TYPE_DEFAULTS in types/index.ts sets per-type defaults for font/size/color/position/background. Dialogue: Bangers 22px, white bg, rounded 16px, tail on by default. Narrative: DM Sans 18px, dark rgba bg, full width top of panel. Caption: DM Sans 20px, no bg, bottom 82%. Sound FX: Bangers 52px, no bg, center. Plain: DM Sans 24px, no bg (current behavior). Rail now shows type selector, background color picker (with clear), corner radius (when bg set), speech tail toggle (for dialogue type). Reader renders background/border_radius/tail. Tail is fixed bottom-center CSS triangle; direction control deferred.
+- MAY 5 2026 (session 2) — Text layer UX fixes. (1) LayerCanvas: `isEditingText` state separates "selected" from "typing mode." Single click selects + enables drag; double-click enters edit mode (textarea with autoFocus); Escape exits edit mode; deselect resets to display mode. Previously all selected text layers were always in textarea mode and couldn't be dragged. (2) Selecting a text layer now switches rail to Properties tab (was showing Layers tab, hiding font/color controls). (3) Add Media + T Text buttons moved above panel frame, below the mode tabs. (4) Google Fonts list expanded from 24 to 130 fonts across 11 categories (Comic/Lettering, Horror/Occult, Fantasy/Medieval, Gothic/Serif, Script/Romance, Action/Bold, Sci-Fi/Futuristic, Western/Adventure, Pixel/Retro, Handwritten/Natural, Clean Body Text) curated for comic book / webtoon creators. Native <select> replaced with custom FontSelect dropdown that renders each option in its own typeface, grouped by category. (5) useAutoSave layer UPDATE now uses .select('id').single() to detect silent 0-row failures (which would show "Saved" while nothing was actually saved). RLS policies confirmed correct — silent failures would indicate session expiry.
+- MAY 7 2026 (session 2) — SVG tail system shipped. CSS border triangle replaced with SVG polygon renderer (TailSVG component) in both EditorCanvas and PanelLayers. Supports 8 compass directions: `top-left`, `top`, `top-right`, `right`, `bottom-right`, `bottom`, `bottom-left`, `left`. DB migrations: `tail_direction` (8-value CHECK constraint, NOT NULL DEFAULT 'bottom'), `tail_offset_percent` (real NOT NULL DEFAULT 50), `tail_length` (integer NOT NULL DEFAULT 40). Cardinal tails: SVG polygon rotated/positioned per edge. Corner tails: 1×1 SVG with overflow:visible and diagonal triangle geometry (45° math, d = length × 0.707). Two drag handles: edge-slide (pink circle, cardinal only) adjusts tail_offset_percent; tip (white/pink circle, all 8) adjusts tail_length (10–120px via pixel distance from bubble edge/corner). Rail 3×3 compass grid replaces 4-button row; Length input always shown; Position input hidden for corner directions. `TailDirection` type expanded to 8 values in types/index.ts.
+- MAY 7 2026 (session 2) — Panel frame layout fixed. Editor panel frame changed from `width:30vw; height:88vh` to `width:100%; maxWidth:30vw; aspectRatio:400/${panelHeight}`. ResizeObserver tracks actual rendered size and feeds to LayerCanvas for accurate drag delta calculations. Editor viewport changed back to `align-items:center` (was `stretch` which caused full-width zoom). X-scroll prevented with `overflow-x:hidden`.
+- MAY 7 2026 (session 2) — Reader scroll mode panel height fixed. `PanelScrollItem.ScrollPanelItem` now applies `heightPx` as `aspectRatio: 400/${heightPx}` inline style on card div. `.reader-panel-card--scroll` CSS class overrides hardcoded `height:95vh`. Cinematic mode cards unchanged.
+- MAY 7 2026 (session 2) — Merge conflicts resolved. master had an earlier version of the text layer feature (PR #17, basic text layers only). Our feature/text-layers branch had all the new work. All conflicts resolved keeping HEAD. 3 post-merge TS build errors fixed: removed dead `=== 'text'` comparisons after early return; added 4 new bubble fields to `LAYER_DEFAULTS` type annotation.
 
 ---
 
 ## What Comes Next (in order)
 
-0. **Text layer edits** — user confirmed feature works but noted "edits need to be made." Ask the user to enumerate specific issues before starting work. Could be UX polish, positioning bugs, font picker behavior, or editor interaction edge cases. Model: claude-sonnet-4-6 / claude-opus-4-7 depending on complexity.
-1. **Assets modal** — new feature. Requires new story_assets Supabase table (migration first), modal UI showing all story uploads, two upload entry points (canvas toolbar + modal), delete with confirmation (removes from storage + all layers using that URL), re-use from modal to place on any panel.
-2. **Drag-to-reorder layers** — add alongside existing arrow buttons in the Layers tab.
-3. **Filmstrip drag-to-reorder panels** — deferred, low priority.
-4. **Video upload** — Cloudflare Stream integration.
-5. **Password hash validation**.
-6. **Tier logic**.
-7. **Light mode**.
+### 🔴 HIGHEST PRIORITY — Next session
+
+1. **Speech bubble with draggable tail — interactive SVG component**
+
+   Full plan below. Build in Plan Mode before writing any code.
+
+   **Objective:** Replace the current static SVG tail (polygon attached to a fixed bubble div) with a fully interactive React + SVG speech bubble where the bubble body and tail tip are independently draggable. The tail base automatically tracks the bubble perimeter using ray-intersection math, and all motion is spring-animated via Framer Motion.
+
+   **Tech stack:** React 18 (functional + hooks), Framer Motion (drag, spring, motion.svg), TypeScript, Vite. No external geometry libraries — implement intersection math from scratch.
+
+   **Data model (exact shapes required):**
+   ```ts
+   interface BubbleState {
+     x: number; y: number; width: number; height: number;
+     rx: number; ry: number; // corner radius x/y
+   }
+   interface TailState {
+     tip: { x: number; y: number };       // user-draggable; world coords
+     basePoint: { x: number; y: number }; // computed; perimeter of bubble
+     halfWidth: number;                   // half-width of tail base on perimeter
+     curvature: number;                   // 0–1 Bezier bulge factor
+   }
+   interface AppState {
+     bubble: BubbleState; tail: TailState;
+     isDraggingBubble: boolean; isDraggingTip: boolean; isResizing: boolean;
+   }
+   ```
+
+   **Required behaviors:**
+   - Bubble body: `<motion.rect>` with rx/ry, full drag via Framer Motion `drag`. Resize handles at all 4 corners. Text flows inside via `<foreignObject>` or `<text>`.
+   - Tail tip: `<motion.circle>` (r=8px), independently draggable, recomputes `basePoint` on every pointer move (no debounce).
+   - `computeBasePoint(tip, bubble)`: cast ray from tip toward bubble center; intersect with 4 straight edges (ray–segment math) and 4 corner arcs (ray–circle, clamped to arc angular range); if tip is inside bubble, return nearest perimeter point; if multiple intersections, return closest to tip.
+   - Tail path: single `<motion.path>` SVG cubic Bezier wedge: `M(baseLeft) C(ctrl1)(ctrl2)(tip) C(ctrl3)(ctrl4)(baseRight) Z`. baseLeft/baseRight are ±halfWidth along perimeter tangent. Animate `d` changes with spring (`stiffness:200, damping:25`).
+   - Visual: tail and bubble share fill color. 2px overlap to hide seam. Stroke on bubble only.
+
+   **Edge cases:** tip inside bubble → tail opacity 0; bubble resized → recompute immediately; very small bubble → clamp resize; fast drag → rAF throttle.
+
+   **File structure:**
+   ```
+   src/components/SpeechBubble/
+     index.tsx          # wires state
+     BubbleBody.tsx     # <motion.rect> + resize handles + text
+     BubbleTail.tsx     # <motion.path> tail wedge
+     TipHandle.tsx      # draggable tip circle
+     geometry.ts        # computeBasePoint, roundedRectIntersection,
+                        # perimeterTangent, buildTailPath
+     types.ts           # BubbleState, TailState, AppState
+   ```
+
+   **Plan mode instructions:** Before any code: (1) confirm file structure and component split; (2) write full `geometry.ts` API with function signatures + JSDoc and the math for `roundedRectIntersection` step by step; (3) identify and resolve any ambiguities in the Bezier tail path construction; (4) list implementation phases in order (geometry → BubbleBody → TailPath → TipHandle → integration → edge cases). Only implement after plan is confirmed.
+
+   **Acceptance criteria:**
+   - [ ] Dragging bubble moves tip + tail together (tip stays in world coords)
+   - [ ] Dragging tip independently repositions tail; basePoint visibly slides around perimeter
+   - [ ] Resizing bubble recomputes tail geometry in real time
+   - [ ] Spring animation visible on basePoint transitions (not instant jumps)
+   - [ ] Tip-inside-bubble hides tail gracefully without layout shift
+   - [ ] No TypeScript errors; no console warnings
+   - [ ] Works at 60fps during continuous drag on a mid-range laptop
+
+---
+
+2. **Assets modal** — Requires new story_assets Supabase table (migration first), modal UI showing all story uploads, two upload entry points (canvas toolbar + modal), delete with confirmation (removes from storage + all layers using that URL), re-use from modal to place on any panel.
+3. **Drag-to-reorder layers** — add alongside existing arrow buttons in the Layers tab.
+4. **Filmstrip drag-to-reorder panels** — deferred, low priority.
+5. **Video upload** — Cloudflare Stream integration.
+6. **Password hash validation**.
+7. **Tier logic**.
+8. **Light mode**.
 
 ---
 
@@ -482,6 +556,7 @@ Always attach all of the following when starting a new chat:
 - `src/components/editor/EditorFilmstrip.tsx`
 - `src/components/editor/EditorCanvas.tsx`
 - `src/components/editor/EditorRail.tsx`
+- `src/components/editor/FontSelect.tsx`
 - `src/components/reader/PanelLayers.tsx`
 - `src/styles/editor.css`
 - `src/styles/dashboard.css`
