@@ -127,6 +127,21 @@ export function useAutoSave(): void {
         }
       }
 
+      // Sync font_manifest: collect all unique fonts used by text layers and
+      // persist them on the story so the reader can preload them.
+      if (!isStale()) {
+        const usedFonts = Array.from(new Set(
+          layers
+            .filter((l) => l.media_type === 'text' && l.font_family)
+            .map((l) => l.font_family as string),
+        ))
+        const currentManifest: string[] = story.font_manifest ?? []
+        const merged = Array.from(new Set([...currentManifest, ...usedFonts]))
+        if (merged.length !== currentManifest.length || merged.some((f) => !currentManifest.includes(f))) {
+          await supabase.from('stories').update({ font_manifest: merged }).eq('id', story.id)
+        }
+      }
+
       if (!isStale()) setSaveStatus('saved')
     } catch (err) {
       if (!isStale()) {
