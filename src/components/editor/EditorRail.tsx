@@ -5,8 +5,9 @@ import { useEditorStore } from '../../store/editorStore'
 import { useToastStore } from '../../store/toastStore'
 import { supabase } from '../../lib/supabase'
 import { ACCEPTED_COVER, coverPath, uploadToPanelsBucket, validateMediaFile } from '../../lib/upload'
-import { GOOGLE_FONTS, loadFont } from '../../lib/fonts'
-import type { ContentRating, FillMode, ReadingMode, TransitionStyle } from '../../types'
+import { loadFont } from '../../lib/fonts'
+import FontSelect from './FontSelect'
+import type { ContentRating, FillMode, ReadingMode, TransitionStyle, TextLayerType, TailDirection } from '../../types'
 
 function resolvedFillMode(layer: { fill_mode: FillMode | null; is_fill: boolean }): FillMode {
   if (layer.fill_mode) return layer.fill_mode
@@ -35,6 +36,14 @@ const MAX_OPACITY = 1
 const OPACITY_STEP = 0.05
 
 const PLAYBACK_RATES = [0.5, 1, 1.5, 2] as const
+
+const TEXT_TYPE_LABELS: { type: TextLayerType; label: string }[] = [
+  { type: 'dialogue',  label: 'Dialogue'  },
+  { type: 'narrative', label: 'Narrative' },
+  { type: 'caption',   label: 'Caption'   },
+  { type: 'sound_fx',  label: 'Sound FX'  },
+  { type: 'plain',     label: 'Plain'     },
+]
 
 // ── Section header ─────────────────────────────────────────────────────────
 
@@ -377,6 +386,26 @@ export default function EditorRail(): React.JSX.Element {
 
                 {activeLayer.media_type === 'text' && (
                   <>
+                    <SectionLabel>Type</SectionLabel>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: 8 }}>
+                      {TEXT_TYPE_LABELS.map(({ type, label }) => {
+                        const current = activeLayer.text_layer_type ?? 'plain'
+                        const isActive = current === type
+                        return (
+                          <button
+                            key={type}
+                            type="button"
+                            onClick={() => handleLayerUpdate({ text_layer_type: type })}
+                            className={isActive ? 'rail-option-btn rail-option-btn--active' : 'rail-option-btn'}
+                            aria-pressed={isActive}
+                            style={{ padding: '4px 8px', fontSize: '11px' }}
+                          >
+                            {label}
+                          </button>
+                        )
+                      })}
+                    </div>
+
                     <SectionLabel>Text</SectionLabel>
                     <div className="rail-section-inner" style={{ marginBottom: 8 }}>
                       <textarea
@@ -391,27 +420,13 @@ export default function EditorRail(): React.JSX.Element {
 
                     <SectionLabel>Font</SectionLabel>
                     <div className="rail-row" style={{ marginBottom: 8 }}>
-                      <select
+                      <FontSelect
                         value={activeLayer.font_family ?? 'DM Sans'}
-                        onChange={(e) => {
-                          loadFont(e.target.value)
-                          handleLayerUpdate({ font_family: e.target.value })
+                        onChange={(fontLabel) => {
+                          loadFont(fontLabel)
+                          handleLayerUpdate({ font_family: fontLabel })
                         }}
-                        aria-label="Font family"
-                        style={{
-                          flex: 1,
-                          padding: '4px 6px',
-                          fontSize: '12px',
-                          background: 'rgba(0,0,0,0.25)',
-                          color: 'rgba(245,238,232,0.9)',
-                          border: '1px solid rgba(245,238,232,0.15)',
-                          borderRadius: '4px',
-                        }}
-                      >
-                        {GOOGLE_FONTS.map((f) => (
-                          <option key={f.label} value={f.label}>{f.label}</option>
-                        ))}
-                      </select>
+                      />
                     </div>
 
                     <div className="rail-row" style={{ marginBottom: 8 }}>
@@ -519,6 +534,160 @@ export default function EditorRail(): React.JSX.Element {
                         <span className="rail-input-unit">px</span>
                       </div>
                     </div>
+
+                    {/* Background fill */}
+                    <SectionLabel>Background</SectionLabel>
+                    <div className="rail-row" style={{ marginBottom: 4 }}>
+                      <span className="rail-row-label">Fill</span>
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                        <input
+                          type="color"
+                          value={activeLayer.background_color && !activeLayer.background_color.startsWith('rgba') ? activeLayer.background_color : '#000000'}
+                          onChange={(e) => handleLayerUpdate({ background_color: e.target.value })}
+                          aria-label="Background fill color"
+                          style={{ width: '28px', height: '24px', padding: '1px', border: '1px solid rgba(245,238,232,0.15)', borderRadius: '3px', background: 'none', cursor: 'pointer' }}
+                        />
+                        <input
+                          type="text"
+                          value={activeLayer.background_color ?? ''}
+                          placeholder="none"
+                          onChange={(e) => {
+                            const v = e.target.value
+                            if (v === '') { handleLayerUpdate({ background_color: null }); return }
+                            handleLayerUpdate({ background_color: v })
+                          }}
+                          aria-label="Background color value"
+                          style={{
+                            width: '100px',
+                            padding: '4px 6px',
+                            fontSize: '11px',
+                            fontFamily: 'monospace',
+                            background: 'rgba(0,0,0,0.25)',
+                            color: 'rgba(245,238,232,0.9)',
+                            border: '1px solid rgba(245,238,232,0.15)',
+                            borderRadius: '4px',
+                          }}
+                        />
+                        {activeLayer.background_color && (
+                          <button
+                            type="button"
+                            onClick={() => handleLayerUpdate({ background_color: null })}
+                            aria-label="Clear background"
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(245,238,232,0.4)', fontSize: '14px', lineHeight: 1, padding: '2px' }}
+                          >×</button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Corner radius — only useful when there's a background */}
+                    {activeLayer.background_color && (
+                      <div className="rail-row" style={{ marginBottom: 8 }}>
+                        <span className="rail-row-label">Radius</span>
+                        <div className="rail-input-group">
+                          <input
+                            type="number"
+                            value={activeLayer.border_radius ?? 0}
+                            min={0} max={100} step={1}
+                            onChange={(e) => handleLayerUpdate({ border_radius: parseInt(e.target.value, 10) || 0 })}
+                            className="rail-number-input"
+                            aria-label="Corner radius in pixels"
+                          />
+                          <span className="rail-input-unit">px</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Speech bubble tail — show for dialogue type or when tail is already on */}
+                    {(activeLayer.text_layer_type === 'dialogue' || activeLayer.has_tail) && (
+                      <div className="rail-row" style={{ marginBottom: 6 }}>
+                        <span className="rail-row-label">Speech tail</span>
+                        <button
+                          role="switch"
+                          aria-checked={activeLayer.has_tail}
+                          onClick={() => handleLayerUpdate({ has_tail: !activeLayer.has_tail })}
+                          className={activeLayer.has_tail ? 'rail-toggle rail-toggle--on' : 'rail-toggle'}
+                        >
+                          <span className="rail-toggle-thumb" />
+                        </button>
+                      </div>
+                    )}
+
+                    {activeLayer.has_tail && (() => {
+                      const COMPASS: (TailDirection | null)[][] = [
+                        ['top-left',    'top',    'top-right'   ],
+                        ['left',         null,    'right'       ],
+                        ['bottom-left', 'bottom', 'bottom-right'],
+                      ]
+                      const ARROWS: Partial<Record<TailDirection, string>> = {
+                        'top-left': '↖', top: '↑', 'top-right': '↗',
+                        left: '←',                  right: '→',
+                        'bottom-left': '↙', bottom: '↓', 'bottom-right': '↘',
+                      }
+                      const curDir = activeLayer.tail_direction ?? 'bottom'
+                      const isCorner = curDir.includes('-')
+                      return (
+                        <>
+                          <div className="rail-row" style={{ marginBottom: 6, alignItems: 'flex-start' }}>
+                            <span className="rail-row-label" style={{ paddingTop: 4 }}>Tail side</span>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 26px)', gap: 3 }}>
+                              {COMPASS.flat().map((dir, i) =>
+                                dir === null
+                                  ? <div key={i} style={{ width: 26, height: 26 }} />
+                                  : (
+                                    <button
+                                      key={dir}
+                                      onClick={() => handleLayerUpdate({ tail_direction: dir })}
+                                      className={curDir === dir ? 'canvas-preset-btn canvas-preset-btn--active' : 'canvas-preset-btn'}
+                                      style={{ padding: 0, width: 26, height: 26, textAlign: 'center' }}
+                                      title={dir}
+                                    >
+                                      {ARROWS[dir]}
+                                    </button>
+                                  )
+                              )}
+                            </div>
+                          </div>
+                          <div className="rail-row" style={{ marginBottom: 6 }}>
+                            <span className="rail-row-label">Length</span>
+                            <div className="rail-input-group">
+                              <input
+                                type="number"
+                                min={10}
+                                max={120}
+                                value={activeLayer.tail_length ?? 40}
+                                onChange={(e) => {
+                                  const v = parseInt(e.target.value, 10)
+                                  if (!isNaN(v)) handleLayerUpdate({ tail_length: Math.max(10, Math.min(120, v)) })
+                                }}
+                                className="rail-number-input"
+                                aria-label="Tail length in pixels"
+                              />
+                              <span className="rail-input-unit">px</span>
+                            </div>
+                          </div>
+                          {!isCorner && (
+                            <div className="rail-row" style={{ marginBottom: 8 }}>
+                              <span className="rail-row-label">Position</span>
+                              <div className="rail-input-group">
+                                <input
+                                  type="number"
+                                  min={5}
+                                  max={95}
+                                  value={Math.round(activeLayer.tail_offset_percent ?? 50)}
+                                  onChange={(e) => {
+                                    const v = parseInt(e.target.value, 10)
+                                    if (!isNaN(v)) handleLayerUpdate({ tail_offset_percent: Math.max(5, Math.min(95, v)) })
+                                  }}
+                                  className="rail-number-input"
+                                  aria-label="Tail position along edge"
+                                />
+                                <span className="rail-input-unit">%</span>
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )
+                    })()}
 
                     <SectionLabel>Position</SectionLabel>
                     <div className="rail-row">

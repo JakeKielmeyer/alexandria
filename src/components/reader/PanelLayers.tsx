@@ -16,9 +16,50 @@
 //    changes take effect without restarting.
 
 import React, { useRef, useEffect } from 'react'
-import type { Layer, FillMode } from '../../types'
+import type { Layer, FillMode, TailDirection } from '../../types'
 
 // ── Helpers ────────────────────────────────────────────────────────────────
+
+const TAIL_BASE = 22
+
+function TailSVG({ direction, offset, length, bgColor }: {
+  direction: TailDirection; offset: number; length: number; bgColor: string | null
+}): React.JSX.Element {
+  const fill = bgColor ?? '#ffffff'
+  const b = TAIL_BASE
+  const h = length
+  const isCorner = direction.includes('-')
+
+  if (!isCorner) {
+    const pts = `0,0 ${b},0 ${b / 2},${h}`
+    const base: React.CSSProperties = { position: 'absolute', overflow: 'visible', width: b, height: h, zIndex: 1, pointerEvents: 'none' }
+    let style: React.CSSProperties
+    switch (direction as 'top' | 'bottom' | 'left' | 'right') {
+      case 'bottom': style = { ...base, bottom: 0, left: `${offset}%`, transform: 'translateX(-50%)' }; break
+      case 'top':    style = { ...base, top: 0,    left: `${offset}%`, transform: 'translateX(-50%) scaleY(-1)', transformOrigin: 'center top' }; break
+      case 'right':  style = { ...base, right: 0,  top: `${offset}%`, width: h, height: b, transform: 'translateY(-50%) rotate(-90deg)', transformOrigin: 'right center' }; break
+      case 'left':   style = { ...base, left: 0,   top: `${offset}%`, width: h, height: b, transform: 'translateY(-50%) rotate(90deg)', transformOrigin: 'left center' }; break
+    }
+    return <svg style={style!} viewBox={`0 0 ${b} ${h}`} preserveAspectRatio="none"><polygon points={pts} fill={fill} /></svg>
+  }
+
+  const cs = b / 2
+  const d = Math.round(h * 0.707)
+  const cornerPts: Record<string, string> = {
+    'bottom-right': `${-cs},0 0,${-cs} ${d},${d}`,
+    'bottom-left':  `${cs},0 0,${-cs} ${-d},${d}`,
+    'top-right':    `${-cs},0 0,${cs} ${d},${-d}`,
+    'top-left':     `${cs},0 0,${cs} ${-d},${-d}`,
+  }
+  const cornerPos: Record<string, React.CSSProperties> = {
+    'bottom-right': { position: 'absolute', bottom: 0, right: 0 },
+    'bottom-left':  { position: 'absolute', bottom: 0, left: 0 },
+    'top-right':    { position: 'absolute', top: 0,    right: 0 },
+    'top-left':     { position: 'absolute', top: 0,    left: 0 },
+  }
+  const style: React.CSSProperties = { ...cornerPos[direction], overflow: 'visible', width: 1, height: 1, zIndex: 1, pointerEvents: 'none' }
+  return <svg style={style} viewBox="0 0 1 1" overflow="visible"><polygon points={cornerPts[direction]} fill={fill} /></svg>
+}
 
 function resolvedFillMode(layer: Layer): FillMode {
   if (layer.fill_mode) return layer.fill_mode
@@ -166,13 +207,20 @@ function LayerRenderer({ layer, videoSfxEnabled, musicEnabled, videoVolume }: La
   }, [layer.media_type, videoVolume])
 
   if (layer.media_type === 'text') {
+    const hasBg = Boolean(layer.background_color)
+    const base = containerStyle(layer)
     return (
-      <div style={containerStyle(layer)}>
+      <div style={{
+        ...base,
+        backgroundColor: layer.background_color ?? undefined,
+        borderRadius: layer.border_radius != null ? `${layer.border_radius}px` : undefined,
+        overflow: layer.has_tail ? 'visible' : base.overflow,
+      }}>
         <div
           style={{
             width: '100%',
             height: '100%',
-            padding: '6px 8px',
+            padding: hasBg ? '8px 12px' : '6px 8px',
             boxSizing: 'border-box',
             fontFamily: `'${layer.font_family ?? 'DM Sans'}', sans-serif`,
             fontSize: `${layer.font_size ?? 24}px`,
@@ -189,6 +237,14 @@ function LayerRenderer({ layer, videoSfxEnabled, musicEnabled, videoVolume }: La
         >
           {layer.text_content ?? ''}
         </div>
+        {layer.has_tail && (
+          <TailSVG
+            direction={layer.tail_direction ?? 'bottom'}
+            offset={layer.tail_offset_percent ?? 50}
+            length={layer.tail_length ?? 40}
+            bgColor={layer.background_color}
+          />
+        )}
       </div>
     )
   }
