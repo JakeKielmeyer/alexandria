@@ -104,6 +104,8 @@ export function useAutoSave(): void {
             tail_direction: layer.tail_direction ?? 'bottom',
             tail_offset_percent: layer.tail_offset_percent ?? 50,
             tail_length: layer.tail_length ?? 40,
+            tip_x_percent: layer.tip_x_percent ?? null,
+            tip_y_percent: layer.tip_y_percent ?? null,
           })
           .eq('id', layer.id)
           .select('id')

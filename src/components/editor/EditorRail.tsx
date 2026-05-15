@@ -612,7 +612,7 @@ export default function EditorRail(): React.JSX.Element {
                       </div>
                     )}
 
-                    {activeLayer.has_tail && (() => {
+                    {activeLayer.has_tail && activeLayer.text_layer_type !== 'dialogue' && (() => {
                       const COMPASS: (TailDirection | null)[][] = [
                         ['top-left',    'top',    'top-right'   ],
                         ['left',         null,    'right'       ],
