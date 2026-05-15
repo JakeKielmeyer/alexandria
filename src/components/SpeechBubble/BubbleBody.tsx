@@ -175,7 +175,6 @@ export function BubbleBody({
       >
         {isEditingText ? (
           <textarea
-            xmlns="http://www.w3.org/1999/xhtml"
             // eslint-disable-next-line jsx-a11y/no-autofocus
             autoFocus
             value={textContent}
@@ -206,7 +205,6 @@ export function BubbleBody({
           />
         ) : (
           <div
-            xmlns="http://www.w3.org/1999/xhtml"
             style={{
               width: '100%',
               height: '100%',
