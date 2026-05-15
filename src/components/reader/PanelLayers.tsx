@@ -15,12 +15,16 @@
 //    muted / volume / playbackRate are synced imperatively so mid-playback
 //    changes take effect without restarting.
 
-import React, { useRef, useEffect } from 'react'
+import React, { useRef, useEffect, useState } from 'react'
 import type { Layer, FillMode, TailDirection } from '../../types'
+import { computeBasePoint, buildTailPath } from '../SpeechBubble/geometry'
+import type { BubbleState, Point } from '../SpeechBubble/geometry'
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 const TAIL_BASE = 22
+const BEZIER_HALF_WIDTH = 11
+const BEZIER_CURVATURE = 0.5
 
 function TailSVG({ direction, offset, length, bgColor }: {
   direction: TailDirection; offset: number; length: number; bgColor: string | null
@@ -101,6 +105,126 @@ function mediaStyle(layer: Layer): React.CSSProperties {
   }
   // custom (positioned) — fill the container box
   return { ...base, objectFit: 'cover' }
+}
+
+// ── Text layer renderer (separate component so hooks are at top level) ────────
+
+function TextLayerRenderer({ layer }: { layer: Layer }): React.JSX.Element {
+  const hasBg = Boolean(layer.background_color)
+  const base = containerStyle(layer)
+
+  // Track panel pixel dimensions via ResizeObserver on the parent element.
+  // The parent is the PanelLayers container (position:absolute, inset:0),
+  // so its size equals the panel's rendered pixel size.
+  const textContainerRef = useRef<HTMLDivElement>(null)
+  const [panelSize, setPanelSize] = useState<{ w: number; h: number } | null>(null)
+
+  useEffect(() => {
+    const el = textContainerRef.current
+    if (!el) return
+    const panel = el.parentElement
+    if (!panel) return
+
+    const ro = new ResizeObserver((entries) => {
+      const entry = entries[0]
+      if (entry) {
+        const { width, height } = entry.contentRect
+        setPanelSize({ w: width, h: height })
+      }
+    })
+    ro.observe(panel)
+    // Capture initial size immediately in case the observer fires late
+    const rect = panel.getBoundingClientRect()
+    if (rect.width > 0) setPanelSize({ w: rect.width, h: rect.height })
+    return () => ro.disconnect()
+  }, [])
+
+  // Determine whether to render the Bezier tail (new interactive model)
+  const useBezierTail =
+    layer.text_layer_type === 'dialogue' &&
+    layer.tip_x_percent != null &&
+    layer.tip_y_percent != null &&
+    panelSize != null
+
+  let bezierTailSVG: React.JSX.Element | null = null
+  if (useBezierTail && panelSize) {
+    const pw = panelSize.w
+    const ph = panelSize.h
+    const bubbleState: BubbleState = {
+      x: (layer.x_percent ?? 0) / 100 * pw,
+      y: (layer.y_percent ?? 0) / 100 * ph,
+      width: (layer.width_percent ?? 65) / 100 * pw,
+      height: (layer.height_percent ?? 22) / 100 * ph,
+      rx: layer.border_radius ?? 16,
+      ry: layer.border_radius ?? 16,
+    }
+    const tip: Point = {
+      x: layer.tip_x_percent! / 100 * pw,
+      y: layer.tip_y_percent! / 100 * ph,
+    }
+    const { base: basePoint, tangent } = computeBasePoint(tip, bubbleState)
+    const d = buildTailPath(basePoint, tangent, tip, BEZIER_HALF_WIDTH, BEZIER_CURVATURE)
+    bezierTailSVG = (
+      <svg
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          overflow: 'visible',
+          pointerEvents: 'none',
+        }}
+      >
+        <path d={d} fill={layer.background_color ?? '#ffffff'} stroke="none" />
+      </svg>
+    )
+  }
+
+  return (
+    <div
+      ref={textContainerRef}
+      style={{
+        ...base,
+        backgroundColor: layer.background_color ?? undefined,
+        borderRadius: layer.border_radius != null ? `${layer.border_radius}px` : undefined,
+        overflow: layer.has_tail ? 'visible' : base.overflow,
+      }}
+    >
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          padding: hasBg ? '8px 12px' : '6px 8px',
+          boxSizing: 'border-box',
+          fontFamily: `'${layer.font_family ?? 'DM Sans'}', sans-serif`,
+          fontSize: `${layer.font_size ?? 24}px`,
+          fontWeight: layer.font_weight ?? '400',
+          color: layer.text_color ?? '#F5EEE8',
+          textAlign: (layer.text_align ?? 'left') as React.CSSProperties['textAlign'],
+          lineHeight: layer.line_height ?? 1.4,
+          letterSpacing: `${layer.letter_spacing ?? 0}px`,
+          overflow: 'hidden',
+          wordBreak: 'break-word',
+          whiteSpace: 'pre-wrap',
+          pointerEvents: 'none',
+        }}
+      >
+        {layer.text_content ?? ''}
+      </div>
+      {useBezierTail
+        ? bezierTailSVG
+        : layer.has_tail && (
+            <TailSVG
+              direction={layer.tail_direction ?? 'bottom'}
+              offset={layer.tail_offset_percent ?? 50}
+              length={layer.tail_length ?? 40}
+              bgColor={layer.background_color}
+            />
+          )
+      }
+    </div>
+  )
 }
 
 // ── Single-layer renderer ──────────────────────────────────────────────────
@@ -207,46 +331,7 @@ function LayerRenderer({ layer, videoSfxEnabled, musicEnabled, videoVolume }: La
   }, [layer.media_type, videoVolume])
 
   if (layer.media_type === 'text') {
-    const hasBg = Boolean(layer.background_color)
-    const base = containerStyle(layer)
-    return (
-      <div style={{
-        ...base,
-        backgroundColor: layer.background_color ?? undefined,
-        borderRadius: layer.border_radius != null ? `${layer.border_radius}px` : undefined,
-        overflow: layer.has_tail ? 'visible' : base.overflow,
-      }}>
-        <div
-          style={{
-            width: '100%',
-            height: '100%',
-            padding: hasBg ? '8px 12px' : '6px 8px',
-            boxSizing: 'border-box',
-            fontFamily: `'${layer.font_family ?? 'DM Sans'}', sans-serif`,
-            fontSize: `${layer.font_size ?? 24}px`,
-            fontWeight: layer.font_weight ?? '400',
-            color: layer.text_color ?? '#F5EEE8',
-            textAlign: (layer.text_align ?? 'left') as React.CSSProperties['textAlign'],
-            lineHeight: layer.line_height ?? 1.4,
-            letterSpacing: `${layer.letter_spacing ?? 0}px`,
-            overflow: 'hidden',
-            wordBreak: 'break-word',
-            whiteSpace: 'pre-wrap',
-            pointerEvents: 'none',
-          }}
-        >
-          {layer.text_content ?? ''}
-        </div>
-        {layer.has_tail && (
-          <TailSVG
-            direction={layer.tail_direction ?? 'bottom'}
-            offset={layer.tail_offset_percent ?? 50}
-            length={layer.tail_length ?? 40}
-            bgColor={layer.background_color}
-          />
-        )}
-      </div>
-    )
+    return <TextLayerRenderer layer={layer} />
   }
 
   if (!layer.media_url) return null

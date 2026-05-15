@@ -289,7 +289,7 @@ export default function AssetsFolder(): React.JSX.Element {
     const newLayer = {
       panel_id: activePanelId,
       story_id: story.id,
-      position: panelLayers.length,
+      position: panelLayers.reduce((max, l) => Math.max(max, l.position), -1) + 1,
       media_type: mt,
       media_url: asset.media_url,
       asset_id: asset.id,

@@ -12,6 +12,7 @@ import {
   validateMediaFile, registerAsset,
 } from '../../lib/upload'
 import AssetsFolder from './AssetsFolder'
+import { SpeechBubble } from '../SpeechBubble'
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -352,6 +353,23 @@ function LayerCanvas({ layer, panelWidth, panelHeight, isActive, onSelect, onUpd
 
   const renderMedia = (): React.JSX.Element | null => {
     if (layer.media_type === 'text') {
+      // Dialogue layers with tail use the interactive SVG speech bubble
+      if (layer.text_layer_type === 'dialogue' && layer.has_tail) {
+        return (
+          <SpeechBubble
+            layer={layer}
+            panelWidth={panelWidth}
+            panelHeight={panelHeight}
+            isActive={isActive}
+            isEditingText={isEditingText}
+            onSelect={onSelect}
+            onUpdate={onUpdate}
+            onDoubleClick={() => setIsEditingText(true)}
+            onExitEdit={() => setIsEditingText(false)}
+          />
+        )
+      }
+
       const hasBg = Boolean(layer.background_color)
       const containerExtras: React.CSSProperties = {
         backgroundColor: layer.background_color ?? undefined,
@@ -663,7 +681,7 @@ export default function EditorCanvas(): React.JSX.Element {
       const newLayer = {
         panel_id: activePanelId,
         story_id: story.id,
-        position: panelLayers.length,
+        position: panelLayers.reduce((max, l) => Math.max(max, l.position), -1) + 1,
         media_type: mediaType,
         media_url: mediaUrl,
         asset_id: assetId,
@@ -721,7 +739,7 @@ export default function EditorCanvas(): React.JSX.Element {
     const newLayer = {
       panel_id: activePanelId,
       story_id: story.id,
-      position: panelLayers.length,
+      position: panelLayers.reduce((max, l) => Math.max(max, l.position), -1) + 1,
       media_type: 'text' as const,
       media_url: null,
       asset_id: null,

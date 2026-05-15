@@ -132,6 +132,9 @@ export interface Layer {
   tail_direction:      TailDirection
   tail_offset_percent: number
   tail_length:         number
+  // Interactive SVG bubble tip position. Null = legacy layer (use tail_direction model).
+  tip_x_percent: number | null
+  tip_y_percent: number | null
   created_at: string
 }
 

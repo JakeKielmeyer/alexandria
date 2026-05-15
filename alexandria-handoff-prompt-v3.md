@@ -208,7 +208,7 @@ Panel 3: https://pub-d0a4c9548d2149eb9259096fbf8a9dfe.r2.dev/Panel%203.jpg
 - **stories** — id, user_id, title, slug, content_rating (`mature`|`explicit`), password_hash, is_published, cover_url, font_manifest (JSONB), creator_bio, creator_links (JSONB), reading_mode (`cinematic`|`scroll`, default `cinematic`), created_at, updated_at
 - **chunks** — id, story_id, chapter_number, chapter_title, position, created_at
 - **panels** — id, chunk_id (nullable), story_id, position, height (integer px), created_at
-- **layers** — id, panel_id, story_id, position (z-order), media_type (`image`|`gif`|`video`|`audio`|`text`), media_url, name, x_percent, y_percent, width_percent, height_percent, is_fill (boolean, legacy), fill_mode (`crop`|`stretch`|`custom`), focal_x_percent, focal_y_percent, opacity, autoplay, loop, muted, playback_rate, panel_span_count, text_content, font_family, font_size, text_color, font_weight, text_align, line_height, letter_spacing, text_layer_type (`dialogue`|`narrative`|`caption`|`sound_fx`|`plain`, nullable), background_color (nullable text), has_tail (boolean NOT NULL DEFAULT false), border_radius (nullable integer px), tail_direction (text NOT NULL DEFAULT 'bottom', constrained to 8 compass values), tail_offset_percent (real NOT NULL DEFAULT 50), tail_length (integer NOT NULL DEFAULT 40), created_at
+- **layers** — id, panel_id, story_id, position (z-order), media_type (`image`|`gif`|`video`|`audio`|`text`), media_url, name, x_percent, y_percent, width_percent, height_percent, is_fill (boolean, legacy), fill_mode (`crop`|`stretch`|`custom`), focal_x_percent, focal_y_percent, opacity, autoplay, loop, muted, playback_rate, panel_span_count, text_content, font_family, font_size, text_color, font_weight, text_align, line_height, letter_spacing, text_layer_type (`dialogue`|`narrative`|`caption`|`sound_fx`|`plain`, nullable), background_color (nullable text), has_tail (boolean NOT NULL DEFAULT false), border_radius (nullable integer px), tail_direction (text NOT NULL DEFAULT 'bottom', constrained to 8 compass values), tail_offset_percent (real NOT NULL DEFAULT 50), tail_length (integer NOT NULL DEFAULT 40), tip_x_percent (real nullable), tip_y_percent (real nullable), created_at
 
 **Removed tables:**
 - `overlays` — deleted.
@@ -289,10 +289,11 @@ Deferred post-MVP. PNG with transparency covers the foreground layering use case
 - `src/components/AuthGuard.tsx` — wraps protected routes
 - `src/components/editor/EditorTopBar.tsx` — logo (back to dashboard), title, save status, mode tabs, publish button
 - `src/components/editor/EditorFilmstrip.tsx` — panel thumbnails, add/delete panels
-- `src/components/editor/EditorCanvas.tsx` — toolbar: format presets (Webtoon active, Book/Comic disabled placeholders) + custom px input + AssetsFolder trigger + "+ Media" + "T ▾" text type dropdown. LayerCanvas: drag-to-move, 8-handle resize, text layers with background/border_radius/speech-bubble SVG tail. Panel frame: `width:100%, maxWidth:30vw, aspectRatio:400/${panelHeight}` via ResizeObserver — no more hardcoded 88vh. Editor viewport: X-scroll prevented, Y-scroll allowed. TailSVG component: SVG polygon tails for all 8 compass directions (4 cardinal + 4 corners). Edge-slide drag handle (pink dot, cardinal only) for tail_offset_percent; tip drag handle (white/pink circle, all 8 directions) for tail_length. Single-click selects + drag, double-click enters text edit mode, Escape exits.
+- `src/components/editor/EditorCanvas.tsx` — toolbar: format presets (Webtoon active, Book/Comic disabled placeholders) + custom px input + AssetsFolder trigger + "+ Media" + "T ▾" text type dropdown. LayerCanvas: drag-to-move, 8-handle resize, text layers with background/border_radius/speech-bubble. **Dialogue layers with has_tail** now render `<SpeechBubble>` SVG component (interactive Bezier tail, freely draggable tip). All other text layer types retain div+TailSVG polygon tail. Panel frame: `width:100%, maxWidth:30vw, aspectRatio:400/${panelHeight}` via ResizeObserver. TailSVG component: SVG polygon tails (legacy, 8 compass directions). Single-click selects, double-click enters text edit mode, Escape exits.
+- `src/components/SpeechBubble/` — interactive SVG speech bubble component. `geometry.ts`: pure math (computeBasePoint ray-intersection, raySegmentIntersect, rayArcIntersect, perimeterTangent, buildTailPath Bezier wedge, nearestPerimeterPoint). `BubbleBody.tsx`: `<g>` with `<rect>` (pointer-drag + onMouseDown stopPropagation) + `<foreignObject pointerEvents="none" when not editing>` (display/textarea toggle) + 4 corner resize handles. `BubbleTail.tsx`: `<motion.path>` with spring-animated basePoint (stiffness:200, damping:25); draggable to reposition tip, selects bubble when inactive. `TipHandle.tsx`: draggable `<circle>` returning absolute SVG coords; `useRef+window listeners` pattern (no stale closure). `index.tsx`: wires state, coordinate conversion (% ↔ px), rAF-throttled drag, onUpdate persistence; useEffect syncs border_radius + x/y/w/h from layer prop. `types.ts`: BubbleState, TailState, AppState.
 - `src/components/editor/EditorRail.tsx` — Properties tab: text type selector (Dialogue/Narrative/Caption/Sound FX/Plain), font/size/weight/align/color/leading/tracking, background fill (color picker + text input, clear button), corner radius (shown when bg set), speech tail toggle (shown for dialogue type), 3×3 compass grid for tail direction (8 positions), Length input (px, always shown when tail on), Position input (%, hidden for corner directions); fill mode (Crop/Stretch/Custom), focal point, position/size, opacity, video/audio settings, delete. Layers tab (z-order), Transitions, Publish mode.
 - `src/components/editor/FontSelect.tsx` — custom font dropdown. Renders each option in its own typeface, grouped by category (130 fonts, 11 categories). Loads all fonts on first open via loadFont().
-- `src/components/reader/PanelLayers.tsx` — renders all layers on a panel in z-order; text layers render as styled static divs with background/border_radius/SVG tail (same TailSVG component as editor, 8 directions); video/audio use IntersectionObserver for autoplay at 50% visibility
+- `src/components/reader/PanelLayers.tsx` — renders all layers on a panel in z-order. Text layers: if dialogue with `tip_x_percent` set, renders Bezier SVG tail via `computeBasePoint`+`buildTailPath` from geometry.ts; otherwise falls back to TailSVG polygon (legacy). Video/audio use IntersectionObserver for autoplay at 50% visibility.
 - `src/components/reader/PanelScrollItem.tsx` — scroll mode: heightPx prop applied as `aspectRatio: 400/${heightPx}` on card div (.reader-panel-card--scroll); reader.css overrides hardcoded 95vh so panel height reflects creator-set value
 
 ### Pages Built
@@ -362,9 +363,11 @@ Deferred post-MVP. PNG with transparency covers the foreground layering use case
 - Assets modal not yet built — uploaded files accumulate in Supabase storage with no management UI.
 - Filmstrip drag-to-reorder deferred.
 - Text layers confirmed working end-to-end. Content, font, background, tail all persist and render in Reader.
-- Speech bubble tail SVG rendering confirmed working for all 8 directions in editor and reader. Tip drag handle (tail_length) and edge-slide handle (tail_offset_percent) both functional.
+- Speech bubble (dialogue + has_tail) fully working: drag to move, drag tail or tip handle to reposition tip, resize handles on corners, double-click to edit text, all properties sync from rail. DB migration applied.
+- Speech bubble stroke border color hardcoded to `#DC5A8A` — not yet user-configurable from the rail.
 - Panel height now correctly drives aspect-ratio in both editor and reader scroll mode.
 - feature/text-layers PR has been merged into master via GitHub. Build fixed after resolving 3 post-merge TS errors.
+- feature/speech-bubble PR open (see GitHub). Contains all speech bubble implementation + bug fixes from sessions 3–4.
 
 ---
 
@@ -418,80 +421,36 @@ Deferred post-MVP. PNG with transparency covers the foreground layering use case
 - MAY 7 2026 (session 2) — Panel frame layout fixed. Editor panel frame changed from `width:30vw; height:88vh` to `width:100%; maxWidth:30vw; aspectRatio:400/${panelHeight}`. ResizeObserver tracks actual rendered size and feeds to LayerCanvas for accurate drag delta calculations. Editor viewport changed back to `align-items:center` (was `stretch` which caused full-width zoom). X-scroll prevented with `overflow-x:hidden`.
 - MAY 7 2026 (session 2) — Reader scroll mode panel height fixed. `PanelScrollItem.ScrollPanelItem` now applies `heightPx` as `aspectRatio: 400/${heightPx}` inline style on card div. `.reader-panel-card--scroll` CSS class overrides hardcoded `height:95vh`. Cinematic mode cards unchanged.
 - MAY 7 2026 (session 2) — Merge conflicts resolved. master had an earlier version of the text layer feature (PR #17, basic text layers only). Our feature/text-layers branch had all the new work. All conflicts resolved keeping HEAD. 3 post-merge TS build errors fixed: removed dead `=== 'text'` comparisons after early return; added 4 new bubble fields to `LAYER_DEFAULTS` type annotation.
+- MAY 7 2026 (session 3) — Interactive SVG speech bubble shipped. Branch: feature/speech-bubble. New `src/components/SpeechBubble/` directory: geometry.ts (ray-intersection math, Bezier tail builder), BubbleBody.tsx (SVG rect drag + foreignObject textarea), BubbleTail.tsx (spring-animated motion.path), TipHandle.tsx (freely draggable circle), index.tsx (state + coordinate conversion). DB migration: `tip_x_percent` and `tip_y_percent` (real, nullable) added to layers table — **migration applied in Supabase console (2026-05-15)**. EditorCanvas: dialogue+has_tail layers now use `<SpeechBubble>` SVG component; all other text types keep div+TailSVG. PanelLayers (reader): dialogue layers with tip_x/y_percent set render Bezier SVG tail; legacy layers fall back to TailSVG polygon. EditorRail: compass grid / offset / length controls hidden for dialogue type (tail is now controlled by drag). useAutoSave: tip_x/y_percent added to layer UPDATE payload.
+- MAY 15 2026 (session 4) — Speech bubble bug fixes: (1) **TipHandle drag** rewritten with useRef + window listeners to fix stale-closure bug where first pointermove batch was dropped. (2) **BubbleTail body** now selectable (inactive click selects bubble) and draggable (drag repositions tip, same as TipHandle circle). (3) **onMouseDown stopPropagation** added to bubble rect, tail path, and tip handle circle — pointer events stopped but separate mouse events still reached the viewport deselect handler. (4) **foreignObject pointerEvents=
+one\** when not editing — foreignObject absorbed hover events hiding the rect's grab cursor; now hover falls through to rect. (5) **SpeechBubble useEffect** now syncs border_radius, x/y/w/h from layer prop — previously EditorRail property changes (radius slider, position input arrows) had no effect until page refresh. (6) **Layer position assignment** fixed in EditorCanvas (×2) and AssetsFolder: changed position: panelLayers.length → position: panelLayers.reduce((max, l) => Math.max(max, l.position), -1) + 1. Using the count caused duplicate positions after any layer deletion, making reorder arrows a no-op.
 
 ---
 
 ## What Comes Next (in order)
 
-### 🔴 HIGHEST PRIORITY — Next session
+### 🔴 HIGHEST PRIORITY — Next session (text modifications + layers system)
 
-1. **Speech bubble with draggable tail — interactive SVG component**
+The next session is focused on **text layer property UX** and **layer management**. The speech bubble is fully working; these are the remaining rough edges in the text editing experience.
 
-   Full plan below. Build in Plan Mode before writing any code.
+**Text modifications:**
+1. **Text property live preview** — when the user changes font, size, weight, color, line-height, or letter-spacing in the rail, the change should be visible immediately in the panel. Currently this works for non-speech-bubble layers but should be verified end-to-end for speech bubbles as well (since border_radius + position sync was just fixed).
+2. **Speech bubble stroke color** — currently hardcoded to `#DC5A8A` (Rose Accent). Should be user-configurable from the rail alongside background color.
+3. **Text alignment inside speech bubble** — confirm all four align values (left/center/right/justify) render correctly inside the foreignObject textarea and display div.
+4. **Narrative / caption / sound_fx layer polish** — verify tail direction, offset, and length controls still work correctly for non-dialogue types after the speech bubble changes.
 
-   **Objective:** Replace the current static SVG tail (polygon attached to a fixed bubble div) with a fully interactive React + SVG speech bubble where the bubble body and tail tip are independently draggable. The tail base automatically tracks the bubble perimeter using ray-intersection math, and all motion is spring-animated via Framer Motion.
+**Layers system:**
+5. **Drag-to-reorder layers** — add drag handle alongside the existing arrow buttons in the Layers tab (Framer Motion Reorder.Group, same pattern as filmstrip panel reorder). Arrow buttons remain as fallback.
+6. **Layer name editing** — inline editable name in the Layers tab row (currently shows `layer.name ?? layer.media_type`).
+7. **Duplicate layer** — right-click or button in Layers tab to clone a layer with all its properties.
 
-   **Tech stack:** React 18 (functional + hooks), Framer Motion (drag, spring, motion.svg), TypeScript, Vite. No external geometry libraries — implement intersection math from scratch.
-
-   **Data model (exact shapes required):**
-   ```ts
-   interface BubbleState {
-     x: number; y: number; width: number; height: number;
-     rx: number; ry: number; // corner radius x/y
-   }
-   interface TailState {
-     tip: { x: number; y: number };       // user-draggable; world coords
-     basePoint: { x: number; y: number }; // computed; perimeter of bubble
-     halfWidth: number;                   // half-width of tail base on perimeter
-     curvature: number;                   // 0–1 Bezier bulge factor
-   }
-   interface AppState {
-     bubble: BubbleState; tail: TailState;
-     isDraggingBubble: boolean; isDraggingTip: boolean; isResizing: boolean;
-   }
-   ```
-
-   **Required behaviors:**
-   - Bubble body: `<motion.rect>` with rx/ry, full drag via Framer Motion `drag`. Resize handles at all 4 corners. Text flows inside via `<foreignObject>` or `<text>`.
-   - Tail tip: `<motion.circle>` (r=8px), independently draggable, recomputes `basePoint` on every pointer move (no debounce).
-   - `computeBasePoint(tip, bubble)`: cast ray from tip toward bubble center; intersect with 4 straight edges (ray–segment math) and 4 corner arcs (ray–circle, clamped to arc angular range); if tip is inside bubble, return nearest perimeter point; if multiple intersections, return closest to tip.
-   - Tail path: single `<motion.path>` SVG cubic Bezier wedge: `M(baseLeft) C(ctrl1)(ctrl2)(tip) C(ctrl3)(ctrl4)(baseRight) Z`. baseLeft/baseRight are ±halfWidth along perimeter tangent. Animate `d` changes with spring (`stiffness:200, damping:25`).
-   - Visual: tail and bubble share fill color. 2px overlap to hide seam. Stroke on bubble only.
-
-   **Edge cases:** tip inside bubble → tail opacity 0; bubble resized → recompute immediately; very small bubble → clamp resize; fast drag → rAF throttle.
-
-   **File structure:**
-   ```
-   src/components/SpeechBubble/
-     index.tsx          # wires state
-     BubbleBody.tsx     # <motion.rect> + resize handles + text
-     BubbleTail.tsx     # <motion.path> tail wedge
-     TipHandle.tsx      # draggable tip circle
-     geometry.ts        # computeBasePoint, roundedRectIntersection,
-                        # perimeterTangent, buildTailPath
-     types.ts           # BubbleState, TailState, AppState
-   ```
-
-   **Plan mode instructions:** Before any code: (1) confirm file structure and component split; (2) write full `geometry.ts` API with function signatures + JSDoc and the math for `roundedRectIntersection` step by step; (3) identify and resolve any ambiguities in the Bezier tail path construction; (4) list implementation phases in order (geometry → BubbleBody → TailPath → TipHandle → integration → edge cases). Only implement after plan is confirmed.
-
-   **Acceptance criteria:**
-   - [ ] Dragging bubble moves tip + tail together (tip stays in world coords)
-   - [ ] Dragging tip independently repositions tail; basePoint visibly slides around perimeter
-   - [ ] Resizing bubble recomputes tail geometry in real time
-   - [ ] Spring animation visible on basePoint transitions (not instant jumps)
-   - [ ] Tip-inside-bubble hides tail gracefully without layout shift
-   - [ ] No TypeScript errors; no console warnings
-   - [ ] Works at 60fps during continuous drag on a mid-range laptop
-
----
-
-2. **Assets modal** — Requires new story_assets Supabase table (migration first), modal UI showing all story uploads, two upload entry points (canvas toolbar + modal), delete with confirmation (removes from storage + all layers using that URL), re-use from modal to place on any panel.
-3. **Drag-to-reorder layers** — add alongside existing arrow buttons in the Layers tab.
-4. **Filmstrip drag-to-reorder panels** — deferred, low priority.
-5. **Video upload** — Cloudflare Stream integration.
-6. **Password hash validation**.
-7. **Tier logic**.
-8. **Light mode**.
+**Other backlog (lower priority):**
+8. **Assets modal** — Requires new story_assets Supabase table (migration first), modal UI showing all story uploads, two upload entry points (canvas toolbar + modal), delete with confirmation (removes from storage + all layers using that URL), re-use from modal to place on any panel.
+9. **Filmstrip drag-to-reorder panels** — deferred, low priority.
+10. **Video upload** — Cloudflare Stream integration.
+11. **Password hash validation**.
+12. **Tier logic**.
+13. **Light mode**.
 
 ---
 
