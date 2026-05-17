@@ -1,6 +1,6 @@
-# Alexandria — Session Prompt: 3D Book Reader
+# Alexandria — Session Prompt: 3D Book Reader (Phase 3)
 
-### New Chat Initialization · 3D Book Feature
+### New Chat Initialization · Phase 3: 3D Reader
 
 ---
 
@@ -10,76 +10,117 @@
 
 ## What We're Building This Session
 
-The **3D Book reader** — a new reading mode alongside Cinematic and Scroll. Readers experience the story as a 3D book with page-turn animations: spine, page curl, paper texture. This uses **React Three Fiber** (Three.js), which is already in the tech stack and has been set up exactly for this purpose.
+The **3D Book reader** — Phase 3. Phases 1 and 2 are complete (see below). This session builds the actual reader experience: a React Three Fiber scene with a 3D book, page-turn animation, and HTML-overlaid layers.
 
 Comic format is explicitly **out of scope**. Book format only.
 
 ---
 
-## Current Codebase State
+## What Is Already Done (do NOT rebuild or re-discuss)
 
-All living documents are in the project. Read them before starting:
+### Phase 1 — Foundation (complete, committed)
+- `ReadingMode` includes `'book'`; `Layer` has `is_spread_layer: boolean`
+- `EditorRail`: Book as third reading mode; transition controls hidden for book
+- `Reader.tsx`: `isBook` branch stub — renders a placeholder `<div>` for now
+- DB: `reading_mode` constraint updated, `is_spread_layer` and stroke-style columns added
+- R3F installed: `@react-three/fiber`, `three`, `@react-three/drei`, `@types/three`
 
-- `alexandria-handoff-prompt-v3.md` — full architecture, decisions, known issues
-- `platform-design-spec.html` — product spec, data model, V3 decisions
-
-### What's complete and working
-- Webtoon editor + reader (cinematic mode: Framer Motion transitions; scroll mode: continuous vertical)
-- Full layers system: image, GIF, video, audio, text layers
-- Speech bubbles: interactive SVG with Bezier tail, spring animation, drag handles, stroke style
-- Assets modal, layer management (reorder, name edit, duplicate)
-- Auth, dashboard, gate flow, Sentry wired
-- Video upload complete
-- `reading_mode` column on `stories` table already exists: `'cinematic' | 'scroll'` — needs `'book'` added
-
-### Tech stack (locked)
-- React 19 + TypeScript + Vite + Supabase + Zustand + Framer Motion
-- **React Three Fiber** (Three.js) — already installed, this is the payoff session
-- Hosted on Cloudflare Pages
-
-### Key files to read before starting
-```
-src/types/index.ts          — ReadingMode type, Layer, Story interfaces
-src/pages/Reader.tsx        — branches on reading_mode; add book branch here
-src/hooks/useReaderData.ts  — fetches story + panels + layers
-src/store/editorStore.ts    — editor state
-src/components/editor/EditorRail.tsx  — Publish mode has reading mode toggle
-src/styles/reader.css       — reader layout tokens
-```
+### Phase 2 — Book Spread Editor (complete, committed)
+- `EditorFilmstrip`: spread-paired thumbnails ("1–2", "3–4"), Add Spread, delete spread
+- `EditorCanvas`: two-page spread view with spine, page-number badges, grid overlay, empty-state upload button
+- Layer selection bug fixed: page frames use `onMouseDown` not `onClick`
+- **Spread layer feature fully implemented:**
+  - "Spread layer" toggle in Properties rail (book mode only)
+  - `is_spread_layer=true` layers render in a `pointer-events:none` overlay spanning the full 800×600 spread
+  - Coordinate space: 800×600 for spread layers, 400×600 for page-local layers
+  - Drag math uses `displayedSpreadSize` (measured via `spreadRef` ResizeObserver)
 
 ---
 
-## Architecture Questions to Resolve Before Building
+## Architecture Decisions (locked)
 
-These need answers before touching code. Discuss with the user:
+- **Page dimensions**: 400 × 600px per page (2:3 ratio). Full spread = 800 × 600px.
+- **Two-page spread**: reader always shows left + right page together as an open book.
+- **Page turn trigger**: click to advance. No drag-to-turn for MVP.
+- **Pages = panels**: one panel per page. Spread N has left = `sortedPanels[N*2]`, right = `sortedPanels[N*2+1]`.
+- **Cover**: book opens from a 3D cover (spine visible, front cover shown). Cover uses `story.cover_url`.
+- **Layers rendered via R3F Html overlay**: no texture baking. `<Html>` from `@react-three/drei` renders each page's layers as DOM inside the 3D scene.
 
-1. **Book dimensions** — what is the page aspect ratio? Standard book (6×9 = 2:3)? Custom? Does it match the existing 400px authoring width or use a new canvas size?
+---
 
-2. **Two-page spread vs single page** — does the reader show one page or a left+right spread (like an open book)? Single page is simpler; spread is more dramatic but doubles complexity.
+## Phase 3 Build Plan
 
-3. **Page turn trigger** — click to turn? Swipe? Arrow key? Drag corner? Drag-corner page curl is the most immersive but hardest to implement.
+### Files to create
 
-4. **Editor interaction** — does the book format need a new editor canvas, or do creators use the same panel editor with book-appropriate dimensions? Are pages = panels (one-to-one)?
+```
+src/components/BookReader/index.tsx         — entry point, wraps Canvas
+src/components/BookReader/BookScene.tsx     — R3F Canvas, camera, lights, state
+src/components/BookReader/BookCover.tsx     — 3D closed book + open animation
+src/components/BookReader/BookSpread.tsx    — two-page spread with Html overlays
+src/components/BookReader/BookPage.tsx      — page geometry (flat for MVP; curl deferred)
+src/components/BookReader/usePageTurn.ts   — state machine (cover → spread N → end)
+```
 
-5. **Cinematic transitions inside book** — do panels within a "chapter" paginate as book pages, or does the book render entire chapters as single pages?
+### Wire-up in Reader.tsx
 
-6. **Cover** — does the book open from a 3D cover (spine visible, front cover shown) or does it start on page 1?
+```tsx
+// src/pages/Reader.tsx — already has isBook flag
+// Replace the placeholder <div> with:
+import BookReader from '../components/BookReader'
+// ...
+{isBook && <BookReader story={story} panels={sortedPanels} layers={layers} />}
+```
+
+### Camera and scene setup
+
+- Orthographic camera looking straight at the spread (no perspective distortion for MVP)
+- Or perspective with a shallow FOV (45°) positioned ~2 units back — more bookish feel
+- Scene background: `var(--color-void)` (#0E0608)
+- Ambient light + directional from above-left for soft page shadow
+
+### Page geometry
+
+- Each page: a `<mesh>` with `PlaneGeometry(1, 1.5)` (2:3 ratio), scaled to fill viewport
+- Texture approach: **R3F `<Html>` overlay** (not texture baking — simpler, layers stay live DOM)
+- `<Html transform>` from drei wraps each page's layer stack
+
+### Page turn (MVP — click to turn, no curl)
+
+- State: `spreadIndex` (0 = cover, 1 = spread 1, 2 = spread 2, …, N+1 = end page)
+- Transition: Framer Motion opacity crossfade between spreads, OR a simple 3D rotation (Y-axis flip of the left page mesh, 0° → -180°, spring physics)
+- For MVP: opacity fade is safest. The 3D flip can be layered on top.
+- `usePageTurn` hook manages state, exposes `{ spreadIndex, goNext, goPrev, isAnimating }`
+
+### Keyboard / click navigation
+
+- Arrow keys (left/right), spacebar → `goNext`
+- Click right half of spread → `goNext`, click left half → `goPrev`
+- Escape → back to story list (existing reader escape behaviour)
+
+---
+
+## Key Files to Read Before Starting
+
+```
+src/pages/Reader.tsx                     — wire-up point; already has isBook stub
+src/types/index.ts                       — Panel, Layer, Story, BOOK_PAGE_HEIGHT
+src/hooks/useReaderData.ts               — how panels + layers are fetched
+src/styles/reader.css                    — reader layout tokens; add book tokens here
+```
+
+Also read the existing cinematic reader components to understand the layer rendering pattern that must be replicated inside the R3F Html overlay.
 
 ---
 
 ## Model / Effort Guide
 
-Auto-adjust the model per task. Do not use the same model for everything.
+| Model | When to use |
+|-------|------------|
+| `claude-haiku-4-5` | Mechanical additions, null-check patches, simple reads |
+| `claude-sonnet-4-6` | Standard UI, CSS, route wiring, Html overlay layer rendering |
+| `claude-opus-4-7` | R3F scene setup, camera math, 3D page-turn animation, spring physics, any feature with 3+ interacting concerns |
 
-| Model | When to use | Examples |
-|-------|------------|---------|
-| `claude-haiku-4-5` | Mechanical additions, simple reads, null-check patches | Adding a DB column to an update payload, fixing a type, inserting a guard clause |
-| `claude-sonnet-4-6` | Standard UI implementation, established patterns | New rail section, reading mode toggle, CSS layout, route branching |
-| `claude-opus-4-7` | Complex interaction logic, 3D math, multi-concern changes | Three.js page geometry, drag-to-turn interaction, spring physics, any feature with 3+ interacting concerns |
-
-**This session will be heavy on `claude-opus-4-7`** — 3D geometry, page-turn math, and Three.js interaction are all Max effort work.
-
-Effort levels map to models: Normal = haiku or sonnet, Max = opus.
+**This session is heavy on `claude-opus-4-7`** — R3F scene, camera, page geometry, and animation state.
 
 ---
 
@@ -89,67 +130,19 @@ Effort levels map to models: Normal = haiku or sonnet, Max = opus.
 2. Discuss before building. Never start without confirming the approach.
 3. Do not assume or guess. If unclear, ask. One question at a time.
 4. Flag scope creep immediately. Push back on unnecessary complexity.
-5. Flag wasted effort immediately. If a fix will be thrown away during later integration, say so first.
-6. All mockups are HTML files. Never use chat widgets.
-7. Lock decisions clearly so the spec can be updated.
-8. **Always include effort level + model with every Claude Code instruction block.** Format: "Effort: Max — claude-opus-4-7" or "Effort: Normal — claude-sonnet-4-6" on the line immediately before the code block.
-9. **Auto-adjust model per task.** Confirm: "I will use haiku for mechanical patches, sonnet for standard UI, opus for 3D interaction and complex multi-concern changes. I will not use the same model for everything."
-10. Never make unrequested changes. Flag first, ask, then act.
-11. Update both living documents after every meaningful build session.
+5. All mockups are HTML files. Never use chat widgets.
+6. **Always include effort level + model with every Claude Code instruction block.**
+7. **Auto-adjust model per task.** Confirm on arrival.
+8. Never make unrequested changes. Flag first, ask, then act.
+9. Update both living documents after every meaningful build session.
 
 ---
 
-## On Arrival — Read First, Then Ask
+## On Arrival
 
-1. Read this prompt in full
-2. Read `alexandria-handoff-prompt-v3.md` and `platform-design-spec.html`
-3. Read the key source files listed above
-4. State your understanding of what's already built and what we're adding
-5. **Explicitly confirm:** "I will auto-adjust model and effort level per the guide — haiku for mechanical patches, sonnet for standard UI, opus for 3D interaction and complex multi-concern changes."
-6. Ask the architecture questions above — one at a time, or group the ones that are interdependent
-7. Do not write a single line of code until the user confirms the approach
-
----
-
-## Codebase Health Check — Do This Before Any Feature Work
-
-Before discussing architecture or writing a single line of code, verify the codebase is in a clean, up-to-date state. Go through this checklist in order:
-
-### 1. Git state
-```bash
-git status          # should be clean (no uncommitted changes)
-git log --oneline -5  # confirm you're on master with all recent work merged
-```
-The `feature/speech-bubble` branch containing sessions 3–5 was merged via PR. If `git log` shows commits like "Session 5: stroke style, layers reorder..." you're on the right base. If not, pull master: `git pull origin master`.
-
-### 2. TypeScript build
-```bash
-npx tsc --noEmit
-```
-Must return zero errors before any new work starts. If there are errors, fix them first and report what they were.
-
-### 3. Apply the stroke-style DB migration (if not yet done)
-```sql
--- supabase-migrations/2026-05-17-stroke-style.sql
-ALTER TABLE layers ADD COLUMN stroke_color text;
-ALTER TABLE layers ADD COLUMN has_stroke boolean NOT NULL DEFAULT true;
-ALTER TABLE layers ADD COLUMN stroke_width real;
-```
-Run in the Supabase SQL editor (postgres role). If the columns already exist, skip. If the migration errors with "column already exists", that's fine — it means it was already applied.
-
-### 4. Smoke test the live site
-Open the Cloudflare Pages URL and verify:
-- Creator can log in, open an editor, add a text layer, see the speech bubble, and publish
-- Reader loads a story in cinematic mode and scroll mode without errors
-- Dashboard shows correct read counts
-
-Report what you found — any broken behaviour must be fixed before book feature work begins.
-
-### 5. Report back
-After the above checks, summarise:
-- Git branch and last commit
-- TypeScript build result
-- Migration status
-- Any issues found on the live site
-
-Only after a clean bill of health should we move on to the architecture questions for the 3D book feature.
+1. Read this prompt in full.
+2. Read `src/pages/Reader.tsx` and the cinematic reader components to understand the existing layer render pattern.
+3. Read `src/types/index.ts` for the data model.
+4. State your understanding of what's built and what we're adding.
+5. Confirm: "I will auto-adjust model and effort level per the guide."
+6. Propose the Phase 3 build order and ask for confirmation before writing any code.
