@@ -208,6 +208,63 @@
   cursor: wait;
 }
 
+/* ── Book spread canvas ── */
+
+.editor-canvas-book-spread {
+  display: flex;
+  align-items: flex-start;
+  width: min(90%, 820px);
+  position: relative;
+}
+
+.editor-canvas-book-spread-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.editor-canvas-book-page {
+  flex: 1;
+  min-width: 0;
+  aspect-ratio: 2 / 3;
+  background: var(--bg-dd);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  position: relative;
+  cursor: default;
+}
+
+.editor-canvas-book-page--active {
+  border-color: rgba(201, 48, 96, 0.45);
+}
+
+.editor-canvas-book-page--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.35;
+}
+
+.editor-canvas-book-spine {
+  width: 4px;
+  align-self: stretch;
+  flex-shrink: 0;
+  background: linear-gradient(to right, rgba(245,238,232,0.04), rgba(245,238,232,0.1), rgba(245,238,232,0.04));
+}
+
+.editor-canvas-book-page-num {
+  position: absolute;
+  bottom: 4px;
+  right: 6px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-faint);
+  pointer-events: none;
+  letter-spacing: 0.04em;
+}
+
 /* ── Rail layout ── */
 
 .rail-tabs {

@@ -64,6 +64,7 @@ function ScrollReader({ story, panels, previewMode, onReachEnd }: ScrollReaderPr
   const [gridOpen, setGridOpen] = useState(false)
 
   const isCinematic = story.reading_mode === 'cinematic'
+  const isBook = story.reading_mode === 'book'
   const panelMode = isCinematic ? 'cinematic' : 'scroll'
   const transitionStyle = (story.transition_style ?? 'stacked') as 'stacked' | 'fade'
 
@@ -502,6 +503,18 @@ export default function Reader(): React.JSX.Element {
               This story has no panels yet.
             </div>
           </GateShell>
+        </motion.div>
+      ) : isBook ? (
+        <motion.div
+          key="book-reader"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1, transition: { duration: 0.35, ease: 'easeOut' } }}
+          className="reader-book-container"
+        >
+          {/* BookReader — Phase 3 */}
+          <div style={{ color: 'rgba(245,238,232,0.55)', fontSize: '13px' }}>
+            3D Book Reader coming soon.
+          </div>
         </motion.div>
       ) : (
         <motion.div

@@ -545,6 +545,18 @@
   letter-spacing: 0.04em;
 }
 
+/* ── Book reader container (Phase 1 stub; 3D canvas fills this in Phase 3) ── */
+
+.reader-book-container {
+  width: 100vw;
+  height: 100vh;
+  background: #0E0608;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
 /* ── Legacy classes retained for EndPage etc. ──────────────────────── */
 
 .cinematic-reader-root {

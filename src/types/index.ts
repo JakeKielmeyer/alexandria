@@ -12,7 +12,7 @@ export type TailDirection =
   | 'bottom-right' | 'bottom' | 'bottom-left'
   | 'left'
 
-export type ReadingMode = 'cinematic' | 'scroll'
+export type ReadingMode = 'cinematic' | 'scroll' | 'book'
 
 export type TransitionStyle = 'stacked' | 'fade' | 'cut'
 
@@ -139,14 +139,20 @@ export interface Layer {
   stroke_color: string | null
   has_stroke: boolean
   stroke_width: number | null
+  // Book mode only: true when this layer's coordinates are relative to the full
+  // 800×600px spread (both pages) rather than the single 400×600px page.
+  is_spread_layer: boolean
   created_at: string
 }
 
 export const PANEL_HEIGHT_PRESETS = {
   WEBTOON: 640,
-  BOOK:    1200,
+  BOOK:    600,
   COMIC:   800,
 } as const
+
+export const BOOK_PAGE_HEIGHT = 600
+export const BOOK_PAGE_WIDTH  = 400
 
 export type PanelHeightPreset = keyof typeof PANEL_HEIGHT_PRESETS
 

@@ -4,7 +4,7 @@ import React, { useRef, useState, useEffect, useCallback } from 'react'
 import { useEditorStore } from '../../store/editorStore'
 import { useToastStore } from '../../store/toastStore'
 import { supabase } from '../../lib/supabase'
-import { PANEL_HEIGHT_PRESETS, CINEMATIC_PANEL_HEIGHT, LAYER_DEFAULTS, TEXT_LAYER_TYPE_DEFAULTS } from '../../types'
+import { PANEL_HEIGHT_PRESETS, CINEMATIC_PANEL_HEIGHT, BOOK_PAGE_HEIGHT, LAYER_DEFAULTS, TEXT_LAYER_TYPE_DEFAULTS } from '../../types'
 import type { PanelHeightPreset, Layer, FillMode, TextLayerType, TailDirection } from '../../types'
 import {
   ACCEPTED_MEDIA, getMediaType,
@@ -600,7 +600,7 @@ export default function EditorCanvas(): React.JSX.Element {
   const {
     panels, activePanelId, story, layers,
     updatePanel, updateLayer, addLayer, setSaveStatus,
-    setActiveLayerId, activeLayerId,
+    setActiveLayerId, setActivePanelId, activeLayerId,
     gridVisible, gridSize, toggleGrid,
     setRailTab,
   } = useEditorStore()
@@ -626,7 +626,9 @@ export default function EditorCanvas(): React.JSX.Element {
   const textTypeMenuRef = useRef<HTMLDivElement>(null)
   const panelFileInputRef = useRef<HTMLInputElement>(null)
   const panelFrameRef = useRef<HTMLDivElement>(null)
+  const spreadRef = useRef<HTMLDivElement>(null)
   const [displayedSize, setDisplayedSize] = useState({ w: CANVAS_WIDTH, h: CANVAS_WIDTH })
+  const [displayedSpreadSize, setDisplayedSpreadSize] = useState({ w: 800, h: 600 })
 
   useEffect(() => {
     const el = panelFrameRef.current
@@ -634,6 +636,17 @@ export default function EditorCanvas(): React.JSX.Element {
     const ro = new ResizeObserver(([entry]) => {
       const { width, height } = entry.contentRect
       if (width > 0 && height > 0) setDisplayedSize({ w: Math.round(width), h: Math.round(height) })
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
+  useEffect(() => {
+    const el = spreadRef.current
+    if (!el) return
+    const ro = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect
+      if (width > 0 && height > 0) setDisplayedSpreadSize({ w: Math.round(width), h: Math.round(height) })
     })
     ro.observe(el)
     return () => ro.disconnect()
@@ -706,7 +719,30 @@ export default function EditorCanvas(): React.JSX.Element {
     .sort((a, b) => a.position - b.position)
 
   const isCinematic = story?.reading_mode === 'cinematic'
-  const panelHeight = isCinematic ? CINEMATIC_PANEL_HEIGHT : (activePanel?.height ?? 240)
+  const isBook = story?.reading_mode === 'book'
+  const panelHeight = isBook ? BOOK_PAGE_HEIGHT : isCinematic ? CINEMATIC_PANEL_HEIGHT : (activePanel?.height ?? 240)
+
+  // Book-mode spread derivation
+  const sortedPanels = isBook ? [...panels].sort((a, b) => a.position - b.position) : panels
+  const activeIdx = isBook ? (activePanelId ? sortedPanels.findIndex((p) => p.id === activePanelId) : 0) : 0
+  const spreadIdx = Math.max(0, Math.floor(activeIdx / 2))
+  const leftPanel = isBook ? (sortedPanels[spreadIdx * 2] ?? null) : null
+  const rightPanel = isBook ? (sortedPanels[spreadIdx * 2 + 1] ?? null) : null
+  const leftPanelLayers = isBook && leftPanel
+    ? layers.filter((l) => l.panel_id === leftPanel.id).sort((a, b) => a.position - b.position)
+    : []
+  const rightPanelLayers = isBook && rightPanel
+    ? layers.filter((l) => l.panel_id === rightPanel.id).sort((a, b) => a.position - b.position)
+    : []
+  // Layers with is_spread_layer=true render in an overlay spanning the full spread (800×600).
+  // Page-local layers render inside their respective page frame (400×600).
+  const spreadOverlayLayers = isBook
+    ? [...leftPanelLayers, ...rightPanelLayers]
+        .filter((l) => l.is_spread_layer)
+        .sort((a, b) => a.position - b.position)
+    : []
+  const leftPageLayers = leftPanelLayers.filter((l) => !l.is_spread_layer)
+  const rightPageLayers = rightPanelLayers.filter((l) => !l.is_spread_layer)
 
   useEffect(() => {
     if (activePanel) setCustomHeight(String(activePanel.height))
@@ -833,6 +869,10 @@ export default function EditorCanvas(): React.JSX.Element {
           <span style={{ fontSize: '11px', color: 'var(--text-faint)' }}>
             Cinematic — 400 × 640px fixed
           </span>
+        ) : isBook ? (
+          <span style={{ fontSize: '11px', color: 'var(--text-faint)' }}>
+            Book — 400 × 600px per page
+          </span>
         ) : (
           <>
             {FORMAT_LABELS.map(({ key, label, disabled }) => {
@@ -869,14 +909,170 @@ export default function EditorCanvas(): React.JSX.Element {
         )}
       </div>
 
-      {/* Canvas body: scrollable viewport (AssetsFolder moved to toolbar) */}
+      {/* Hidden file input — shared by book and single-panel modes */}
+      <input
+        ref={panelFileInputRef}
+        type="file"
+        accept={ACCEPTED_MEDIA}
+        onChange={handlePanelUpload}
+        style={{ display: 'none' }}
+        aria-hidden="true"
+      />
+
+      {/* Canvas body */}
       <div className="editor-canvas-body">
-        {/* Viewport */}
         <div
           className="editor-canvas-viewport"
           onMouseDown={() => { setActiveLayerId(null); setRailTab('layers') }}
         >
-          {!activePanel ? (
+          {isBook ? (
+            !leftPanel ? (
+              <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--text-muted)' }}>
+                Add a spread to start
+              </span>
+            ) : (
+              <div className="editor-canvas-book-spread" ref={spreadRef}>
+                {/* Left page */}
+                <div
+                  ref={panelFrameRef}
+                  className={`editor-canvas-book-page${leftPanel.id === activePanelId ? ' editor-canvas-book-page--active' : ''}`}
+                  onMouseDown={() => setActivePanelId(leftPanel.id)}
+                >
+                  {!leftPanelLayers.some((l) => l.media_type !== 'audio' && l.media_type !== 'text') && leftPanel.id === activePanelId && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); panelFileInputRef.current?.click() }}
+                      disabled={isPanelUploading}
+                      className="canvas-empty-upload"
+                      aria-label="Add media to panel"
+                    >
+                      <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+                        <rect x="2" y="2" width="24" height="24" rx="4" stroke="currentColor" strokeWidth="1.5"/>
+                        <path d="M14 9v10M9 14h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                      </svg>
+                      {isPanelUploading ? 'Uploading…' : 'Add media'}
+                    </button>
+                  )}
+                  {gridVisible && (
+                    <div
+                      aria-hidden="true"
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        pointerEvents: 'none',
+                        zIndex: 1000,
+                        backgroundImage: `
+                          linear-gradient(to right, rgba(220,90,138,0.28) 1px, transparent 1px),
+                          linear-gradient(to bottom, rgba(220,90,138,0.28) 1px, transparent 1px)
+                        `,
+                        backgroundSize: `${gridSize}px ${gridSize}px`,
+                        mixBlendMode: 'screen',
+                      }}
+                    />
+                  )}
+                  {leftPageLayers.map((layer) => (
+                    <LayerCanvas
+                      key={layer.id}
+                      layer={layer}
+                      panelWidth={displayedSize.w}
+                      panelHeight={displayedSize.h}
+                      isActive={layer.id === activeLayerId}
+                      onSelect={() => {
+                        setActivePanelId(leftPanel.id)
+                        setActiveLayerId(layer.id)
+                        setRailTab(layer.media_type === 'text' ? 'properties' : 'layers')
+                      }}
+                      onUpdate={(updates) => handleLayerUpdate(layer.id, updates)}
+                    />
+                  ))}
+                  <div className="editor-canvas-book-page-num">{spreadIdx * 2 + 1}</div>
+                </div>
+
+                {/* Spine */}
+                <div className="editor-canvas-book-spine" />
+
+                {/* Right page */}
+                {rightPanel ? (
+                  <div
+                    className={`editor-canvas-book-page${rightPanel.id === activePanelId ? ' editor-canvas-book-page--active' : ''}`}
+                    onMouseDown={() => setActivePanelId(rightPanel.id)}
+                  >
+                    {!rightPanelLayers.some((l) => l.media_type !== 'audio' && l.media_type !== 'text') && rightPanel.id === activePanelId && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); panelFileInputRef.current?.click() }}
+                        disabled={isPanelUploading}
+                        className="canvas-empty-upload"
+                        aria-label="Add media to panel"
+                      >
+                        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+                          <rect x="2" y="2" width="24" height="24" rx="4" stroke="currentColor" strokeWidth="1.5"/>
+                          <path d="M14 9v10M9 14h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                        </svg>
+                        {isPanelUploading ? 'Uploading…' : 'Add media'}
+                      </button>
+                    )}
+                    {gridVisible && (
+                      <div
+                        aria-hidden="true"
+                        style={{
+                          position: 'absolute',
+                          inset: 0,
+                          pointerEvents: 'none',
+                          zIndex: 1000,
+                          backgroundImage: `
+                            linear-gradient(to right, rgba(220,90,138,0.28) 1px, transparent 1px),
+                            linear-gradient(to bottom, rgba(220,90,138,0.28) 1px, transparent 1px)
+                          `,
+                          backgroundSize: `${gridSize}px ${gridSize}px`,
+                          mixBlendMode: 'screen',
+                        }}
+                      />
+                    )}
+                    {rightPageLayers.map((layer) => (
+                      <LayerCanvas
+                        key={layer.id}
+                        layer={layer}
+                        panelWidth={displayedSize.w}
+                        panelHeight={displayedSize.h}
+                        isActive={layer.id === activeLayerId}
+                        onSelect={() => {
+                          setActivePanelId(rightPanel.id)
+                          setActiveLayerId(layer.id)
+                          setRailTab(layer.media_type === 'text' ? 'properties' : 'layers')
+                        }}
+                        onUpdate={(updates) => handleLayerUpdate(layer.id, updates)}
+                      />
+                    ))}
+                    <div className="editor-canvas-book-page-num">{spreadIdx * 2 + 2}</div>
+                  </div>
+                ) : (
+                  <div className="editor-canvas-book-page editor-canvas-book-page--empty">
+                    <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--text-faint)' }}>—</span>
+                  </div>
+                )}
+
+                {/* Spread overlay — layers with is_spread_layer=true, coords relative to full 800px spread */}
+                {spreadOverlayLayers.length > 0 && (
+                  <div className="editor-canvas-book-spread-overlay">
+                    {spreadOverlayLayers.map((layer) => (
+                      <LayerCanvas
+                        key={layer.id}
+                        layer={layer}
+                        panelWidth={displayedSpreadSize.w}
+                        panelHeight={displayedSpreadSize.h}
+                        isActive={layer.id === activeLayerId}
+                        onSelect={() => {
+                          setActivePanelId(layer.panel_id)
+                          setActiveLayerId(layer.id)
+                          setRailTab(layer.media_type === 'text' ? 'properties' : 'layers')
+                        }}
+                        onUpdate={(updates) => handleLayerUpdate(layer.id, updates)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          ) : !activePanel ? (
             <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--text-muted)' }}>
               Select a panel to edit
             </span>
@@ -911,15 +1107,6 @@ export default function EditorCanvas(): React.JSX.Element {
                     {isPanelUploading ? 'Uploading…' : 'Add media'}
                   </button>
                 )}
-
-                <input
-                  ref={panelFileInputRef}
-                  type="file"
-                  accept={ACCEPTED_MEDIA}
-                  onChange={handlePanelUpload}
-                  style={{ display: 'none' }}
-                  aria-hidden="true"
-                />
 
                 {gridVisible && (
                   <div

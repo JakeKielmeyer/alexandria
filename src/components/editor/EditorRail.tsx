@@ -30,6 +30,7 @@ const RATING_OPTIONS: { value: ContentRating; label: string; desc: string }[] = 
 const READING_MODE_OPTIONS: { value: ReadingMode; label: string; desc: string }[] = [
   { value: 'cinematic', label: 'Cinematic', desc: '400 × 640px, transitions' },
   { value: 'scroll', label: 'Scroll', desc: 'Variable height, continuous' },
+  { value: 'book', label: 'Book', desc: '400 × 600px per page, 3D page turn' },
 ]
 
 const MIN_OPACITY = 0
@@ -94,6 +95,7 @@ export default function EditorRail(): React.JSX.Element {
     .sort((a, b) => a.position - b.position)
 
   const isCinematic = story?.reading_mode === 'cinematic'
+  const isBook = story?.reading_mode === 'book'
 
   // ── Handlers ───────────────────────────────────────────────────────────
 
@@ -508,6 +510,20 @@ export default function EditorRail(): React.JSX.Element {
                     }}
                   />
                 </div>
+
+                {isBook && (
+                  <div className="rail-row" style={{ marginBottom: 8 }}>
+                    <span className="rail-row-label">Spread layer</span>
+                    <button
+                      role="switch"
+                      aria-checked={activeLayer.is_spread_layer}
+                      onClick={() => handleLayerUpdate({ is_spread_layer: !activeLayer.is_spread_layer })}
+                      className={activeLayer.is_spread_layer ? 'rail-toggle rail-toggle--on' : 'rail-toggle'}
+                    >
+                      <span className="rail-toggle-thumb" />
+                    </button>
+                  </div>
+                )}
 
                 {activeLayer.media_type === 'text' && (
                   <>
