@@ -135,6 +135,10 @@ export interface Layer {
   // Interactive SVG bubble tip position. Null = legacy layer (use tail_direction model).
   tip_x_percent: number | null
   tip_y_percent: number | null
+  // Speech bubble border. Null color = design-system default (#DC5A8A). Null width = 1.5px.
+  stroke_color: string | null
+  has_stroke: boolean
+  stroke_width: number | null
   created_at: string
 }
 

@@ -291,7 +291,8 @@ export function SpeechBubble({
       <BubbleBody
         bubble={bubbleState}
         fill={layer.background_color ?? '#ffffff'}
-        stroke="#DC5A8A"
+        stroke={(layer.has_stroke ?? true) ? (layer.stroke_color ?? '#DC5A8A') : 'none'}
+        strokeWidth={layer.stroke_width ?? 1.5}
         isActive={isActive}
         isEditingText={isEditingText}
         textContent={layer.text_content ?? ''}

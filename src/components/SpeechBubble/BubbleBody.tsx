@@ -7,6 +7,7 @@ interface BubbleBodyProps {
   bubble: BubbleState
   fill: string
   stroke: string
+  strokeWidth: number
   isActive: boolean
   isEditingText: boolean
   textContent: string
@@ -42,6 +43,7 @@ export function BubbleBody({
   bubble,
   fill,
   stroke,
+  strokeWidth,
   isActive,
   isEditingText,
   textContent,
@@ -158,8 +160,8 @@ export function BubbleBody({
         rx={bubble.rx}
         ry={bubble.ry}
         fill={fill}
-        stroke={isActive ? stroke : 'none'}
-        strokeWidth={1.5}
+        stroke={stroke}
+        strokeWidth={strokeWidth}
         style={{ cursor: isActive ? (isDragging ? 'grabbing' : 'grab') : 'default' }}
         onPointerDown={handleRectPointerDown}
         onMouseDown={(e: React.MouseEvent) => e.stopPropagation()}

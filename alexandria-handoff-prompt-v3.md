@@ -208,7 +208,7 @@ Panel 3: https://pub-d0a4c9548d2149eb9259096fbf8a9dfe.r2.dev/Panel%203.jpg
 - **stories** — id, user_id, title, slug, content_rating (`mature`|`explicit`), password_hash, is_published, cover_url, font_manifest (JSONB), creator_bio, creator_links (JSONB), reading_mode (`cinematic`|`scroll`, default `cinematic`), created_at, updated_at
 - **chunks** — id, story_id, chapter_number, chapter_title, position, created_at
 - **panels** — id, chunk_id (nullable), story_id, position, height (integer px), created_at
-- **layers** — id, panel_id, story_id, position (z-order), media_type (`image`|`gif`|`video`|`audio`|`text`), media_url, name, x_percent, y_percent, width_percent, height_percent, is_fill (boolean, legacy), fill_mode (`crop`|`stretch`|`custom`), focal_x_percent, focal_y_percent, opacity, autoplay, loop, muted, playback_rate, panel_span_count, text_content, font_family, font_size, text_color, font_weight, text_align, line_height, letter_spacing, text_layer_type (`dialogue`|`narrative`|`caption`|`sound_fx`|`plain`, nullable), background_color (nullable text), has_tail (boolean NOT NULL DEFAULT false), border_radius (nullable integer px), tail_direction (text NOT NULL DEFAULT 'bottom', constrained to 8 compass values), tail_offset_percent (real NOT NULL DEFAULT 50), tail_length (integer NOT NULL DEFAULT 40), tip_x_percent (real nullable), tip_y_percent (real nullable), created_at
+- **layers** — id, panel_id, story_id, position (z-order), media_type (`image`|`gif`|`video`|`audio`|`text`), media_url, name, x_percent, y_percent, width_percent, height_percent, is_fill (boolean, legacy), fill_mode (`crop`|`stretch`|`custom`), focal_x_percent, focal_y_percent, opacity, autoplay, loop, muted, playback_rate, panel_span_count, text_content, font_family, font_size, text_color, font_weight, text_align, line_height, letter_spacing, text_layer_type (`dialogue`|`narrative`|`caption`|`sound_fx`|`plain`, nullable), background_color (nullable text), has_tail (boolean NOT NULL DEFAULT false), border_radius (nullable integer px), tail_direction (text NOT NULL DEFAULT 'bottom', constrained to 8 compass values), tail_offset_percent (real NOT NULL DEFAULT 50), tail_length (integer NOT NULL DEFAULT 40), tip_x_percent (real nullable), tip_y_percent (real nullable), stroke_color (nullable text — null = #DC5A8A default), has_stroke (boolean NOT NULL DEFAULT true), stroke_width (real nullable — null = 1.5px default), created_at
 
 **Removed tables:**
 - `overlays` — deleted.
@@ -364,10 +364,10 @@ Deferred post-MVP. PNG with transparency covers the foreground layering use case
 - Filmstrip drag-to-reorder deferred.
 - Text layers confirmed working end-to-end. Content, font, background, tail all persist and render in Reader.
 - Speech bubble (dialogue + has_tail) fully working: drag to move, drag tail or tip handle to reposition tip, resize handles on corners, double-click to edit text, all properties sync from rail. DB migration applied.
-- Speech bubble stroke border color hardcoded to `#DC5A8A` — not yet user-configurable from the rail.
+- Speech bubble stroke fully configurable: color picker (dialogue-only), has_stroke toggle, stroke_width. Migration file: `supabase-migrations/2026-05-17-stroke-style.sql` — apply in Supabase console before using.
 - Panel height now correctly drives aspect-ratio in both editor and reader scroll mode.
 - feature/text-layers PR has been merged into master via GitHub. Build fixed after resolving 3 post-merge TS errors.
-- feature/speech-bubble PR open (see GitHub). Contains all speech bubble implementation + bug fixes from sessions 3–4.
+- feature/speech-bubble PR merged into master (May 17, 2026).
 
 ---
 
@@ -422,35 +422,29 @@ Deferred post-MVP. PNG with transparency covers the foreground layering use case
 - MAY 7 2026 (session 2) — Reader scroll mode panel height fixed. `PanelScrollItem.ScrollPanelItem` now applies `heightPx` as `aspectRatio: 400/${heightPx}` inline style on card div. `.reader-panel-card--scroll` CSS class overrides hardcoded `height:95vh`. Cinematic mode cards unchanged.
 - MAY 7 2026 (session 2) — Merge conflicts resolved. master had an earlier version of the text layer feature (PR #17, basic text layers only). Our feature/text-layers branch had all the new work. All conflicts resolved keeping HEAD. 3 post-merge TS build errors fixed: removed dead `=== 'text'` comparisons after early return; added 4 new bubble fields to `LAYER_DEFAULTS` type annotation.
 - MAY 7 2026 (session 3) — Interactive SVG speech bubble shipped. Branch: feature/speech-bubble. New `src/components/SpeechBubble/` directory: geometry.ts (ray-intersection math, Bezier tail builder), BubbleBody.tsx (SVG rect drag + foreignObject textarea), BubbleTail.tsx (spring-animated motion.path), TipHandle.tsx (freely draggable circle), index.tsx (state + coordinate conversion). DB migration: `tip_x_percent` and `tip_y_percent` (real, nullable) added to layers table — **migration applied in Supabase console (2026-05-15)**. EditorCanvas: dialogue+has_tail layers now use `<SpeechBubble>` SVG component; all other text types keep div+TailSVG. PanelLayers (reader): dialogue layers with tip_x/y_percent set render Bezier SVG tail; legacy layers fall back to TailSVG polygon. EditorRail: compass grid / offset / length controls hidden for dialogue type (tail is now controlled by drag). useAutoSave: tip_x/y_percent added to layer UPDATE payload.
-- MAY 15 2026 (session 4) — Speech bubble bug fixes: (1) **TipHandle drag** rewritten with useRef + window listeners to fix stale-closure bug where first pointermove batch was dropped. (2) **BubbleTail body** now selectable (inactive click selects bubble) and draggable (drag repositions tip, same as TipHandle circle). (3) **onMouseDown stopPropagation** added to bubble rect, tail path, and tip handle circle — pointer events stopped but separate mouse events still reached the viewport deselect handler. (4) **foreignObject pointerEvents=
-one\** when not editing — foreignObject absorbed hover events hiding the rect's grab cursor; now hover falls through to rect. (5) **SpeechBubble useEffect** now syncs border_radius, x/y/w/h from layer prop — previously EditorRail property changes (radius slider, position input arrows) had no effect until page refresh. (6) **Layer position assignment** fixed in EditorCanvas (×2) and AssetsFolder: changed position: panelLayers.length → position: panelLayers.reduce((max, l) => Math.max(max, l.position), -1) + 1. Using the count caused duplicate positions after any layer deletion, making reorder arrows a no-op.
+- MAY 15 2026 (session 4) — Speech bubble bug fixes: (1) **TipHandle drag** rewritten with useRef + window listeners to fix stale-closure bug where first pointermove batch was dropped. (2) **BubbleTail body** now selectable (inactive click selects bubble) and draggable (drag repositions tip, same as TipHandle circle). (3) **onMouseDown stopPropagation** added to bubble rect, tail path, and tip handle circle — pointer events stopped but separate mouse events still reached the viewport deselect handler. (4) **foreignObject pointerEvents=none** when not editing — foreignObject absorbed hover events hiding the rect's grab cursor; now hover falls through to rect. (5) **SpeechBubble useEffect** now syncs border_radius, x/y/w/h from layer prop — previously EditorRail property changes (radius slider, position input arrows) had no effect until page refresh. (6) **Layer position assignment** fixed in EditorCanvas (×2) and AssetsFolder: changed position: panelLayers.length → position: panelLayers.reduce((max, l) => Math.max(max, l.position), -1) + 1. Using the count caused duplicate positions after any layer deletion, making reorder arrows a no-op.
+- MAY 15 2026 (session 5) — Speech bubble stroke style shipped: `stroke_color` (nullable text), `has_stroke` (bool NOT NULL DEFAULT true), `stroke_width` (real nullable) added to layers table — migration file: `supabase-migrations/2026-05-17-stroke-style.sql`. Wired through types/index.ts, SpeechBubble/BubbleBody.tsx (strokeWidth prop), SpeechBubble/index.tsx (has_stroke/stroke_color/stroke_width from layer), EditorRail.tsx (Border color picker, dialogue-only), useAutoSave.ts, PanelLayers.tsx (reader: Bezier tail SVG stroke + dialogue div CSS border). Stroke renders in both editor and reader. Drag-to-reorder in Layers tab shipped using Framer Motion Reorder.Group (same pattern as filmstrip). Layer name inline editing in Layers tab: click name label to enter edit mode, blur/Enter saves, Escape cancels. Duplicate layer button in Layers tab: direct Supabase insert, new position = max+1, name appended with " copy", new layer set as active.
+- MAY 17 2026 — feature/speech-bubble branch merged to master. All speech bubble work (sessions 3–5) is now in master.
+- MAY 17 2026 — Next feature: **3D Book reader** (React Three Fiber, page-turn/curl rendering, new `book` reading mode). Video upload complete. Comic format deferred.
 
 ---
 
 ## What Comes Next (in order)
 
-### 🔴 HIGHEST PRIORITY — Next session (text modifications + layers system)
+### 🔴 HIGHEST PRIORITY — Next session
 
-The next session is focused on **text layer property UX** and **layer management**. The speech bubble is fully working; these are the remaining rough edges in the text editing experience.
+**3D Book reader** — This is the next major feature. React Three Fiber (already in the stack as a V3 setup item) is the implementation path. Scope to discuss at session start:
+- Book reading mode (`reading_mode: 'book'`) alongside cinematic and scroll
+- 3D page-turn renderer: spine, page curl, paper texture
+- Editor canvas adapted for book page proportions
+- `stories.reading_mode` gains `'book'` as a valid value
 
-**Text modifications:**
-1. **Text property live preview** — when the user changes font, size, weight, color, line-height, or letter-spacing in the rail, the change should be visible immediately in the panel. Currently this works for non-speech-bubble layers but should be verified end-to-end for speech bubbles as well (since border_radius + position sync was just fixed).
-2. **Speech bubble stroke color** — currently hardcoded to `#DC5A8A` (Rose Accent). Should be user-configurable from the rail alongside background color.
-3. **Text alignment inside speech bubble** — confirm all four align values (left/center/right/justify) render correctly inside the foreignObject textarea and display div.
-4. **Narrative / caption / sound_fx layer polish** — verify tail direction, offset, and length controls still work correctly for non-dialogue types after the speech bubble changes.
-
-**Layers system:**
-5. **Drag-to-reorder layers** — add drag handle alongside the existing arrow buttons in the Layers tab (Framer Motion Reorder.Group, same pattern as filmstrip panel reorder). Arrow buttons remain as fallback.
-6. **Layer name editing** — inline editable name in the Layers tab row (currently shows `layer.name ?? layer.media_type`).
-7. **Duplicate layer** — right-click or button in Layers tab to clone a layer with all its properties.
-
-**Other backlog (lower priority):**
-8. **Assets modal** — Requires new story_assets Supabase table (migration first), modal UI showing all story uploads, two upload entry points (canvas toolbar + modal), delete with confirmation (removes from storage + all layers using that URL), re-use from modal to place on any panel.
-9. **Filmstrip drag-to-reorder panels** — deferred, low priority.
-10. **Video upload** — Cloudflare Stream integration.
-11. **Password hash validation**.
-12. **Tier logic**.
-13. **Light mode**.
+**Remaining backlog (after Book):**
+1. **Tier logic** — free tier branding hardcoded on; needs product decision before building
+2. **Filmstrip drag-to-reorder panels** — verify first on live site; platform spec marks it shipped V2
+3. **Light mode** — CSS variable swap; dashboard.css already has light stub
+4. **Creator profile pages** (`/u/[username]` currently 404) — URL namespace reserved, no migration needed
+5. **Chapter/episode management UI** — chunks table exists, editor UI not built
 
 ---
 
@@ -483,20 +477,21 @@ On receiving this prompt, do the following immediately:
 1. Read this entire document and the attached `platform-design-spec.html`
 2. State what you understand the current state of the codebase to be
 3. State what the immediate next task is based on "What Comes Next"
-4. Ask any clarifying questions before writing a single line of code
-5. Do not start work until the user confirms
+4. **Explicitly confirm:** "I will auto-adjust model and effort level for each task per the Model/Effort Guide — haiku for mechanical patches, sonnet for standard UI, opus for complex multi-concern changes. I will not use the same model for everything."
+5. Ask any clarifying questions before writing a single line of code
+6. Do not start work until the user confirms
 
 ---
 
-## Files Needed for a New Chat
+## Files to Review on Arrival
 
-Always attach all of the following when starting a new chat:
+Do not wait for files to be attached. Read them directly from the project using your file tools.
 
-### Documents (always required)
+### Documents (always read first)
 - `alexandria-handoff-prompt-v3.md` — this file
 - `platform-design-spec.html` — product spec
 
-### Source files (attach all)
+### Source files (read all before starting work)
 - `src/types/index.ts`
 - `src/lib/fonts.ts`
 - `src/store/editorStore.ts`
@@ -517,6 +512,11 @@ Always attach all of the following when starting a new chat:
 - `src/components/editor/EditorRail.tsx`
 - `src/components/editor/FontSelect.tsx`
 - `src/components/reader/PanelLayers.tsx`
+- `src/components/SpeechBubble/index.tsx`
+- `src/components/SpeechBubble/BubbleBody.tsx`
+- `src/components/SpeechBubble/BubbleTail.tsx`
+- `src/components/SpeechBubble/TipHandle.tsx`
+- `src/components/SpeechBubble/geometry.ts`
 - `src/styles/editor.css`
 - `src/styles/dashboard.css`
 - `src/styles/auth.css`
