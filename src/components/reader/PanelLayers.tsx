@@ -176,7 +176,12 @@ function TextLayerRenderer({ layer }: { layer: Layer }): React.JSX.Element {
           pointerEvents: 'none',
         }}
       >
-        <path d={d} fill={layer.background_color ?? '#ffffff'} stroke="none" />
+        <path
+          d={d}
+          fill={layer.background_color ?? '#ffffff'}
+          stroke={(layer.has_stroke ?? true) ? (layer.stroke_color ?? '#DC5A8A') : 'none'}
+          strokeWidth={layer.stroke_width ?? 1.5}
+        />
       </svg>
     )
   }
@@ -188,6 +193,9 @@ function TextLayerRenderer({ layer }: { layer: Layer }): React.JSX.Element {
         ...base,
         backgroundColor: layer.background_color ?? undefined,
         borderRadius: layer.border_radius != null ? `${layer.border_radius}px` : undefined,
+        border: (layer.text_layer_type === 'dialogue' && (layer.has_stroke ?? true))
+          ? `${layer.stroke_width ?? 1.5}px solid ${layer.stroke_color ?? '#DC5A8A'}`
+          : undefined,
         overflow: layer.has_tail ? 'visible' : base.overflow,
       }}
     >

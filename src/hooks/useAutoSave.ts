@@ -106,6 +106,9 @@ export function useAutoSave(): void {
             tail_length: layer.tail_length ?? 40,
             tip_x_percent: layer.tip_x_percent ?? null,
             tip_y_percent: layer.tip_y_percent ?? null,
+            stroke_color: layer.stroke_color ?? null,
+            has_stroke: layer.has_stroke ?? true,
+            stroke_width: layer.stroke_width ?? null,
           })
           .eq('id', layer.id)
           .select('id')

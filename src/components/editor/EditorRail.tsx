@@ -1,13 +1,14 @@
 // src/components/editor/EditorRail.tsx
 
 import React, { useRef, useState } from 'react'
+import { Reorder } from 'framer-motion'
 import { useEditorStore } from '../../store/editorStore'
 import { useToastStore } from '../../store/toastStore'
 import { supabase } from '../../lib/supabase'
 import { ACCEPTED_COVER, coverPath, uploadToPanelsBucket, validateMediaFile } from '../../lib/upload'
 import { loadFont } from '../../lib/fonts'
 import FontSelect from './FontSelect'
-import type { ContentRating, FillMode, ReadingMode, TransitionStyle, TextLayerType, TailDirection } from '../../types'
+import type { ContentRating, FillMode, Layer, ReadingMode, TransitionStyle, TextLayerType, TailDirection } from '../../types'
 
 function resolvedFillMode(layer: { fill_mode: FillMode | null; is_fill: boolean }): FillMode {
   if (layer.fill_mode) return layer.fill_mode
@@ -59,7 +60,7 @@ export default function EditorRail(): React.JSX.Element {
   const {
     editorMode, activePanelId, activeLayerId,
     panels, layers, story,
-    updateLayer, updateStory, deleteLayer,
+    updateLayer, updateStory, deleteLayer, addLayer,
     setActiveLayerId, setSaveStatus,
     railTab, setRailTab,
     updateAsset,
@@ -77,6 +78,8 @@ export default function EditorRail(): React.JSX.Element {
   }
   const [copyLabel, setCopyLabel] = useState('Copy')
   const [publishLoading, setPublishLoading] = useState(false)
+  const [editingLayerNameId, setEditingLayerNameId] = useState<string | null>(null)
+  const [editingLayerNameValue, setEditingLayerNameValue] = useState('')
   const [publishConfirm, setPublishConfirm] = useState(false)
   const [coverUploading, setCoverUploading] = useState(false)
   const coverInputRef = useRef<HTMLInputElement>(null)
@@ -196,6 +199,37 @@ export default function EditorRail(): React.JSX.Element {
     setSaveStatus('unsaved')
   }
 
+  const handleLayerReorder = (newOrder: Layer[]): void => {
+    // newOrder is in display order: index 0 = frontmost (highest z-order).
+    // Map to positions: frontmost gets the highest position value.
+    const total = newOrder.length
+    newOrder.forEach((l, i) => {
+      updateLayer(l.id, { position: total - 1 - i })
+    })
+    setSaveStatus('unsaved')
+  }
+
+  const handleDuplicateLayer = async (layer: Layer): Promise<void> => {
+    if (!activePanelId) return
+    const panelLayers = layers.filter((l) => l.panel_id === activePanelId)
+    const newPosition = panelLayers.reduce((max, l) => Math.max(max, l.position), -1) + 1
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { id: _id, created_at: _ca, ...rest } = layer
+    const newLayerData = {
+      ...rest,
+      position: newPosition,
+      name: layer.name ? `${layer.name} copy` : null,
+    }
+    const { data, error } = await supabase.from('layers').insert(newLayerData).select().single()
+    if (error || !data) {
+      pushToast('Failed to duplicate layer', 'error')
+      return
+    }
+    addLayer(data as Layer)
+    setActiveLayerId((data as Layer).id)
+    setSaveStatus('unsaved')
+  }
+
   const handleReadingModeChange = (mode: ReadingMode): void => {
     updateStory({ reading_mode: mode })
     setSaveStatus('unsaved')
@@ -301,25 +335,102 @@ export default function EditorRail(): React.JSX.Element {
             {activePanelLayers.length === 0 ? (
               <div className="rail-empty">No layers on this panel</div>
             ) : (
-              <div className="layers-list">
+              <Reorder.Group
+                as="div"
+                axis="y"
+                className="layers-list"
+                values={[...activePanelLayers].reverse()}
+                onReorder={handleLayerReorder}
+                style={{ listStyle: 'none', margin: 0, padding: 0 }}
+              >
                 {[...activePanelLayers].reverse().map((layer, reversedIndex) => {
                   const index = activePanelLayers.length - 1 - reversedIndex
                   const isActive = layer.id === activeLayerId
+                  const isEditingName = editingLayerNameId === layer.id
                   return (
-                    <div
+                    <Reorder.Item
                       key={layer.id}
+                      value={layer}
+                      as="div"
                       className={isActive ? 'layer-row layer-row--active' : 'layer-row'}
                       onClick={() => setActiveLayerId(layer.id)}
                     >
+                      <div
+                        className="layer-row-drag-handle"
+                        aria-hidden="true"
+                        onPointerDown={(e) => e.stopPropagation()}
+                        style={{ cursor: 'grab', padding: '0 3px 0 0', opacity: 0.35, flexShrink: 0 }}
+                      >
+                        <svg width="7" height="11" viewBox="0 0 7 11" fill="none">
+                          <circle cx="2" cy="1.5" r="1" fill="currentColor"/>
+                          <circle cx="5" cy="1.5" r="1" fill="currentColor"/>
+                          <circle cx="2" cy="5.5" r="1" fill="currentColor"/>
+                          <circle cx="5" cy="5.5" r="1" fill="currentColor"/>
+                          <circle cx="2" cy="9.5" r="1" fill="currentColor"/>
+                          <circle cx="5" cy="9.5" r="1" fill="currentColor"/>
+                        </svg>
+                      </div>
                       <div className="layer-row-icon" aria-hidden="true">
                         <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
                           <rect x="1" y="1" width="8" height="8" rx="1" stroke="currentColor" strokeWidth="1"/>
                         </svg>
                       </div>
-                      <span className="layer-row-label">{layer.name?.trim() || layer.media_type}</span>
+                      {isEditingName ? (
+                        <input
+                          // eslint-disable-next-line jsx-a11y/no-autofocus
+                          autoFocus
+                          value={editingLayerNameValue}
+                          placeholder={layer.media_type}
+                          onClick={(e) => e.stopPropagation()}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onChange={(e) => setEditingLayerNameValue(e.target.value)}
+                          onBlur={() => {
+                            const trimmed = editingLayerNameValue.trim()
+                            updateLayer(layer.id, { name: trimmed || null })
+                            setSaveStatus('unsaved')
+                            setEditingLayerNameId(null)
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              const trimmed = editingLayerNameValue.trim()
+                              updateLayer(layer.id, { name: trimmed || null })
+                              setSaveStatus('unsaved')
+                              setEditingLayerNameId(null)
+                            }
+                            if (e.key === 'Escape') {
+                              setEditingLayerNameId(null)
+                            }
+                          }}
+                          style={{
+                            flex: 1,
+                            fontSize: '11px',
+                            padding: '2px 4px',
+                            background: 'rgba(0,0,0,0.3)',
+                            color: 'rgba(245,238,232,0.9)',
+                            border: '1px solid rgba(220,90,138,0.5)',
+                            borderRadius: '3px',
+                            minWidth: 0,
+                          }}
+                        />
+                      ) : (
+                        <span
+                          className="layer-row-label"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setActiveLayerId(layer.id)
+                            setEditingLayerNameId(layer.id)
+                            setEditingLayerNameValue(layer.name ?? '')
+                          }}
+                          title="Click to rename"
+                          style={{ cursor: 'text' }}
+                        >
+                          {layer.name?.trim() || layer.media_type}
+                        </span>
+                      )}
                       <div className="layer-row-actions">
                         <button
                           onClick={(e) => { e.stopPropagation(); handleMoveLayer(layer.id, 'up') }}
+                          onPointerDown={(e) => e.stopPropagation()}
                           disabled={index === activePanelLayers.length - 1}
                           className="layer-action-btn"
                           aria-label="Move layer up (forward)"
@@ -330,6 +441,7 @@ export default function EditorRail(): React.JSX.Element {
                         </button>
                         <button
                           onClick={(e) => { e.stopPropagation(); handleMoveLayer(layer.id, 'down') }}
+                          onPointerDown={(e) => e.stopPropagation()}
                           disabled={index === 0}
                           className="layer-action-btn"
                           aria-label="Move layer down (backward)"
@@ -339,7 +451,20 @@ export default function EditorRail(): React.JSX.Element {
                           </svg>
                         </button>
                         <button
+                          onClick={(e) => { e.stopPropagation(); void handleDuplicateLayer(layer) }}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          className="layer-action-btn"
+                          aria-label="Duplicate layer"
+                          title="Duplicate"
+                        >
+                          <svg width="8" height="8" viewBox="0 0 8 8" fill="none" aria-hidden="true">
+                            <rect x="0.5" y="2.5" width="4.5" height="4.5" rx="0.7" stroke="currentColor" strokeWidth="1"/>
+                            <rect x="3" y="0.5" width="4.5" height="4.5" rx="0.7" stroke="currentColor" strokeWidth="1"/>
+                          </svg>
+                        </button>
+                        <button
                           onClick={(e) => { e.stopPropagation(); void handleDeleteLayer(layer.id) }}
+                          onPointerDown={(e) => e.stopPropagation()}
                           className="layer-action-btn layer-action-btn--delete"
                           aria-label="Delete layer"
                         >
@@ -348,10 +473,10 @@ export default function EditorRail(): React.JSX.Element {
                           </svg>
                         </button>
                       </div>
-                    </div>
+                    </Reorder.Item>
                   )
                 })}
-              </div>
+              </Reorder.Group>
             )}
           </div>
         ) : (
@@ -595,6 +720,87 @@ export default function EditorRail(): React.JSX.Element {
                           <span className="rail-input-unit">px</span>
                         </div>
                       </div>
+                    )}
+
+                    {/* Border — dialogue type only */}
+                    {activeLayer.text_layer_type === 'dialogue' && (
+                      <>
+                        <SectionLabel>Border</SectionLabel>
+                        <div className="rail-row" style={{ marginBottom: 6 }}>
+                          <span className="rail-row-label">Show border</span>
+                          <button
+                            role="switch"
+                            aria-checked={activeLayer.has_stroke ?? true}
+                            onClick={() => handleLayerUpdate({ has_stroke: !(activeLayer.has_stroke ?? true) })}
+                            className={(activeLayer.has_stroke ?? true) ? 'rail-toggle rail-toggle--on' : 'rail-toggle'}
+                          >
+                            <span className="rail-toggle-thumb" />
+                          </button>
+                        </div>
+                        {(activeLayer.has_stroke ?? true) && (
+                          <>
+                            <div className="rail-row" style={{ marginBottom: 6 }}>
+                              <span className="rail-row-label">Color</span>
+                              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                                <input
+                                  type="color"
+                                  value={activeLayer.stroke_color ?? '#DC5A8A'}
+                                  onChange={(e) => handleLayerUpdate({ stroke_color: e.target.value })}
+                                  aria-label="Border color"
+                                  style={{ width: '28px', height: '24px', padding: '1px', border: '1px solid rgba(245,238,232,0.15)', borderRadius: '3px', background: 'none', cursor: 'pointer' }}
+                                />
+                                <input
+                                  type="text"
+                                  value={activeLayer.stroke_color ?? ''}
+                                  placeholder="#DC5A8A"
+                                  onChange={(e) => {
+                                    const v = e.target.value
+                                    if (v === '') { handleLayerUpdate({ stroke_color: null }); return }
+                                    handleLayerUpdate({ stroke_color: v })
+                                  }}
+                                  aria-label="Border color hex"
+                                  style={{
+                                    width: '90px',
+                                    padding: '4px 6px',
+                                    fontSize: '12px',
+                                    background: 'rgba(0,0,0,0.25)',
+                                    color: 'rgba(245,238,232,0.9)',
+                                    border: '1px solid rgba(245,238,232,0.15)',
+                                    borderRadius: '4px',
+                                  }}
+                                />
+                                {activeLayer.stroke_color && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleLayerUpdate({ stroke_color: null })}
+                                    aria-label="Reset color to default"
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(245,238,232,0.4)', fontSize: '14px', lineHeight: 1, padding: '2px' }}
+                                  >×</button>
+                                )}
+                              </div>
+                            </div>
+                            <div className="rail-row" style={{ marginBottom: 8 }}>
+                              <span className="rail-row-label">Thickness</span>
+                              <div className="rail-input-group">
+                                <input
+                                  type="number"
+                                  value={activeLayer.stroke_width ?? 1.5}
+                                  min={0.5}
+                                  max={12}
+                                  step={0.5}
+                                  onChange={(e) => {
+                                    const v = parseFloat(e.target.value)
+                                    handleLayerUpdate({ stroke_width: isNaN(v) ? null : v })
+                                  }}
+                                  className="rail-number-input"
+                                  aria-label="Border thickness in pixels"
+                                />
+                                <span className="rail-input-unit">px</span>
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </>
                     )}
 
                     {/* Speech bubble tail — show for dialogue type or when tail is already on */}
