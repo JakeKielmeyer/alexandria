@@ -65,7 +65,6 @@ function ScrollReader({ story, panels, previewMode, onReachEnd }: ScrollReaderPr
   const [gridOpen, setGridOpen] = useState(false)
 
   const isCinematic = story.reading_mode === 'cinematic'
-  const isBook = story.reading_mode === 'book'
   const panelMode = isCinematic ? 'cinematic' : 'scroll'
   const transitionStyle = (story.transition_style ?? 'stacked') as 'stacked' | 'fade'
 
