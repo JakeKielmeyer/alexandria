@@ -1,6 +1,6 @@
-# Alexandria — Session Prompt: 3D Book Reader (Phase 3)
+# Alexandria — Session Prompt: 3D Book Reader (Phase 4)
 
-### New Chat Initialization · Phase 3: 3D Reader
+### New Chat Initialization · Phase 4: Book Reader Polish
 
 ---
 
@@ -10,9 +10,7 @@
 
 ## What We're Building This Session
 
-The **3D Book reader** — Phase 3. Phases 1 and 2 are complete (see below). This session builds the actual reader experience: a React Three Fiber scene with a 3D book, page-turn animation, and HTML-overlaid layers.
-
-Comic format is explicitly **out of scope**. Book format only.
+Polish and fix the **3D Book Reader** built in Phase 3. The reader renders but has known issues to address (see Phase 4 work below). Comic format is explicitly **out of scope**. Book format only.
 
 ---
 
@@ -21,7 +19,7 @@ Comic format is explicitly **out of scope**. Book format only.
 ### Phase 1 — Foundation (complete, committed)
 - `ReadingMode` includes `'book'`; `Layer` has `is_spread_layer: boolean`
 - `EditorRail`: Book as third reading mode; transition controls hidden for book
-- `Reader.tsx`: `isBook` branch stub — renders a placeholder `<div>` for now
+- `Reader.tsx`: `isBook` correctly defined and wired
 - DB: `reading_mode` constraint updated, `is_spread_layer` and stroke-style columns added
 - R3F installed: `@react-three/fiber`, `three`, `@react-three/drei`, `@types/three`
 
@@ -35,6 +33,32 @@ Comic format is explicitly **out of scope**. Book format only.
   - Coordinate space: 800×600 for spread layers, 400×600 for page-local layers
   - Drag math uses `displayedSpreadSize` (measured via `spreadRef` ResizeObserver)
 
+### Phase 3 — 3D Book Reader (complete, committed — Session 7)
+
+All files created and pushed:
+
+```
+src/components/BookReader/index.tsx       — Canvas, keyboard nav, Navbar
+src/components/BookReader/BookScene.tsx   — camera, lights, group scale, state dispatch
+src/components/BookReader/BookCover.tsx   — textured plane with Suspense fallback
+src/components/BookReader/BookSpread.tsx  — left+right BookPage + spine + spread-layer Html
+src/components/BookReader/BookPage.tsx    — PlaneGeometry mesh + <Html transform> layer overlay
+src/components/BookReader/usePageTurn.ts  — state machine (0=cover, 1..N=spreads, onEnd)
+```
+
+**Architecture as built:**
+- Orthographic camera, `zoom: 1` (1 world unit = 1 CSS pixel)
+- Pages: `PlaneGeometry(400, 600)` world units. Left page center `(-200, 0, 0)`, right `(200, 0, 0)`
+- Group scale = `min(viewportH/600, viewportW/800) * 0.93` computed in `BookScene` via `useThree`
+- `<Html transform>` containers: 400×600px (page-local), 800×600px (spread layers)
+- Framer Motion `initial={{ opacity: 0 }} animate={{ opacity: 1 }}` inside Html for fade-in
+- `key={spreadIndex}` on `BookSpread` forces fresh remount on each turn
+- Navbar shown in reader; hidden in editor preview mode
+- `.reader-book-container { position: fixed; inset: 0 }` in reader.css
+
+**Known issue entering Phase 4:**
+- Layer images appear very small on the page (not filling the page area). The `<Html transform>` + group scale interaction is not producing correct pixel mapping — layer content renders at native CSS pixel size before the group scale is applied, so it appears tiny on the mesh. Needs investigation and fix.
+
 ---
 
 ## Architecture Decisions (locked)
@@ -43,72 +67,40 @@ Comic format is explicitly **out of scope**. Book format only.
 - **Two-page spread**: reader always shows left + right page together as an open book.
 - **Page turn trigger**: click to advance. No drag-to-turn for MVP.
 - **Pages = panels**: one panel per page. Spread N has left = `sortedPanels[N*2]`, right = `sortedPanels[N*2+1]`.
-- **Cover**: book opens from a 3D cover (spine visible, front cover shown). Cover uses `story.cover_url`.
+- **Cover**: book opens from a 3D cover. Cover uses `story.cover_url`.
 - **Layers rendered via R3F Html overlay**: no texture baking. `<Html>` from `@react-three/drei` renders each page's layers as DOM inside the 3D scene.
 
 ---
 
-## Phase 3 Build Plan
+## Phase 4 Work
 
-### Files to create
+**Primary task: Fix layer content scaling inside `<Html transform>`.**
 
-```
-src/components/BookReader/index.tsx         — entry point, wraps Canvas
-src/components/BookReader/BookScene.tsx     — R3F Canvas, camera, lights, state
-src/components/BookReader/BookCover.tsx     — 3D closed book + open animation
-src/components/BookReader/BookSpread.tsx    — two-page spread with Html overlays
-src/components/BookReader/BookPage.tsx      — page geometry (flat for MVP; curl deferred)
-src/components/BookReader/usePageTurn.ts   — state machine (cover → spread N → end)
-```
+The core issue: `<Html transform>` applies the camera's `viewProjectionMatrix * objectWorldMatrix` as a CSS `matrix3d`. With an orthographic camera at zoom=1 and a parent group scaled by `s`, the Html element's CSS transform includes the scale `s`. A 400px-wide HTML div then appears as `400 * s` pixels wide on screen — but the group scale is already making the mesh appear at the correct viewport size. So the layers render much too small (at their raw CSS px size before the scale factor inflates the mesh).
 
-### Wire-up in Reader.tsx
+**Fix approaches to consider (discuss before implementing):**
+1. Counter-scale the Html content by `1/s` so it fills the 400px container on-screen
+2. Drop `<Html transform>` and use regular `<Html>` (non-transform), positioning the DOM containers manually over the canvas using projected 3D coordinates
+3. Switch from PlaneGeometry(400,600) + group scale to PlaneGeometry(1,1.5) + camera-zoom approach, and use `distanceFactor` on Html to match the mesh size
+4. Use `scale={1/400}` on the Html element with a 1px×1.5px world-unit container and let the group scale handle the rest
 
-```tsx
-// src/pages/Reader.tsx — already has isBook flag
-// Replace the placeholder <div> with:
-import BookReader from '../components/BookReader'
-// ...
-{isBook && <BookReader story={story} panels={sortedPanels} layers={layers} />}
-```
-
-### Camera and scene setup
-
-- Orthographic camera looking straight at the spread (no perspective distortion for MVP)
-- Or perspective with a shallow FOV (45°) positioned ~2 units back — more bookish feel
-- Scene background: `var(--color-void)` (#0E0608)
-- Ambient light + directional from above-left for soft page shadow
-
-### Page geometry
-
-- Each page: a `<mesh>` with `PlaneGeometry(1, 1.5)` (2:3 ratio), scaled to fill viewport
-- Texture approach: **R3F `<Html>` overlay** (not texture baking — simpler, layers stay live DOM)
-- `<Html transform>` from drei wraps each page's layer stack
-
-### Page turn (MVP — click to turn, no curl)
-
-- State: `spreadIndex` (0 = cover, 1 = spread 1, 2 = spread 2, …, N+1 = end page)
-- Transition: Framer Motion opacity crossfade between spreads, OR a simple 3D rotation (Y-axis flip of the left page mesh, 0° → -180°, spring physics)
-- For MVP: opacity fade is safest. The 3D flip can be layered on top.
-- `usePageTurn` hook manages state, exposes `{ spreadIndex, goNext, goPrev, isAnimating }`
-
-### Keyboard / click navigation
-
-- Arrow keys (left/right), spacebar → `goNext`
-- Click right half of spread → `goNext`, click left half → `goPrev`
-- Escape → back to story list (existing reader escape behaviour)
+**Navigation (working as built):**
+- Arrow keys / Space → next; Left arrow → prev
+- Click right half → next, left half → prev
+- Navbar prev/next buttons
 
 ---
 
 ## Key Files to Read Before Starting
 
 ```
-src/pages/Reader.tsx                     — wire-up point; already has isBook stub
-src/types/index.ts                       — Panel, Layer, Story, BOOK_PAGE_HEIGHT
-src/hooks/useReaderData.ts               — how panels + layers are fetched
-src/styles/reader.css                    — reader layout tokens; add book tokens here
+src/components/BookReader/BookScene.tsx   — group scale logic
+src/components/BookReader/BookPage.tsx    — Html transform setup
+src/components/BookReader/BookSpread.tsx  — spread layer Html
+src/components/BookReader/index.tsx       — Canvas camera setup
+src/pages/Reader.tsx                      — wire-up, isBook, panels
+src/types/index.ts                        — BOOK_PAGE_WIDTH, BOOK_PAGE_HEIGHT
 ```
-
-Also read the existing cinematic reader components to understand the layer rendering pattern that must be replicated inside the R3F Html overlay.
 
 ---
 
@@ -119,8 +111,6 @@ Also read the existing cinematic reader components to understand the layer rende
 | `claude-haiku-4-5` | Mechanical additions, null-check patches, simple reads |
 | `claude-sonnet-4-6` | Standard UI, CSS, route wiring, Html overlay layer rendering |
 | `claude-opus-4-7` | R3F scene setup, camera math, 3D page-turn animation, spring physics, any feature with 3+ interacting concerns |
-
-**This session is heavy on `claude-opus-4-7`** — R3F scene, camera, page geometry, and animation state.
 
 ---
 
@@ -141,8 +131,7 @@ Also read the existing cinematic reader components to understand the layer rende
 ## On Arrival
 
 1. Read this prompt in full.
-2. Read `src/pages/Reader.tsx` and the cinematic reader components to understand the existing layer render pattern.
-3. Read `src/types/index.ts` for the data model.
-4. State your understanding of what's built and what we're adding.
-5. Confirm: "I will auto-adjust model and effort level per the guide."
-6. Propose the Phase 3 build order and ask for confirmation before writing any code.
+2. Read all BookReader component files.
+3. State your understanding of the known scaling bug and the fix options.
+4. Confirm: "I will auto-adjust model and effort level per the guide."
+5. Propose your preferred fix approach and ask for confirmation before writing any code.
