@@ -1,3 +1,13 @@
+/* ── Book Reader container ────────────────────────────────────────────────
+   Fills the viewport so the R3F Canvas has a fixed reference frame.
+   The BookReader component inside uses position:absolute to fill this div.
+*/
+.reader-book-container {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+}
+
 /* ── Reader Stage ─────────────────────────────────────────────────────────
    Full-viewport dark stage. Book-page cards float in this stage; neighbours
    are one full viewport apart so only the active card is visible at rest.

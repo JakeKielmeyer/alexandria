@@ -19,6 +19,7 @@ import Interstitial from './Interstitial'
 import Cover from './Cover'
 import Navbar from '../components/Navbar'
 import GateShell from '../components/GateShell'
+import BookReader from '../components/BookReader'
 import PanelScrollItem from '../components/reader/PanelScrollItem'
 import PanelLayers from '../components/reader/PanelLayers'
 import StoryAudio, { type SpanAudioEntry } from '../components/reader/StoryAudio'
@@ -476,6 +477,8 @@ export default function Reader(): React.JSX.Element {
 
   // ── Cover / Empty / Reader ─────────────────────────────────────────────
 
+  const isBook = story.reading_mode === 'book'
+
   return (
     <AnimatePresence mode="wait">
       {screen === 'cover' ? (
@@ -511,10 +514,12 @@ export default function Reader(): React.JSX.Element {
           animate={{ opacity: 1, transition: { duration: 0.35, ease: 'easeOut' } }}
           className="reader-book-container"
         >
-          {/* BookReader — Phase 3 */}
-          <div style={{ color: 'rgba(245,238,232,0.55)', fontSize: '13px' }}>
-            3D Book Reader coming soon.
-          </div>
+          <BookReader
+            story={story}
+            panels={panels}
+            previewMode={previewMode}
+            onReachEnd={handleReachEnd}
+          />
         </motion.div>
       ) : (
         <motion.div
