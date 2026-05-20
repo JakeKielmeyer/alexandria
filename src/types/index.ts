@@ -14,6 +14,8 @@ export type TailDirection =
 
 export type ReadingMode = 'cinematic' | 'scroll' | 'book'
 
+export type ReadingDirection = 'ltr' | 'rtl'
+
 export type TransitionStyle = 'stacked' | 'fade' | 'cut'
 
 export interface User {
@@ -32,6 +34,7 @@ export interface Story {
   slug: string
   content_rating: ContentRating
   reading_mode: ReadingMode
+  reading_direction: ReadingDirection
   password_hash: string | null
   is_published: boolean
   cover_url: string | null
@@ -142,6 +145,12 @@ export interface Layer {
   // Book mode only: true when this layer's coordinates are relative to the full
   // 1592×879px spread (both pages) rather than the single 796×879px page.
   is_spread_layer: boolean
+  // Mobile overrides. Null = cascade from desktop value. mobile_hidden = true hides the layer on mobile.
+  mobile_hidden:         boolean
+  mobile_x_percent:      number | null
+  mobile_y_percent:      number | null
+  mobile_width_percent:  number | null
+  mobile_height_percent: number | null
   created_at: string
 }
 

@@ -34,6 +34,7 @@ export function useAutoSave(): void {
         title: story.title,
         content_rating: story.content_rating,
         reading_mode: story.reading_mode,
+        reading_direction: story.reading_direction,
         creator_bio: story.creator_bio,
         creator_links: story.creator_links,
         updated_at: new Date().toISOString(),
@@ -109,6 +110,11 @@ export function useAutoSave(): void {
             stroke_color: layer.stroke_color ?? null,
             has_stroke: layer.has_stroke ?? true,
             stroke_width: layer.stroke_width ?? null,
+            mobile_hidden: layer.mobile_hidden ?? false,
+            mobile_x_percent: layer.mobile_x_percent ?? null,
+            mobile_y_percent: layer.mobile_y_percent ?? null,
+            mobile_width_percent: layer.mobile_width_percent ?? null,
+            mobile_height_percent: layer.mobile_height_percent ?? null,
           })
           .eq('id', layer.id)
           .select('id')

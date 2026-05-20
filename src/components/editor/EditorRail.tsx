@@ -8,7 +8,7 @@ import { supabase } from '../../lib/supabase'
 import { ACCEPTED_COVER, coverPath, uploadToPanelsBucket, validateMediaFile } from '../../lib/upload'
 import { loadFont } from '../../lib/fonts'
 import FontSelect from './FontSelect'
-import type { ContentRating, FillMode, Layer, ReadingMode, TransitionStyle, TextLayerType, TailDirection } from '../../types'
+import type { ContentRating, FillMode, Layer, ReadingDirection, ReadingMode, TransitionStyle, TextLayerType, TailDirection } from '../../types'
 
 function resolvedFillMode(layer: { fill_mode: FillMode | null; is_fill: boolean }): FillMode {
   if (layer.fill_mode) return layer.fill_mode
@@ -31,6 +31,11 @@ const READING_MODE_OPTIONS: { value: ReadingMode; label: string; desc: string }[
   { value: 'cinematic', label: 'Cinematic', desc: '400 × 640px, transitions' },
   { value: 'scroll', label: 'Scroll', desc: 'Variable height, continuous' },
   { value: 'book', label: 'Book', desc: '400 × 600px per page, 3D page turn' },
+]
+
+const READING_DIRECTION_OPTIONS: { value: ReadingDirection; label: string; desc: string }[] = [
+  { value: 'ltr', label: 'LTR', desc: 'Left-to-right — western comics' },
+  { value: 'rtl', label: 'RTL', desc: 'Right-to-left — manga' },
 ]
 
 const MIN_OPACITY = 0
@@ -1277,6 +1282,28 @@ export default function EditorRail(): React.JSX.Element {
             )
           })}
         </div>
+
+        {isBook && (
+          <>
+            <SectionLabel>Reading Direction</SectionLabel>
+            <div className="rail-option-list">
+              {READING_DIRECTION_OPTIONS.map(({ value, label, desc }) => {
+                const isSelected = story?.reading_direction === value
+                return (
+                  <button
+                    key={value}
+                    onClick={() => { updateStory({ reading_direction: value }); setSaveStatus('unsaved') }}
+                    className={isSelected ? 'rail-option-btn rail-option-btn--active' : 'rail-option-btn'}
+                    aria-pressed={isSelected}
+                  >
+                    <div className="rail-option-label">{label}</div>
+                    <div className="rail-option-desc">{desc}</div>
+                  </button>
+                )
+              })}
+            </div>
+          </>
+        )}
 
         {isCinematic && (
           <>

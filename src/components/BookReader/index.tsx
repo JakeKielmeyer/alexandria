@@ -49,8 +49,11 @@ export default function BookReader({
     return () => ro.disconnect()
   }, [])
 
-  const leftPanel  = spreadIndex > 0 ? (panels[(spreadIndex - 1) * 2]     ?? null) : null
-  const rightPanel = spreadIndex > 0 ? (panels[(spreadIndex - 1) * 2 + 1] ?? null) : null
+  const isRTL = story.reading_direction === 'rtl'
+  const evenPanel = spreadIndex > 0 ? (panels[(spreadIndex - 1) * 2]     ?? null) : null
+  const oddPanel  = spreadIndex > 0 ? (panels[(spreadIndex - 1) * 2 + 1] ?? null) : null
+  const leftPanel  = isRTL ? oddPanel  : evenPanel
+  const rightPanel = isRTL ? evenPanel : oddPanel
 
   const spreadLayers: Layer[] = [
     ...(leftPanel?.layers.filter(l => l.is_spread_layer) ?? []),

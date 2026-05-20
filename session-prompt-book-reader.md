@@ -6,10 +6,11 @@
 
 ## IMPORTANT — READ BEFORE DOING ANYTHING
 
-1. Read this entire prompt.
-2. Read the plan file at `C:\Users\jakeK\.claude\plans\handoff-book-snug-stearns.md` in full.
-3. Ask any clarifying questions you have before starting any work.
-4. Do not write a single line of code until Jake tells you to proceed.
+1. Run `git pull` and confirm you are on the latest commit on `master`. Show the output of `git log --oneline -5` so Jake can verify.
+2. Read this entire prompt.
+3. Read the plan file at `C:\Users\jakeK\.claude\plans\handoff-book-snug-stearns.md` in full.
+4. Ask any clarifying questions you have before starting any work.
+5. Do not write a single line of code until Jake tells you to proceed.
 
 ---
 
