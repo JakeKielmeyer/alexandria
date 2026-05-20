@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c ' *)",
+      "Bash(git commit -m ' *)",
+      "Bash(gh pr create --title 'Add interactive speech bubble component' --body ' *)",
+      "Bash(gh pr *)",
+      "Bash(cd \"c:\\\\Users\\\\jakeK\\\\Documents\\\\Alexandria\\\\alexandria\" && git show HEAD:src/types/index.ts > /tmp/types_ours.ts && git show origin/master:src/types/index.ts > /tmp/types_theirs.ts && diff /tmp/types_ours.ts /tmp/types_theirs.ts | head -30)",
+      "Read(//tmp/**)",
+      "Bash(git pull *)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\jakeK\\.claude\\projects\\c--Users-jakeK-Documents-Alexandria-alexandria\\memory"
+    ]
+  }
+}
