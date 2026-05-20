@@ -140,19 +140,20 @@ export interface Layer {
   has_stroke: boolean
   stroke_width: number | null
   // Book mode only: true when this layer's coordinates are relative to the full
-  // 800×600px spread (both pages) rather than the single 400×600px page.
+  // 1592×879px spread (both pages) rather than the single 796×879px page.
   is_spread_layer: boolean
   created_at: string
 }
 
 export const PANEL_HEIGHT_PRESETS = {
   WEBTOON: 640,
-  BOOK:    600,
+  BOOK:    879,
   COMIC:   800,
 } as const
 
-export const BOOK_PAGE_HEIGHT = 600
-export const BOOK_PAGE_WIDTH  = 400
+export const BOOK_PAGE_HEIGHT  = 879
+export const BOOK_PAGE_WIDTH   = 796
+export const BOOK_SPREAD_WIDTH = 1592
 
 export type PanelHeightPreset = keyof typeof PANEL_HEIGHT_PRESETS
 

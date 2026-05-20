@@ -628,7 +628,7 @@ export default function EditorCanvas(): React.JSX.Element {
   const panelFrameRef = useRef<HTMLDivElement>(null)
   const spreadRef = useRef<HTMLDivElement>(null)
   const [displayedSize, setDisplayedSize] = useState({ w: CANVAS_WIDTH, h: CANVAS_WIDTH })
-  const [displayedSpreadSize, setDisplayedSpreadSize] = useState({ w: 800, h: 600 })
+  const [displayedSpreadSize, setDisplayedSpreadSize] = useState({ w: 1592, h: 879 })
 
   useEffect(() => {
     const el = panelFrameRef.current
@@ -734,8 +734,8 @@ export default function EditorCanvas(): React.JSX.Element {
   const rightPanelLayers = isBook && rightPanel
     ? layers.filter((l) => l.panel_id === rightPanel.id).sort((a, b) => a.position - b.position)
     : []
-  // Layers with is_spread_layer=true render in an overlay spanning the full spread (800×600).
-  // Page-local layers render inside their respective page frame (400×600).
+  // Layers with is_spread_layer=true render in an overlay spanning the full spread (1592×879).
+  // Page-local layers render inside their respective page frame (796×879).
   const spreadOverlayLayers = isBook
     ? [...leftPanelLayers, ...rightPanelLayers]
         .filter((l) => l.is_spread_layer)
@@ -871,7 +871,7 @@ export default function EditorCanvas(): React.JSX.Element {
           </span>
         ) : isBook ? (
           <span style={{ fontSize: '11px', color: 'var(--text-faint)' }}>
-            Book — 400 × 600px per page
+            Book — 796 × 879px per page
           </span>
         ) : (
           <>

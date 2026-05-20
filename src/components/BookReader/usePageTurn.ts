@@ -7,15 +7,14 @@ export interface PageTurnState {
   goPrev: () => void
 }
 
-export function usePageTurn(totalSpreads: number, onEnd: () => void): PageTurnState {
-  const [spreadIndex, setSpreadIndex] = useState(0)
+export function usePageTurn(totalSpreads: number, onEnd: () => void, startAt = 1): PageTurnState {
+  const [spreadIndex, setSpreadIndex] = useState(startAt)
   const onEndRef = useRef(onEnd)
   onEndRef.current = onEnd
 
   const goNext = useCallback(() => {
     setSpreadIndex(prev => {
       if (prev >= totalSpreads) {
-        // Schedule outside the updater to avoid side-effect-in-reducer warnings
         Promise.resolve().then(() => onEndRef.current())
         return prev
       }
@@ -24,8 +23,8 @@ export function usePageTurn(totalSpreads: number, onEnd: () => void): PageTurnSt
   }, [totalSpreads])
 
   const goPrev = useCallback(() => {
-    setSpreadIndex(prev => Math.max(0, prev - 1))
-  }, [])
+    setSpreadIndex(prev => Math.max(startAt, prev - 1))
+  }, [startAt])
 
   return { spreadIndex, totalSpreads, goNext, goPrev }
 }

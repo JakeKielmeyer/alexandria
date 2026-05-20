@@ -10,7 +10,7 @@ function CoverWithTexture({ coverUrl, onClick }: { coverUrl: string; onClick: ()
   const texture = useTexture(coverUrl)
   return (
     <mesh onClick={onClick}>
-      <planeGeometry args={[400, 600]} />
+      <planeGeometry args={[796, 879]} />
       <meshStandardMaterial map={texture} />
     </mesh>
   )
@@ -19,7 +19,7 @@ function CoverWithTexture({ coverUrl, onClick }: { coverUrl: string; onClick: ()
 function CoverPlain({ onClick }: { onClick: () => void }): React.JSX.Element {
   return (
     <mesh onClick={onClick}>
-      <planeGeometry args={[400, 600]} />
+      <planeGeometry args={[796, 879]} />
       <meshStandardMaterial color="#2a1a1f" />
     </mesh>
   )
