@@ -120,9 +120,9 @@ body{
     <svg width="14" height="28" viewBox="0 0 20 40" fill="none"><rect x="1" y="27" width="18" height="13" rx="1" fill="#C93060"/><rect x="3.5" y="17" width="13" height="11" rx="1" fill="#DC5A8A"/><rect x="6" y="9" width="8" height="9" rx="1" fill="#E87FAA"/><rect x="8" y="3" width="4" height="7" rx="1" fill="#F5EEE8" opacity="0.9"/><polygon points="10,0 8.5,3 11.5,3" fill="#F5EEE8"/><circle cx="10" cy="0.8" r="1.2" fill="#DC5A8A"/></svg>
     <span class="logo-text">Alexandria</span>
   </div>
-  <div class="doc-eyebrow">Platform Design Specification · V2 MVP Build · Cinematic + Scroll Webtoon</div>
+  <div class="doc-eyebrow">Platform Design Specification · V1 Build · Book-First Platform</div>
   <div class="doc-title">Design & Product Specification</div>
-  <div class="doc-sub">Last updated May 17, 2026 · Interactive speech bubble complete (Bezier tail, spring animation, stroke style, drag-to-reorder layers, layer name editing, duplicate layer) · feature/speech-bubble merged · Next: 3D Book reader (React Three Fiber)</div>
+  <div class="doc-sub">Last updated May 20, 2026 · Book pivot locked · Phases 0–3 complete: page dimensions (796×879), CSS overlay layer rendering, reading direction (LTR/RTL), mobile layer override columns · Next: Phase 4 — Portrait/Mobile view</div>
 </div>
 
 <!-- ── STATUS ── -->
@@ -137,7 +137,11 @@ body{
   <div class="status-item"><div class="status-dot dot-green"></div>Two-click canvas select · grab cursor · editor polish · multi-file upload fix — May 3, 2026</div>
   <div class="status-item"><div class="status-dot dot-green"></div>Text layer types · SVG tails (8-dir, draggable) · FontSelect (130 fonts) · panel height fix — May 7, 2026</div>
   <div class="status-item"><div class="status-dot dot-green"></div>Interactive speech bubble · Bezier tail · spring animation · stroke style · layers reorder · name edit · duplicate — May 7–17, 2026</div>
-  <div class="status-item"><div class="status-dot dot-rose"></div>Next: 3D Book reader (React Three Fiber — page-turn, spine, curl, new reading mode)</div>
+  <div class="status-item"><div class="status-dot dot-green"></div>Book pivot locked — format-first platform, V1 ships book before any public rollout — May 19, 2026</div>
+  <div class="status-item"><div class="status-dot dot-green"></div>Phase 0+1: Page dimensions 796×879 · CSS overlay layer rendering (Html transform removed) · nav fix — May 20, 2026</div>
+  <div class="status-item"><div class="status-dot dot-green"></div>Phase 2: Reading direction (LTR/RTL) — stories.reading_direction column, panel swap, EditorRail selector — May 20, 2026</div>
+  <div class="status-item"><div class="status-dot dot-green"></div>Phase 3: Mobile layer override columns — 5 nullable fields on layers, types + autosave updated — May 20, 2026</div>
+  <div class="status-item"><div class="status-dot dot-rose"></div>Next: Phase 4 — Portrait/mobile view in BookReader (single-page, swipe, mobile override resolution)</div>
 </div>
 
 <!-- ── TOC ── -->
@@ -405,7 +409,7 @@ body{
 ════════════════════════════════════════ -->
 <div class="section">
   <div class="section-num">Section 07</div>
-  <div class="section-title">Reader Flow Architecture <span class="badge badge-done">Complete</span></div>
+  <div class="section-title">Reader Flow Architecture <span class="badge badge-done">Updated May 20, 2026</span></div>
   <div class="section-divider"></div>
 
   <div class="sub">
@@ -441,6 +445,20 @@ body{
       <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>No links:</strong> No links of any kind on the cover screen. Creator links belong on the end page only.</div></div>
       <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>Audio:</strong> Creator can upload background atmospheric audio for the cover screen. Respects the Video & SFX Audio toggle set in the interstitial.</div></div>
       <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>Transitions:</strong> In — fade through Void as interstitial fades out. Out — cover art recedes with rotateX tilt, first panel rises from below (same 3D mechanic as chunk transitions).</div></div>
+    </div>
+  </div>
+
+  <div class="sub">
+    <div class="sub-title">Book reader (book reading mode) <span class="badge badge-done">New — May 20, 2026</span></div>
+    <div class="change-note"><strong>Added May 20, 2026:</strong> Book mode replaces step 6 (Webtoon Reader) when <code>story.reading_mode === 'book'</code>. The gate, cover, and end-page flow is identical.</div>
+    <div class="ann-block">
+      <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>Landscape (spread) view:</strong> Two-page spread rendered via React Three Fiber (R3F). Canvas fills the container; an absolutely-positioned CSS overlay renders all layers at native 796×879px scaled by the same formula as the 3D mesh. No <code>&lt;Html transform&gt;</code> — layers are plain DOM outside R3F.</div></div>
+      <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>Scale formula:</strong> <code>scale = Math.min(containerH / 879, containerW / 1592) * 0.93</code>. Applied identically in BookScene (group scale) and the CSS overlay (transform: scale).</div></div>
+      <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>Reading direction:</strong> Per-story LTR or RTL (<code>stories.reading_direction</code>). LTR: left page = panels[even], right page = panels[odd]. RTL (manga): swapped. Navigation arrows always advance/retreat in story order regardless of direction.</div></div>
+      <div class="ann-row"><div class="ann-dot rose"></div><div class="ann-text"><strong>Spread layers:</strong> Layers with <code>is_spread_layer = true</code> span the full 1592×879 spread. Regular layers are scoped to their 796×879 page.</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>Navigation:</strong> Left/right arrow keys or on-screen buttons. Spread index starts at 1 (cover handled upstream by Cover.tsx). Left arrow disabled at spread 1.</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>Portrait/mobile view (Phase 4, pending):</strong> Single page per screen. Swipe left/right. Advances one panel at a time. Mobile layer overrides (<code>mobile_hidden</code>, <code>mobile_x/y/w/h_percent</code>) applied.</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>Page curl (Phase 5, pending):</strong> EndlessBook-style vertex-deformed mesh. Subdivided PlaneGeometry(796,879,32,32). HTML overlays hide during animation; page is baked to CanvasTexture via html2canvas before the curl starts, restored after.</div></div>
     </div>
   </div>
 
@@ -600,25 +618,29 @@ body{
   </div>
 
   <div class="sub">
-    <div class="sub-title">Reading modes — locked</div>
+    <div class="sub-title">Reading modes — locked <span class="badge badge-done">Updated May 20, 2026</span></div>
     <table class="spec-table">
       <tr><th>Mode</th><th>Panel size</th><th>Transitions</th><th>Scroll</th><th>Default</th></tr>
       <tr><td>Cinematic</td><td>400×640px fixed</td><td>Framer Motion (Cinematic/Fade/Cut)</td><td>Disabled — panel-by-panel only</td><td>Yes — all new stories</td></tr>
       <tr><td>Scroll</td><td>400px wide, variable height</td><td>None</td><td>Continuous vertical scroll</td><td>—</td></tr>
+      <tr><td>Book</td><td>796×879px per page, 1592×879 spread</td><td>R3F 3D page turn (paper curl — Phase 5)</td><td>Disabled — spread-by-spread (landscape) or panel-by-panel (portrait)</td><td>—</td></tr>
     </table>
     <div class="ann-block">
       <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text">Creator sets reading mode once in Publish settings. Cannot change per-panel. Changing mode after publishing requires re-publishing.</div></div>
-      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text">Editor canvas previews the correct mode. Cinematic mode: fixed 400×640 frame. Scroll mode: 400px wide, height presets or custom input.</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text">Editor canvas previews the correct mode. Cinematic mode: fixed 400×640 frame. Scroll mode: 400px wide, height presets or custom input. Book mode: 1592×879 spread canvas (two 796×879 pages side by side).</div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>Book mode: reading direction.</strong> Creator sets LTR (western default) or RTL (manga) in Publish tab. Visible only when reading mode is Book.</div></div>
     </div>
   </div>
 
   <div class="sub">
-    <div class="sub-title">Canvas spec — locked</div>
+    <div class="sub-title">Canvas spec — locked <span class="badge badge-done">Updated May 20, 2026</span></div>
     <table class="spec-table">
       <tr><th>Property</th><th>Value</th><th>Notes</th></tr>
-      <tr><td>Authoring width</td><td>400px</td><td>Reference width for all panels. Reader renders full-width on device.</td></tr>
+      <tr><td>Authoring width (webtoon)</td><td>400px</td><td>Reference width for cinematic + scroll panels. Reader renders full-width on device.</td></tr>
       <tr><td>Cinematic height</td><td>640px fixed</td><td>Full-screen panel. Cannot be changed per-panel in Cinematic mode.</td></tr>
       <tr><td>Scroll height</td><td>Variable</td><td>Creator-set via presets (160/240/320/480/620px) or custom input (80–800px).</td></tr>
+      <tr><td>Book page</td><td>796×879px</td><td>Single authoring page. Both authoring canvas size AND minimum render size. Replaces 400×600 constants everywhere.</td></tr>
+      <tr><td>Book spread</td><td>1592×879px</td><td>Two pages side-by-side. Spread-spanning art via <code>is_spread_layer = true</code>. Editor canvas shows spread view by default in book mode.</td></tr>
       <tr><td>Phone shell</td><td>Gate pages only</td><td>Removed from editor and reader. Editor is full-bleed desktop. Reader is full-width on device.</td></tr>
       <tr><td>Navbar preview</td><td>Below panel on canvas</td><td>Real Navbar component rendered inert below the active panel so creator sees the reader navbar position.</td></tr>
     </table>
@@ -710,7 +732,7 @@ body{
 ════════════════════════════════════════ -->
 <div class="section">
   <div class="section-num">Section 11</div>
-  <div class="section-title">Data & Storage Architecture <span class="badge badge-done">Updated April 17, 2026</span></div>
+  <div class="section-title">Data & Storage Architecture <span class="badge badge-done">Updated May 20, 2026</span></div>
   <div class="section-divider"></div>
 
   <div class="callout">
@@ -744,17 +766,17 @@ body{
     <table class="spec-table">
       <tr><th>Table</th><th>Key fields</th><th>Status</th><th>Notes</th></tr>
       <tr><td>users</td><td><code>id, username, display_name, bio, avatar_url, created_at</code></td><td class="td-done">Live</td><td>UUID = Supabase Auth UID. Username permanent, globally unique, URL-safe. Populated by handle_new_user trigger on signup.</td></tr>
-      <tr><td>stories</td><td><code>id, user_id, title, slug, content_rating, password_hash, is_published, cover_url, font_manifest, creator_bio, creator_links, reading_mode, transition_style, transition_duration_ms, created_at, updated_at</code></td><td class="td-done">Live</td><td>reading_mode: 'cinematic' | 'scroll', default 'cinematic'. cover_url auto-set from first panel upload at position 0.</td></tr>
+      <tr><td>stories</td><td><code>id, user_id, title, slug, content_rating, password_hash, is_published, cover_url, font_manifest, creator_bio, creator_links, reading_mode, reading_direction, transition_style, transition_duration_ms, created_at, updated_at</code></td><td class="td-done">Live</td><td>reading_mode: 'cinematic' | 'scroll' | 'book', default 'cinematic'. reading_direction: 'ltr' | 'rtl', default 'ltr'. cover_url auto-set from first panel upload at position 0.</td></tr>
       <tr><td>chunks</td><td><code>id, story_id, chapter_number, chapter_title, position, created_at</code></td><td class="td-done">Live</td><td>First-class records. Panels reference their chunk. Chapter numbers derived at read time.</td></tr>
       <tr><td>panels</td><td><code>id, chunk_id (nullable), story_id, position, height, created_at</code></td><td class="td-done">Live</td><td>height is raw integer px. chunk_id nullable. No media_url on panel — media lives on layers table.</td></tr>
-      <tr><td>layers</td><td><code>id, panel_id, story_id, position (z-order), media_type, media_url, asset_id, name, x_percent, y_percent, width_percent, height_percent, is_fill, fill_mode, focal_x_percent, focal_y_percent, opacity, autoplay, loop, muted, playback_rate, panel_span_count, text_content, font_family, font_size, text_color, font_weight, text_align, line_height, letter_spacing, text_layer_type, background_color, has_tail, border_radius, tail_direction, tail_offset_percent, tail_length, created_at</code></td><td class="td-done">Live</td><td>media_type: 'image'|'gif'|'video'|'audio'|'text'. fill_mode ('crop'|'stretch'|'custom') supersedes is_fill. <strong>May 1:</strong> asset_id FK, name, panel_span_count. <strong>May 5–7:</strong> full text layer columns + text_layer_type ('dialogue'|'narrative'|'caption'|'sound_fx'|'plain') + background_color, has_tail, border_radius + tail_direction (8 compass values, NOT NULL DEFAULT 'bottom'), tail_offset_percent (real NOT NULL DEFAULT 50), tail_length (integer NOT NULL DEFAULT 40).</td></tr>
+      <tr><td>layers</td><td><code>id, panel_id, story_id, position (z-order), media_type, media_url, asset_id, name, x_percent, y_percent, width_percent, height_percent, is_fill, fill_mode, focal_x_percent, focal_y_percent, opacity, autoplay, loop, muted, playback_rate, panel_span_count, text_content, font_family, font_size, text_color, font_weight, text_align, line_height, letter_spacing, text_layer_type, background_color, has_tail, border_radius, tail_direction, tail_offset_percent, tail_length, tip_x_percent, tip_y_percent, stroke_color, has_stroke, stroke_width, is_spread_layer, mobile_hidden, mobile_x_percent, mobile_y_percent, mobile_width_percent, mobile_height_percent, created_at</code></td><td class="td-done">Live</td><td>media_type: 'image'|'gif'|'video'|'audio'|'text'. fill_mode supersedes is_fill. <strong>May 1:</strong> asset_id, name, panel_span_count. <strong>May 5–7:</strong> full text layer + speech bubble columns. <strong>May 17:</strong> stroke_color, has_stroke, stroke_width. <strong>May 20:</strong> mobile_hidden (bool NOT NULL DEFAULT false), mobile_x/y/width/height_percent (real nullable) — null cascades to desktop value. is_spread_layer (bool) marks layers spanning the full 1592×879 spread.</td></tr>
       <tr><td>assets</td><td><code>id, story_id, media_type, media_url, filename, created_at</code></td><td class="td-done">Live</td><td>Story-scoped media library. Each upload registers here. AssetsFolder in editor shows this list. Deleting an asset cascades to layers.asset_id. Added May 1, 2026.</td></tr>
       <tr><td>overlays</td><td>—</td><td class="td-complete">Dropped</td><td>Table and all code removed April 18, 2026.</td></tr>
     </table>
   </div>
 
   <div class="sub">
-    <div class="sub-title">Applied migrations — all current as of May 17, 2026</div>
+    <div class="sub-title">Applied migrations — all current as of May 20, 2026</div>
     <div class="ann-block">
       <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>1. reading_mode column on stories</strong> — <span class="td-done">Applied</span> April 17, 2026.</div></div>
       <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>2. layers table created</strong> — <span class="td-done">Applied</span> April 18, 2026.</div></div>
@@ -770,7 +792,9 @@ body{
       <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>12. tail_direction + tail_offset_percent</strong> (NOT NULL DEFAULT 'bottom'/50, 4-value CHECK) — file: <code>supabase-migrations/2026-05-07-tail-direction.sql</code> — <span class="td-done">Applied</span> May 7, 2026.</div></div>
       <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>13. tail_length + expand tail_direction to 8 values</strong> (NOT NULL DEFAULT 40, CHECK constraint expanded) — file: <code>supabase-migrations/2026-05-07-tail-length.sql</code> — <span class="td-done">Applied</span> May 7, 2026.</div></div>
       <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>14. tip_x_percent + tip_y_percent</strong> (real, nullable — interactive speech bubble tail tip position) — file: <code>supabase-migrations/2026-05-07-speech-bubble-tip.sql</code> — <span class="td-done">Applied</span> May 15, 2026.</div></div>
-      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>15. Speech bubble stroke style</strong> (stroke_color text nullable, has_stroke bool NOT NULL DEFAULT true, stroke_width real nullable) — file: <code>supabase-migrations/2026-05-17-stroke-style.sql</code> — <span class="td-amber">Pending — apply in Supabase SQL editor</span></div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>15. Speech bubble stroke style</strong> (stroke_color text nullable, has_stroke bool NOT NULL DEFAULT true, stroke_width real nullable) — file: <code>supabase-migrations/2026-05-17-stroke-style.sql</code></div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>16. Reading direction on stories</strong> (reading_direction text NOT NULL DEFAULT 'ltr' CHECK IN ('ltr','rtl')) — file: <code>supabase-migrations/2026-05-20-reading-direction.sql</code> — <span class="td-amber">Pending — apply in Supabase SQL editor</span></div></div>
+      <div class="ann-row"><div class="ann-dot dim"></div><div class="ann-text"><strong>17. Mobile layer override columns</strong> (mobile_hidden bool NOT NULL DEFAULT false, mobile_x/y/width/height_percent real nullable) — file: <code>supabase-migrations/2026-05-20-mobile-layer-overrides.sql</code> — <span class="td-amber">Pending — apply in Supabase SQL editor</span></div></div>
     </div>
   </div>
 </div>
@@ -1196,10 +1220,28 @@ body{
     </table>
   </div>
 
+  <div class="sub">
+    <div class="sub-title">Book pivot decisions — May 19–20, 2026</div>
+    <table class="spec-table">
+      <tr><th>Decision</th><th>Outcome</th></tr>
+      <tr><td>Platform format pivot</td><td>Book-first. The 2-page spread ships in V1 before any public rollout. Previously slated for V3. Webtoon modes (cinematic/scroll) remain as parallel creator-selectable options, not the platform identity.</td></tr>
+      <tr><td>Book page dimensions</td><td>796×879px per page, 1592×879 spread. Both the authoring canvas size AND the minimum render size. Replaces 400×600/800×600 constants everywhere. Constants: <code>BOOK_PAGE_WIDTH=796</code>, <code>BOOK_PAGE_HEIGHT=879</code>, <code>BOOK_SPREAD_WIDTH=1592</code> in <code>src/types/index.ts</code>.</td></tr>
+      <tr><td>Layer rendering approach</td><td>CSS overlay outside R3F Canvas. <code>&lt;Html transform&gt;</code> removed entirely — its matrix3d divisor (hardcoded factor 40) made correct sizing impossible inside a scaled <code>&lt;group&gt;</code>. BookPage, BookSpread, BookScene are now mesh-only. BookReader/index.tsx owns all layer rendering via ResizeObserver + CSS <code>transform: scale(s)</code> overlay aligned to mesh screen positions.</td></tr>
+      <tr><td>Reading direction</td><td>Per-story LTR or RTL. <code>stories.reading_direction text NOT NULL DEFAULT 'ltr'</code>. Panel assignment swaps in <code>BookReader/index.tsx</code> for RTL. Navigation arrows keep same semantics (right = next spread) in Phase 2; curl direction deferred to Phase 5.</td></tr>
+      <tr><td>Mobile cascade model</td><td>Same layers as desktop; mobile can hide (<code>mobile_hidden</code>) or reposition (<code>mobile_x/y/w/h_percent</code>, nullable). Null = cascade from desktop. Mobile edits don't affect desktop. 5 new nullable columns on <code>layers</code> table.</td></tr>
+      <tr><td>Mobile interaction (Phase 4)</td><td>One full page per portrait screen. Swipe left/right (dx threshold ~50px). Tap zones also acceptable. usePageTurn advances one panel at a time in portrait (not two).</td></tr>
+      <tr><td>Paper curl reference (Phase 5)</td><td>EndlessBook (Unity asset store) — Issuu-style dramatic physics. Architecture: subdivided PlaneGeometry(796,879,32,32) + bezier vertex deformation + html2canvas texture bake during animation + HTML overlay hide/restore after settle.</td></tr>
+      <tr><td>V1 feature scope</td><td>All must ship before public rollout: Phase 4 (portrait/mobile), Phase 5 (paper curl), Phase 6 (mobile editor canvas). "3D all the way. As animated and cinematic as possible."</td></tr>
+      <tr><td>SQL output rule</td><td>When a migration step is ready, Claude Code prints the SQL in chat for copy-paste before writing the file. Added as standing instruction.</td></tr>
+    </table>
+  </div>
+</div>
+
+
 <!-- FOOTER -->
 <div class="doc-footer">
-  <span class="footer-text">Alexandria · Platform Design Specification · Updated May 5, 2026</span>
-  <span class="footer-text">Text layers shipped · Google Fonts system · font_manifest persistence · model auto-adjustment</span>
+  <span class="footer-text">Alexandria · Platform Design Specification · Updated May 20, 2026</span>
+  <span class="footer-text">Book pivot locked · Phases 0–3 complete · reading direction · mobile layer overrides · Phase 4 queued</span>
 </div>
 
 </body>

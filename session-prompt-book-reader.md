@@ -1,6 +1,6 @@
-# Alexandria — Session Prompt: Book Pivot (Phase 2 onwards)
+# Alexandria — Session Prompt: Book Pivot (Phase 4 onwards)
 
-### New Chat Initialization · Continue from Phase 1 complete
+### New Chat Initialization · Continue from Phases 0–3 complete
 
 ---
 
@@ -16,7 +16,7 @@
 
 ## What This Session Is
 
-Continuing the Alexandria book-first pivot. Phases 0 and 1 are **complete and committed**. The next phase is **Phase 2: Reading Direction (LTR/RTL)**. However — read the plan, confirm your understanding, and ask any questions first.
+Continuing the Alexandria book-first pivot. Phases 0–3 are **complete and committed**. The next phase is **Phase 4: Portrait/Mobile View in BookReader**. However — read the plan, confirm your understanding, and ask any questions first.
 
 ---
 
@@ -43,13 +43,27 @@ All constants updated from 400×600 to **796×879 per page / 1592×879 spread**:
 - `usePageTurn` accepts `startAt` param (default 1); `goPrev` min is `startAt`
 - Left arrow disabled at spread 1
 
+### Phase 2 — Reading Direction (LTR/RTL) ✓
+- `stories.reading_direction text NOT NULL DEFAULT 'ltr'` — migration: `supabase-migrations/2026-05-20-reading-direction.sql`
+- `ReadingDirection = 'ltr' | 'rtl'` type added to `src/types/index.ts`
+- Panel swap in `BookReader/index.tsx`: `isRTL` flips `evenPanel`/`oddPanel` assignment to `leftPanel`/`rightPanel`
+- Reading direction selector in EditorRail Publish tab (book-mode-only), `rail-option-btn` pattern, saves via `updateStory`
+- Navigation arrows keep same semantics (right = next spread) in Phase 2; curl direction reversal deferred to Phase 5
+
+### Phase 3 — Mobile Layer Override Columns ✓
+- 5 new nullable columns on `layers`: `mobile_hidden boolean NOT NULL DEFAULT false`, `mobile_x_percent real`, `mobile_y_percent real`, `mobile_width_percent real`, `mobile_height_percent real`
+- Migration: `supabase-migrations/2026-05-20-mobile-layer-overrides.sql`
+- `Layer` interface in `src/types/index.ts` updated with all 5 fields
+- `useAutoSave.ts` layer UPDATE payload includes all 5 fields
+- **No** changes to `BookPage.tsx` yet — mobile override resolution is wired in Phase 4 when `isMobileView` exists
+
 ---
 
 ## Current Architecture
 
 ```
 src/components/BookReader/
-  index.tsx        — Canvas + CSS layer overlay + panel selection + ResizeObserver + nav
+  index.tsx        — Canvas + CSS layer overlay + panel selection (RTL-aware) + ResizeObserver + nav
   BookScene.tsx    — R3F scene: lights, group scale, BookSpread mesh
   BookSpread.tsx   — Two BookPage meshes + spine shadow (mesh-only, no layers)
   BookPage.tsx     — PlaneGeometry(796, 879) + click handler (mesh-only)
@@ -58,6 +72,9 @@ src/components/BookReader/
 src/pages/
   Cover.tsx        — Full HTML cover page with "TAP TO BEGIN" CTA (upstream of BookReader)
   Reader.tsx       — Routes to Cover → BookReader for book mode
+src/hooks/
+  useAutoSave.ts   — Saves all story + layer fields including reading_direction and mobile_* columns
+src/types/index.ts — ReadingDirection type, Story.reading_direction, Layer mobile override fields
 ```
 
 **Scale formula** (identical in BookScene and the CSS overlay in index.tsx):
@@ -72,22 +89,37 @@ Right page: left = cx,              top = cy - 879*scale/2,  width=796, height=8
 Spread:     left = cx - 796*scale,  top = cy - 879*scale/2,  width=1592, height=879, scale(scale)
 ```
 
-**Panel selection** (in index.tsx):
+**Panel selection** (in index.tsx, RTL-aware):
 ```ts
-leftPanel  = panels[(spreadIndex - 1) * 2]     // panels[0] on spread 1
-rightPanel = panels[(spreadIndex - 1) * 2 + 1] // panels[1] on spread 1
+const isRTL = story.reading_direction === 'rtl'
+const evenPanel = spreadIndex > 0 ? (panels[(spreadIndex - 1) * 2]     ?? null) : null
+const oddPanel  = spreadIndex > 0 ? (panels[(spreadIndex - 1) * 2 + 1] ?? null) : null
+const leftPanel  = isRTL ? oddPanel  : evenPanel
+const rightPanel = isRTL ? evenPanel : oddPanel
+```
+
+**Mobile override cascade** (to be resolved in Phase 4 when `isMobileView` exists):
+```ts
+function mobileX(layer: Layer): number { return layer.mobile_x_percent ?? layer.x_percent }
+// Same pattern for y, width, height. mobile_hidden = true → hide layer in mobile view.
 ```
 
 ---
 
-## Next Phase: Phase 2 — Reading Direction (LTR / RTL)
+## Next Phase: Phase 4 — Portrait/Mobile View in BookReader
 
 See the plan file for full details. At a high level:
-- New `reading_direction: 'ltr' | 'rtl'` column on stories table
-- RTL swaps left/right panel assignment in `index.tsx`
-- RTL also swaps page-turn direction (future: curl animation direction)
-- New migration in `supabase-migrations/`
-- Editor toggle in `EditorRail.tsx` (Publish tab)
+- Detect portrait orientation (`window.innerWidth < window.innerHeight` or width < 768px)
+- Portrait path renders single `BookPage` (not BookSpread), full viewport
+- `usePageTurn` advances one panel at a time in portrait (not two)
+- Touch: `touchstart` / `touchend` swipe detection (dx threshold ~50px)
+- Apply `mobile_hidden` and `mobile_x/y/w/h_percent` overrides to layers in portrait view
+- 3D: portrait page inherits same R3F canvas; page turn is single-page curl (Phase 5)
+
+**Files to modify:**
+- `src/components/BookReader/index.tsx` — orientation detection, portrait branch
+- `src/components/BookReader/BookPage.tsx` — accept `isMobile` prop, apply mobile overrides
+- `src/components/reader/PanelLayers.tsx` — accept and apply mobile position overrides
 
 **But read the plan before starting. Ask questions first.**
 
@@ -95,8 +127,7 @@ See the plan file for full details. At a high level:
 
 ## Remaining Phases (from plan)
 
-- **Phase 3** — Mobile layer override columns (Haiku, Normal)
-- **Phase 4** — Portrait/mobile view in BookReader (Sonnet, Normal)
+- **Phase 4** — Portrait/mobile view in BookReader (Sonnet, Normal) ← NEXT
 - **Phase 5** — Paper curl / EndlessBook-style page turn (Opus, Max)
 - **Phase 6** — Mobile editor canvas (Opus, Max)
 - **Phase 7** — New platform-design-spec.html + launch plan (Opus, Max)
@@ -109,10 +140,11 @@ Full phase details, model/effort assignments, and timeline in the plan file.
 
 ```
 C:\Users\jakeK\.claude\plans\handoff-book-snug-stearns.md   — full plan (READ THIS FIRST)
-src/components/BookReader/index.tsx                          — CSS overlay, scale, nav
+src/components/BookReader/index.tsx                          — CSS overlay, scale, nav, RTL panel swap
 src/components/BookReader/BookScene.tsx                      — R3F scene
-src/pages/Reader.tsx                                         — reader entry point, isBook wiring
-src/types/index.ts                                           — constants + all interfaces
+src/components/reader/PanelLayers.tsx                        — layer rendering (needs mobile override wiring in Phase 4)
+src/pages/Reader.tsx                                         — reader entry point
+src/types/index.ts                                           — all interfaces including new mobile fields
 supabase-migrations/                                         — existing migration pattern to follow
 ```
 
@@ -124,4 +156,5 @@ supabase-migrations/                                         — existing migrat
 - **Auto-adjust model and effort** per the plan's model/effort table.
 - **Confirm before coding.** Read the plan, ask questions, wait for go-ahead.
 - **Do not assume or guess.** If something in the plan is unclear, ask.
+- **SQL output in chat.** When a migration step is ready, print the SQL in chat for copy-paste before writing the file.
 - Quality >>> speed. Jake's own stories are the real client.
