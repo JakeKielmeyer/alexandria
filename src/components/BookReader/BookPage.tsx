@@ -2,6 +2,8 @@ import React from 'react'
 
 interface BookPageProps {
   position: [number, number, number]
+  /** Reserved for Phase 5 mobile override cascade. No logic here yet. */
+  isMobile?: boolean
   onClick?: () => void
 }
 

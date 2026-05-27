@@ -70,20 +70,29 @@ function resolvedFillMode(layer: Layer): FillMode {
   return layer.is_fill ? 'crop' : 'custom'
 }
 
-function containerStyle(layer: Layer): React.CSSProperties {
+/**
+ * Resolve position/size for a layer, applying mobile overrides when `isMobile`
+ * is true and the layer has non-null mobile_* columns.
+ * Cascade rule: mobile value if set, otherwise desktop value.
+ */
+function containerStyle(layer: Layer, isMobile = false): React.CSSProperties {
   const mode = resolvedFillMode(layer)
   if (mode === 'custom') {
+    const x = (isMobile && layer.mobile_x_percent != null) ? layer.mobile_x_percent : layer.x_percent
+    const y = (isMobile && layer.mobile_y_percent != null) ? layer.mobile_y_percent : layer.y_percent
+    const w = (isMobile && layer.mobile_width_percent != null) ? layer.mobile_width_percent : (layer.width_percent ?? 50)
+    const h = (isMobile && layer.mobile_height_percent != null) ? layer.mobile_height_percent : (layer.height_percent ?? 50)
     return {
       position: 'absolute',
-      left: `${layer.x_percent}%`,
-      top: `${layer.y_percent}%`,
-      width: layer.width_percent != null ? `${layer.width_percent}%` : '50%',
-      height: layer.height_percent != null ? `${layer.height_percent}%` : '50%',
+      left: `${x}%`,
+      top: `${y}%`,
+      width: `${w}%`,
+      height: `${h}%`,
       opacity: layer.opacity,
       overflow: 'hidden',
     }
   }
-  // stretch or crop — full-panel fill
+  // stretch or crop — full-panel fill (mobile doesn't reposition fill layers)
   return {
     position: 'absolute',
     inset: 0,
@@ -109,9 +118,9 @@ function mediaStyle(layer: Layer): React.CSSProperties {
 
 // ── Text layer renderer (separate component so hooks are at top level) ────────
 
-function TextLayerRenderer({ layer }: { layer: Layer }): React.JSX.Element {
+function TextLayerRenderer({ layer, isMobile = false }: { layer: Layer; isMobile?: boolean }): React.JSX.Element {
   const hasBg = Boolean(layer.background_color)
-  const base = containerStyle(layer)
+  const base = containerStyle(layer, isMobile)
 
   // Track panel pixel dimensions via ResizeObserver on the parent element.
   // The parent is the PanelLayers container (position:absolute, inset:0),
@@ -242,9 +251,10 @@ interface LayerRendererProps {
   videoSfxEnabled: boolean
   musicEnabled: boolean
   videoVolume: number
+  isMobile?: boolean
 }
 
-function LayerRenderer({ layer, videoSfxEnabled, musicEnabled, videoVolume }: LayerRendererProps): React.JSX.Element | null {
+function LayerRenderer({ layer, videoSfxEnabled, musicEnabled, videoVolume, isMobile = false }: LayerRendererProps): React.JSX.Element | null {
   const videoRef = useRef<HTMLVideoElement>(null)
   const audioRef = useRef<HTMLAudioElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -339,12 +349,12 @@ function LayerRenderer({ layer, videoSfxEnabled, musicEnabled, videoVolume }: La
   }, [layer.media_type, videoVolume])
 
   if (layer.media_type === 'text') {
-    return <TextLayerRenderer layer={layer} />
+    return <TextLayerRenderer layer={layer} isMobile={isMobile} />
   }
 
   if (!layer.media_url) return null
 
-  const cStyle = containerStyle(layer)
+  const cStyle = containerStyle(layer, isMobile)
   const mStyle = mediaStyle(layer)
 
   if (layer.media_type === 'audio') {
@@ -394,19 +404,28 @@ interface PanelLayersProps {
   videoSfxEnabled: boolean
   musicEnabled: boolean
   videoVolume: number
+  /**
+   * When true, hides layers with mobile_hidden=true and applies
+   * mobile_x/y/w/h_percent overrides instead of the desktop values.
+   */
+  isMobile?: boolean
 }
 
-export default function PanelLayers({ layers, videoSfxEnabled, musicEnabled, videoVolume }: PanelLayersProps): React.JSX.Element {
-  // layers are already sorted ascending (low position = behind) by useReaderData
+export default function PanelLayers({ layers, videoSfxEnabled, musicEnabled, videoVolume, isMobile = false }: PanelLayersProps): React.JSX.Element {
+  // layers are already sorted ascending (low position = behind) by useReaderData.
+  // In mobile view, filter out layers flagged as hidden on portrait screens.
+  const visibleLayers = isMobile ? layers.filter(l => !l.mobile_hidden) : layers
+
   return (
     <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
-      {layers.map((layer) => (
+      {visibleLayers.map((layer) => (
         <LayerRenderer
           key={layer.id}
           layer={layer}
           videoSfxEnabled={videoSfxEnabled}
           musicEnabled={musicEnabled}
           videoVolume={videoVolume}
+          isMobile={isMobile}
         />
       ))}
     </div>

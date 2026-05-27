@@ -5,6 +5,7 @@ export interface PageTurnState {
   totalSpreads: number
   goNext: () => void
   goPrev: () => void
+  setSpreadIndex: (n: number) => void
 }
 
 export function usePageTurn(totalSpreads: number, onEnd: () => void, startAt = 1): PageTurnState {
@@ -26,5 +27,5 @@ export function usePageTurn(totalSpreads: number, onEnd: () => void, startAt = 1
     setSpreadIndex(prev => Math.max(startAt, prev - 1))
   }, [startAt])
 
-  return { spreadIndex, totalSpreads, goNext, goPrev }
+  return { spreadIndex, totalSpreads, goNext, goPrev, setSpreadIndex }
 }
