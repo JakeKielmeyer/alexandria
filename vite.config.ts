@@ -18,6 +18,9 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   return {
     plugins: [react()],
+    optimizeDeps: {
+      include: ['react-pageflip'],
+    },
     define: {
       'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(
         env.VITE_SUPABASE_URL || SUPABASE_URL_DEFAULT,

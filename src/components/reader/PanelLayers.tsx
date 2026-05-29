@@ -252,9 +252,11 @@ interface LayerRendererProps {
   musicEnabled: boolean
   videoVolume: number
   isMobile?: boolean
+  isFreezing?: boolean
+  spreadSide?: 'left' | 'right'
 }
 
-function LayerRenderer({ layer, videoSfxEnabled, musicEnabled, videoVolume, isMobile = false }: LayerRendererProps): React.JSX.Element | null {
+function LayerRenderer({ layer, videoSfxEnabled, musicEnabled, videoVolume, isMobile = false, isFreezing = false, spreadSide }: LayerRendererProps): React.JSX.Element | null {
   const videoRef = useRef<HTMLVideoElement>(null)
   const audioRef = useRef<HTMLAudioElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -348,6 +350,20 @@ function LayerRenderer({ layer, videoSfxEnabled, musicEnabled, videoVolume, isMo
     }
   }, [layer.media_type, videoVolume])
 
+  // ── Freeze during page-turn curl ──────────────────────────────────────
+  // StPageFlip rasterises pages to canvas during the flip; videos must freeze
+  // so the poster frame shows instead of a broken canvas capture.
+  useEffect(() => {
+    if (layer.media_type !== 'video') return
+    const el = videoRef.current
+    if (!el) return
+    if (isFreezing) {
+      el.pause()
+    } else if (layer.autoplay && isVisibleRef.current) {
+      el.play().catch(() => { /* browser policy */ })
+    }
+  }, [isFreezing, layer.media_type, layer.autoplay])
+
   if (layer.media_type === 'text') {
     return <TextLayerRenderer layer={layer} isMobile={isMobile} />
   }
@@ -357,9 +373,28 @@ function LayerRenderer({ layer, videoSfxEnabled, musicEnabled, videoVolume, isMo
   const cStyle = containerStyle(layer, isMobile)
   const mStyle = mediaStyle(layer)
 
+  // Spread layers span two pages. Render the image at 200% width so it
+  // covers the full spread, then shift left by 100% on the right page so
+  // each page clips to exactly its own half via overflow:hidden.
+  // Portrait / no spreadSide: show the full image scaled to fit the page.
+  const isSpread = layer.is_spread_layer
+  const effectiveCStyle: React.CSSProperties = isSpread
+    ? { position: 'absolute', inset: 0, opacity: layer.opacity, overflow: 'hidden' }
+    : cStyle
+  const spreadMediaStyle: React.CSSProperties | null = isSpread ? {
+    position: 'absolute',
+    top: 0,
+    left: spreadSide === 'right' ? '-100%' : '0',
+    width: spreadSide != null ? '200%' : '100%',
+    height: '100%',
+    objectFit: 'cover',
+    display: 'block',
+  } : null
+  const effectiveMStyle: React.CSSProperties = isSpread ? spreadMediaStyle! : mStyle
+
   if (layer.media_type === 'audio') {
     return (
-      <div ref={containerRef} style={cStyle}>
+      <div ref={containerRef} style={effectiveCStyle}>
         <audio
           ref={audioRef}
           src={layer.media_url}
@@ -374,11 +409,11 @@ function LayerRenderer({ layer, videoSfxEnabled, musicEnabled, videoVolume, isMo
 
   if (layer.media_type === 'video') {
     return (
-      <div ref={containerRef} style={cStyle}>
+      <div ref={containerRef} style={effectiveCStyle}>
         <video
           ref={videoRef}
           src={layer.media_url}
-          style={mStyle}
+          style={effectiveMStyle}
           playsInline
           muted={effectiveMuted}
           loop={layer.loop}
@@ -391,8 +426,8 @@ function LayerRenderer({ layer, videoSfxEnabled, musicEnabled, videoVolume, isMo
 
   // image or gif
   return (
-    <div style={cStyle}>
-      <img src={layer.media_url} alt="" style={mStyle} />
+    <div style={effectiveCStyle}>
+      <img src={layer.media_url} alt="" style={effectiveMStyle} />
     </div>
   )
 }
@@ -404,14 +439,14 @@ interface PanelLayersProps {
   videoSfxEnabled: boolean
   musicEnabled: boolean
   videoVolume: number
-  /**
-   * When true, hides layers with mobile_hidden=true and applies
-   * mobile_x/y/w/h_percent overrides instead of the desktop values.
-   */
   isMobile?: boolean
+  /** When true, pause all video layers (StPageFlip is mid-curl). */
+  isFreezing?: boolean
+  /** Which half of a spread this page displays. Undefined = portrait/single-page. */
+  spreadSide?: 'left' | 'right'
 }
 
-export default function PanelLayers({ layers, videoSfxEnabled, musicEnabled, videoVolume, isMobile = false }: PanelLayersProps): React.JSX.Element {
+export default function PanelLayers({ layers, videoSfxEnabled, musicEnabled, videoVolume, isMobile = false, isFreezing = false, spreadSide }: PanelLayersProps): React.JSX.Element {
   // layers are already sorted ascending (low position = behind) by useReaderData.
   // In mobile view, filter out layers flagged as hidden on portrait screens.
   const visibleLayers = isMobile ? layers.filter(l => !l.mobile_hidden) : layers
@@ -426,6 +461,8 @@ export default function PanelLayers({ layers, videoSfxEnabled, musicEnabled, vid
           musicEnabled={musicEnabled}
           videoVolume={videoVolume}
           isMobile={isMobile}
+          isFreezing={isFreezing}
+          spreadSide={spreadSide}
         />
       ))}
     </div>

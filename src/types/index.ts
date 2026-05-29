@@ -70,6 +70,19 @@ export interface Panel {
   image_url: string | null
   height: number
   created_at: string
+  spread_id: string | null
+  page_side: 'left' | 'right' | null
+}
+
+export interface Spread {
+  id: string
+  story_id: string
+  position: number
+  spread_type: 'standard' | 'full_bleed'
+  full_bleed_asset_id: string | null
+  full_bleed_left_asset_id: string | null
+  full_bleed_right_asset_id: string | null
+  created_at: string
 }
 
 export type FillMode = 'stretch' | 'crop' | 'custom'

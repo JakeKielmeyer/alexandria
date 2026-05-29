@@ -110,6 +110,7 @@ export function useAutoSave(): void {
             stroke_color: layer.stroke_color ?? null,
             has_stroke: layer.has_stroke ?? true,
             stroke_width: layer.stroke_width ?? null,
+            is_spread_layer: layer.is_spread_layer,
             mobile_hidden: layer.mobile_hidden ?? false,
             mobile_x_percent: layer.mobile_x_percent ?? null,
             mobile_y_percent: layer.mobile_y_percent ?? null,
