@@ -9,7 +9,7 @@ import {
 // @ts-ignore
 import HTMLFlipBook from 'react-pageflip'
 import FlipPage from './FlipPage'
-import { BOOK_PAGE_WIDTH, BOOK_PAGE_HEIGHT } from '../../types'
+import { BOOK_PAGE_WIDTH, BOOK_PAGE_HEIGHT, CINEMATIC_PANEL_HEIGHT } from '../../types'
 import type { PanelWithMeta } from '../../hooks/useReaderData'
 import type { StoryWithCreator, Layer } from '../../types'
 
@@ -112,17 +112,22 @@ const FlipBookReader = forwardRef<FlipBookHandle, FlipBookReaderProps>(
       onStateChange(e.data)
     }
 
+    const pageWidth  = isPortrait ? 400                   : BOOK_PAGE_WIDTH
+    const pageHeight = isPortrait ? CINEMATIC_PANEL_HEIGHT : BOOK_PAGE_HEIGHT
+    const pageMaxW   = isPortrait ? 640                   : BOOK_PAGE_WIDTH
+    const pageMaxH   = isPortrait ? CINEMATIC_PANEL_HEIGHT : BOOK_PAGE_HEIGHT
+
     return (
       <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <HTMLFlipBook
           ref={bookRef}
-          width={BOOK_PAGE_WIDTH}
-          height={BOOK_PAGE_HEIGHT}
+          width={pageWidth}
+          height={pageHeight}
           size="stretch"
           minWidth={280}
-          maxWidth={BOOK_PAGE_WIDTH}
+          maxWidth={pageMaxW}
           minHeight={360}
-          maxHeight={BOOK_PAGE_HEIGHT}
+          maxHeight={pageMaxH}
           startPage={0}
           drawShadow={true}
           flippingTime={700}
@@ -159,7 +164,7 @@ const FlipBookReader = forwardRef<FlipBookHandle, FlipBookReaderProps>(
               {...pageProps}
               layers={p.layers}
               isFreezing={isFlipping}
-              spreadSide={isPortrait ? undefined : (i % 2 === 0 ? 'left' : 'right')}
+              spreadSide={i % 2 === 0 ? 'left' : 'right'}
             />
           ))}
 
