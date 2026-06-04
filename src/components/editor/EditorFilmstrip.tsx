@@ -286,10 +286,10 @@ export default function EditorFilmstrip(): React.JSX.Element {
           <button
             onClick={handleAddSpread}
             style={{ margin: "12px 16px", width: `${THUMB_WIDTH}px`, height: "40px", background: "none", border: "1px dashed var(--border)", borderRadius: "4px", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", color: "var(--text-muted)", fontFamily: "DM Sans, sans-serif", fontSize: "11px", cursor: "pointer" }}
-            aria-label="Add spread"
+            aria-label="Add page"
           >
             <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true"><path d="M5 1v8M1 5h8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" /></svg>
-            Add Spread
+            Add Page
           </button>
         </>
       ) : (

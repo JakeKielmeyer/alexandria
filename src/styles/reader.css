@@ -381,14 +381,141 @@
   transform: translateY(-1px);
 }
 
-/* ── Fixed-position Navbar wrapper ── */
+/* ── Floating top-center control bar ── */
 
-.reader-navbar-fixed {
+.reader-control-bar {
   position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 40;
+  background: rgba(14,6,8,0.92);
+  border-radius: 999px;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid rgba(245,238,232,0.08);
+  backdrop-filter: blur(8px);
+  transition: opacity 280ms ease;
+  white-space: nowrap;
+}
+.reader-control-bar--hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ── Circular nav arrow (book reader) ── */
+
+.reader-nav-arrow {
+  position: fixed;
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  background: rgba(14,6,8,0.7);
+  border: 1px solid rgba(245,238,232,0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: rgba(245,238,232,0.85);
+  transition: opacity 280ms ease, background 120ms ease;
+  backdrop-filter: blur(4px);
+  z-index: 30;
+  padding: 0;
+}
+.reader-nav-arrow:hover:not(:disabled) {
+  background: rgba(14,6,8,0.9);
+}
+.reader-nav-arrow:disabled {
+  opacity: 0.2 !important;
+  cursor: not-allowed;
+}
+.reader-nav-arrow--left {
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.reader-nav-arrow--right {
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.reader-nav-arrow--bottom-left {
+  left: 20px;
+  bottom: 20px;
+}
+.reader-nav-arrow--bottom-right {
+  right: 20px;
+  bottom: 20px;
+}
+.reader-nav-arrow--hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ── Webtoon right-side stacked chevrons ── */
+
+.reader-webtoon-nav {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  z-index: 30;
+}
+
+/* Desktop: place arrows vertically centered, halfway between the panel's
+   right edge (67.5vw from left) and the viewport's right edge (100vw). */
+@media (min-width: 641px) {
+  .reader-webtoon-nav {
+    bottom: auto;
+    top: 50%;
+    right: calc((100vw - 35vw) / 4);
+    transform: translateY(-50%);
+  }
+}
+.reader-webtoon-nav-up {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: rgba(14,6,8,0.7);
+  border: 1px solid rgba(245,238,232,0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: rgba(245,238,232,0.85);
+  padding: 0;
+  transition: background 120ms ease;
+  backdrop-filter: blur(4px);
+}
+.reader-webtoon-nav-up:hover:not(:disabled) {
+  background: rgba(14,6,8,0.9);
+}
+.reader-webtoon-nav-up:disabled {
+  opacity: 0.15;
+  cursor: not-allowed;
+}
+.reader-webtoon-nav-down {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: rgba(14,6,8,0.7);
+  border: 1px solid rgba(245,238,232,0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: rgba(245,238,232,0.85);
+  padding: 0;
+  transition: background 120ms ease;
+  backdrop-filter: blur(4px);
+}
+.reader-webtoon-nav-down:hover {
+  background: rgba(14,6,8,0.9);
 }
 
 /* ── Exit Preview button (creator-only overlay) ── */
@@ -432,7 +559,6 @@
   backdrop-filter: blur(12px);
   display: flex;
   flex-direction: column;
-  padding-bottom: 56px; /* leaves room above the Navbar */
 }
 
 .reader-thumb-strip-header {

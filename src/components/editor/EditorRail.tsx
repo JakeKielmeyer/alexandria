@@ -28,8 +28,8 @@ const RATING_OPTIONS: { value: ContentRating; label: string; desc: string }[] = 
 ]
 
 const READING_MODE_OPTIONS: { value: ReadingMode; label: string; desc: string }[] = [
-  { value: 'cinematic', label: 'Cinematic', desc: '400 × 640px, transitions' },
-  { value: 'scroll', label: 'Scroll', desc: 'Variable height, continuous' },
+  { value: 'cinematic', label: 'Webtoons: Cinematic', desc: '400 × 640px, transitions' },
+  { value: 'scroll', label: 'Webtoons: Classic/Scroll', desc: 'Variable height, continuous' },
   { value: 'book', label: 'Book', desc: '400 × 600px per page, 3D page turn' },
 ]
 

@@ -1,7 +1,10 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { AnimatePresence } from 'framer-motion'
 import { useReaderStore } from '../../store/readerStore'
+import { useIdleHide } from '../../hooks/useIdleHide'
 import FlipBookReader, { type FlipBookHandle } from './FlipBookReader'
 import Navbar from '../Navbar'
+import ReaderThumbnailStrip from '../reader/ReaderThumbnailStrip'
 import type { PanelWithMeta } from '../../hooks/useReaderData'
 import type { StoryWithCreator } from '../../types'
 
@@ -10,6 +13,7 @@ interface BookReaderProps {
   panels: PanelWithMeta[]
   previewMode: boolean
   onReachEnd: () => void
+  onClose?: () => void
 }
 
 export default function BookReader({
@@ -17,12 +21,13 @@ export default function BookReader({
   panels,
   previewMode,
   onReachEnd,
+  onClose,
 }: BookReaderProps): React.JSX.Element {
+  const { visible } = useIdleHide(3000)
   const videoSfxEnabled = useReaderStore(s => s.videoSfxEnabled)
   const toggleVideoSfx   = useReaderStore(s => s.toggleVideoSfx)
   const musicEnabled     = useReaderStore(s => s.musicEnabled)
   const videoVolume      = useReaderStore(s => s.videoVolume)
-  const setVideoVolume   = useReaderStore(s => s.setVideoVolume)
 
   // totalPages = panels.length + 2 (front cover + back cover)
   const totalPages   = panels.length + 2
@@ -31,6 +36,7 @@ export default function BookReader({
   // StPageFlip page index: 0 = front cover, 1..panels.length = interior, last = back cover.
   const [currentPageIndex, setCurrentPageIndex] = useState(0)
   const [isFlipping, setIsFlipping]             = useState(false)
+  const [gridOpen, setGridOpen]                 = useState(false)
 
   const flipRef = useRef<FlipBookHandle>(null)
   const onReachEndRef = useRef(onReachEnd)
@@ -119,19 +125,30 @@ export default function BookReader({
     }
   }, [])
 
+  const handleThumbnailSelect = useCallback((panelId: string): void => {
+    const idx = panels.findIndex(p => p.panelId === panelId)
+    if (idx >= 0) flipRef.current?.goToPage(idx + 1)
+  }, [panels])
+
   // ── Navbar label ─────────────────────────────────────────────────────────
   const isFrontCover = currentPageIndex === 0
   const isBackCover  = currentPageIndex === totalPages - 1
+
+  const activePanelId = useMemo(() => {
+    if (isFrontCover || isBackCover) return null
+    return panels[currentPageIndex - 1]?.panelId ?? null
+  }, [currentPageIndex, panels, isFrontCover, isBackCover])
+
   let navLabel: string
   if (isFrontCover) {
     navLabel = 'Cover'
   } else if (isBackCover) {
     navLabel = 'End'
   } else if (isPortrait) {
-    navLabel = `${currentPageIndex} / ${panels.length}`
+    navLabel = `${String(currentPageIndex).padStart(2, '0')} / ${String(panels.length).padStart(2, '0')}`
   } else {
     const spreadNum = Math.ceil(currentPageIndex / 2)
-    navLabel = `${spreadNum} / ${totalSpreads}`
+    navLabel = `${String(spreadNum).padStart(2, '0')} / ${String(totalSpreads).padStart(2, '0')}`
   }
 
   const prevDisabled = currentPageIndex <= 0
@@ -178,17 +195,79 @@ export default function BookReader({
       {!previewMode && (
         <Navbar
           label={navLabel}
-          onPrev={handleNavBack}
-          onNext={handleNavForward}
-          prevDisabled={prevDisabled}
-          nextDisabled={false}
+          onClose={onClose}
           audioEnabled={videoSfxEnabled}
           onToggleAudio={toggleVideoSfx}
-          volume={videoVolume}
-          onVolumeChange={setVideoVolume}
           onFullscreen={handleFullscreen}
+          onGrid={() => setGridOpen(v => !v)}
+          gridActive={gridOpen}
         />
       )}
+
+      {/* Desktop: left/right edge circles (vertically centered) */}
+      {!isPortrait && (
+        <>
+          <button
+            type="button"
+            className={`reader-nav-arrow reader-nav-arrow--left${visible ? '' : ' reader-nav-arrow--hidden'}`}
+            onClick={handleNavBack}
+            disabled={prevDisabled}
+            aria-label="Previous spread"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          <button
+            type="button"
+            className={`reader-nav-arrow reader-nav-arrow--right${visible ? '' : ' reader-nav-arrow--hidden'}`}
+            onClick={handleNavForward}
+            aria-label="Next spread"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M6 3l5 5-5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+        </>
+      )}
+
+      {/* Mobile: bottom-left and bottom-right circles */}
+      {isPortrait && (
+        <>
+          <button
+            type="button"
+            className={`reader-nav-arrow reader-nav-arrow--bottom-left${visible ? '' : ' reader-nav-arrow--hidden'}`}
+            onClick={handleNavBack}
+            disabled={prevDisabled}
+            aria-label="Previous page"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          <button
+            type="button"
+            className={`reader-nav-arrow reader-nav-arrow--bottom-right${visible ? '' : ' reader-nav-arrow--hidden'}`}
+            onClick={handleNavForward}
+            aria-label="Next page"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M6 3l5 5-5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+        </>
+      )}
+
+      <AnimatePresence>
+        {gridOpen && (
+          <ReaderThumbnailStrip
+            panels={panels}
+            activePanelId={activePanelId}
+            onSelect={handleThumbnailSelect}
+            onClose={() => setGridOpen(false)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }

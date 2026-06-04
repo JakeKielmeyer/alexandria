@@ -58,7 +58,6 @@ function ScrollReader({ story, panels, previewMode, onReachEnd }: ScrollReaderPr
   const toggleVideoSfx = useReaderStore((s) => s.toggleVideoSfx)
   const musicEnabled = useReaderStore((s) => s.musicEnabled)
   const videoVolume = useReaderStore((s) => s.videoVolume)
-  const setVideoVolume = useReaderStore((s) => s.setVideoVolume)
   const navigate = useNavigate()
 
   const [activePanelId, setActivePanelId] = useState<string | null>(panels[0]?.panelId ?? null)
@@ -87,7 +86,13 @@ function ScrollReader({ story, panels, previewMode, onReachEnd }: ScrollReaderPr
   }, [panels, activePanelId])
 
   const activePanel = panels[activeIndex] ?? panels[0]
-  const navLabel = activePanel ? `Ch. ${activePanel.chapterNumber} · ${activePanel.pageInChapter}` : ''
+  const chapterTotal = useMemo(
+    () => panels.filter(p => p.chapterNumber === activePanel?.chapterNumber).length,
+    [panels, activePanel?.chapterNumber],
+  )
+  const navLabel = activePanel
+    ? `Ch.${activePanel.chapterNumber} · ${String(activePanel.pageInChapter).padStart(2, '0')} / ${String(chapterTotal).padStart(2, '0')}`
+    : ''
 
   // Audio layers with panel_span_count > 1 are rendered once at story level
   // (see <StoryAudio>). Per-panel rendering would spawn N <audio> elements
@@ -180,6 +185,12 @@ function ScrollReader({ story, panels, previewMode, onReachEnd }: ScrollReaderPr
     })
   }, [navigate, story.id])
 
+  const handleClose = useCallback((): void => {
+    void exitFullscreenIfActive().finally(() => {
+      previewMode ? navigate(`/editor/${story.id}`) : navigate(-1)
+    })
+  }, [navigate, previewMode, story.id])
+
   // Defensive: if ScrollReader unmounts for any other reason while still
   // fullscreen (browser back, EndPage navigation, etc.), drop fullscreen so
   // the next route doesn't inherit it. The browser doesn't auto-exit on SPA
@@ -224,21 +235,39 @@ function ScrollReader({ story, panels, previewMode, onReachEnd }: ScrollReaderPr
         ))}
       </main>
 
-      <div className="reader-navbar-fixed">
-        <Navbar
-          label={navLabel}
-          onPrev={handlePrev}
-          onNext={handleNext}
-          prevDisabled={activeIndex === 0}
-          nextDisabled={false}
-          audioEnabled={videoSfxEnabled}
-          onToggleAudio={toggleVideoSfx}
-          volume={videoVolume}
-          onVolumeChange={setVideoVolume}
-          onFullscreen={handleFullscreen}
-          onGrid={() => setGridOpen((v) => !v)}
-          gridActive={gridOpen}
-        />
+      <Navbar
+        label={navLabel}
+        onClose={handleClose}
+        audioEnabled={videoSfxEnabled}
+        onToggleAudio={toggleVideoSfx}
+        onFullscreen={handleFullscreen}
+        onGrid={() => setGridOpen((v) => !v)}
+        gridActive={gridOpen}
+      />
+
+      {/* Webtoon right-side stacked chevron nav */}
+      <div className="reader-webtoon-nav">
+        <button
+          type="button"
+          className="reader-webtoon-nav-up"
+          onClick={handlePrev}
+          disabled={activeIndex === 0}
+          aria-label="Previous panel"
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M3 10.5L8 5.5l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+        <button
+          type="button"
+          className="reader-webtoon-nav-down"
+          onClick={handleNext}
+          aria-label="Next panel"
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M3 5.5L8 10.5l5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
       </div>
 
       <AnimatePresence>
@@ -518,6 +547,10 @@ export default function Reader(): React.JSX.Element {
             panels={panels}
             previewMode={previewMode}
             onReachEnd={handleReachEnd}
+            onClose={previewMode
+              ? () => { void exitFullscreenIfActive().finally(() => navigate(`/editor/${story.id}`)) }
+              : () => { void exitFullscreenIfActive().finally(() => navigate(-1)) }
+            }
           />
         </motion.div>
       ) : (
