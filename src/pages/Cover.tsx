@@ -87,8 +87,6 @@ export default function Cover({
       <div className="reader-navbar-fixed">
         <Navbar
           label="Cover"
-          onNext={onEnter}
-          prevDisabled
           onFullscreen={onFullscreen}
           audioEnabled={audioEnabled}
           onToggleAudio={onToggleAudio}

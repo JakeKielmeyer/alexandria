@@ -130,9 +130,6 @@ export default function EndPage(): React.JSX.Element {
       <div className="reader-navbar-fixed">
         <Navbar
           label="The End"
-          onPrev={goExit}
-          onNext={() => {}}
-          nextDisabled
         />
       </div>
     </div>
