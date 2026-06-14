@@ -24,9 +24,12 @@ import PanelScrollItem from '../components/reader/PanelScrollItem'
 import PanelLayers from '../components/reader/PanelLayers'
 import StoryAudio, { type SpanAudioEntry } from '../components/reader/StoryAudio'
 import ReaderThumbnailStrip from '../components/reader/ReaderThumbnailStrip'
+import PreviewBar, { PREVIEW_SIZES, type PreviewScreenSize } from '../components/reader/PreviewBar'
 import '../styles/reader.css'
 
 // ── Helpers ────────────────────────────────────────────────────────────────
+
+const PREVIEW_BAR_H = 56
 
 function getCreatorName(story: StoryWithCreator): string {
   return story.display_name ?? story.username
@@ -50,10 +53,11 @@ interface ScrollReaderProps {
   story: StoryWithCreator
   panels: PanelWithMeta[]
   previewMode: boolean
+  previewScreenSize: PreviewScreenSize
   onReachEnd: () => void
 }
 
-function ScrollReader({ story, panels, previewMode, onReachEnd }: ScrollReaderProps): React.JSX.Element {
+function ScrollReader({ story, panels, previewMode, previewScreenSize, onReachEnd }: ScrollReaderProps): React.JSX.Element {
   const videoSfxEnabled = useReaderStore((s) => s.videoSfxEnabled)
   const toggleVideoSfx = useReaderStore((s) => s.toggleVideoSfx)
   const musicEnabled = useReaderStore((s) => s.musicEnabled)
@@ -179,17 +183,18 @@ function ScrollReader({ story, panels, previewMode, onReachEnd }: ScrollReaderPr
     setTimeout(() => window.dispatchEvent(new Event('resize')), 200)
   }, [])
 
-  const handleExitPreview = useCallback((): void => {
-    void exitFullscreenIfActive().finally(() => {
-      navigate(`/editor/${story.id}`)
-    })
-  }, [navigate, story.id])
-
   const handleClose = useCallback((): void => {
     void exitFullscreenIfActive().finally(() => {
       previewMode ? navigate(`/editor/${story.id}`) : navigate(-1)
     })
   }, [navigate, previewMode, story.id])
+
+  const isMobileSim = previewScreenSize === 'phone-h' || previewScreenSize === 'phone-v'
+  const simWidth = previewScreenSize === 'desktop' ? null
+    : previewScreenSize === 'phone-v'  ? 390
+    : previewScreenSize === 'phone-h'  ? 844
+    : previewScreenSize === 'tablet-v' ? 768
+    : 1024 // tablet-h
 
   // Defensive: if ScrollReader unmounts for any other reason while still
   // fullscreen (browser back, EndPage navigation, etc.), drop fullscreen so
@@ -199,8 +204,13 @@ function ScrollReader({ story, panels, previewMode, onReachEnd }: ScrollReaderPr
     return () => { void exitFullscreenIfActive() }
   }, [])
 
+  const stageStyle: React.CSSProperties = {
+    ...(previewMode ? { paddingTop: PREVIEW_BAR_H } : {}),
+    ...(simWidth ? { '--preview-panel-width': `${simWidth}px` } as React.CSSProperties : {}),
+  }
+
   return (
-    <div className="reader-stage">
+    <div className="reader-stage" style={stageStyle}>
       <main className="reader-feed">
         {panels.map((panel, i) => (
           <PanelScrollItem
@@ -219,6 +229,7 @@ function ScrollReader({ story, panels, previewMode, onReachEnd }: ScrollReaderPr
                 videoSfxEnabled={videoSfxEnabled}
                 musicEnabled={musicEnabled}
                 videoVolume={videoVolume}
+                isMobile={isMobileSim}
               />
               {panel.layers.length === 0 && (
                 <div className="reader-panel-placeholder" />
@@ -288,16 +299,6 @@ function ScrollReader({ story, panels, previewMode, onReachEnd }: ScrollReaderPr
         videoVolume={videoVolume}
       />
 
-      {previewMode && (
-        <button
-          type="button"
-          onClick={handleExitPreview}
-          className="reader-exit-preview"
-          aria-label="Exit preview"
-        >
-          Exit Preview ×
-        </button>
-      )}
     </div>
   )
 }
@@ -316,9 +317,12 @@ export default function Reader(): React.JSX.Element {
   const { clearedGates, clearGate, unClearGate, resetForStory } = useGateStore()
   const videoSfxEnabled = useReaderStore((s) => s.videoSfxEnabled)
   const toggleVideoSfx = useReaderStore((s) => s.toggleVideoSfx)
+  const musicEnabled = useReaderStore((s) => s.musicEnabled)
+  const toggleMusic = useReaderStore((s) => s.toggleMusic)
   const [searchParams] = useSearchParams()
   const previewMode = searchParams.get('preview') === '1'
   const currentUser = useAuthStore((s) => s.user)
+  const [previewScreenSize, setPreviewScreenSize] = useState<PreviewScreenSize>('desktop')
 
   useEffect(() => {
     let cancelled = false
@@ -507,66 +511,127 @@ export default function Reader(): React.JSX.Element {
 
   const isBook = story.reading_mode === 'book'
 
+  // Device frame for book mode preview at non-desktop sizes
+  const bookFrameCfg = previewMode && previewScreenSize !== 'desktop'
+    ? (PREVIEW_SIZES.find(s => s.id === previewScreenSize) ?? null)
+    : null
+  const bookFrameScale = (bookFrameCfg?.w && bookFrameCfg?.h)
+    ? Math.min(
+        (window.innerWidth - 32) / bookFrameCfg.w,
+        (window.innerHeight - PREVIEW_BAR_H - 32) / bookFrameCfg.h,
+      )
+    : 1
+
   return (
-    <AnimatePresence mode="wait">
-      {screen === 'cover' ? (
-        <motion.div
-          key="cover"
-          initial={{ opacity: 1 }}
-          exit={{ opacity: 0, transition: { duration: 0.35, ease: 'easeOut' } }}
-        >
-          <Cover
-            story={story}
-            onEnter={() => setScreen('reading')}
-            onFullscreen={() => {
-              void document.documentElement.requestFullscreen().catch(() => { /* noop */ })
-            }}
-            audioEnabled={videoSfxEnabled}
-            onToggleAudio={toggleVideoSfx}
-            previewMode={previewMode}
-            onExitPreview={handleExitPreview}
-          />
-        </motion.div>
-      ) : panels.length === 0 ? (
-        <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <GateShell>
-            <div style={{ color: 'rgba(245,238,232,0.55)', fontSize: '13px' }}>
-              This story has no panels yet.
-            </div>
-          </GateShell>
-        </motion.div>
-      ) : isBook ? (
-        <motion.div
-          key="book-reader"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1, transition: { duration: 0.35, ease: 'easeOut' } }}
-          className="reader-book-container"
-        >
-          <BookReader
-            story={story}
-            panels={panels}
-            previewMode={previewMode}
-            onReachEnd={handleReachEnd}
-            onClose={previewMode
-              ? () => { void exitFullscreenIfActive().finally(() => navigate(`/editor/${story.id}`)) }
-              : () => { void exitFullscreenIfActive().finally(() => navigate(-1)) }
-            }
-          />
-        </motion.div>
-      ) : (
-        <motion.div
-          key="reader"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1, transition: { duration: 0.35, ease: 'easeOut' } }}
-        >
-          <ScrollReader
-            story={story}
-            panels={panels}
-            previewMode={previewMode}
-            onReachEnd={handleReachEnd}
-          />
-        </motion.div>
+    <>
+      {previewMode && (
+        <PreviewBar
+          screenSize={previewScreenSize}
+          onScreenSizeChange={setPreviewScreenSize}
+          musicEnabled={musicEnabled}
+          onToggleMusic={toggleMusic}
+          onExit={handleExitPreview}
+        />
       )}
-    </AnimatePresence>
+      <AnimatePresence mode="wait">
+        {screen === 'cover' ? (
+          <motion.div
+            key="cover"
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0, transition: { duration: 0.35, ease: 'easeOut' } }}
+          >
+            <Cover
+              story={story}
+              onEnter={() => setScreen('reading')}
+              onFullscreen={() => {
+                void document.documentElement.requestFullscreen().catch(() => { /* noop */ })
+              }}
+              audioEnabled={videoSfxEnabled}
+              onToggleAudio={toggleVideoSfx}
+              previewMode={previewMode}
+              onExitPreview={handleExitPreview}
+            />
+          </motion.div>
+        ) : panels.length === 0 ? (
+          <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <GateShell>
+              <div style={{ color: 'rgba(245,238,232,0.55)', fontSize: '13px' }}>
+                This story has no panels yet.
+              </div>
+            </GateShell>
+          </motion.div>
+        ) : isBook && bookFrameCfg ? (
+          <motion.div
+            key="book-reader"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1, transition: { duration: 0.35, ease: 'easeOut' } }}
+            style={{
+              position: 'fixed',
+              top: PREVIEW_BAR_H,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: '#080408',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <div style={{
+              width: bookFrameCfg.w!,
+              height: bookFrameCfg.h!,
+              transform: `scale(${bookFrameScale})`,
+              transformOrigin: 'top center',
+              position: 'relative',
+              overflow: 'hidden',
+              borderRadius: 8,
+              boxShadow: '0 0 0 1px rgba(245,238,232,0.1), 0 24px 48px rgba(0,0,0,0.8)',
+              flexShrink: 0,
+            }}>
+              <BookReader
+                story={story}
+                panels={panels}
+                previewMode={previewMode}
+                onReachEnd={handleReachEnd}
+                onClose={() => { void exitFullscreenIfActive().finally(() => navigate(`/editor/${story.id}`)) }}
+              />
+            </div>
+          </motion.div>
+        ) : isBook ? (
+          <motion.div
+            key="book-reader"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1, transition: { duration: 0.35, ease: 'easeOut' } }}
+            className="reader-book-container"
+            style={previewMode ? { top: PREVIEW_BAR_H } : undefined}
+          >
+            <BookReader
+              story={story}
+              panels={panels}
+              previewMode={previewMode}
+              onReachEnd={handleReachEnd}
+              onClose={previewMode
+                ? () => { void exitFullscreenIfActive().finally(() => navigate(`/editor/${story.id}`)) }
+                : () => { void exitFullscreenIfActive().finally(() => navigate(-1)) }
+              }
+            />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="reader"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1, transition: { duration: 0.35, ease: 'easeOut' } }}
+          >
+            <ScrollReader
+              story={story}
+              panels={panels}
+              previewMode={previewMode}
+              previewScreenSize={previewScreenSize}
+              onReachEnd={handleReachEnd}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   )
 }

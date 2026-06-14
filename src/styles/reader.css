@@ -76,12 +76,12 @@
 /* Scroll-mode card: height derived from aspect-ratio set via inline style. */
 .reader-panel-card--scroll {
   height: auto;
-  width: 35vw;
+  width: var(--preview-panel-width, 35vw);
 }
 
 @media (max-width: 640px) {
   .reader-panel-card--scroll {
-    width: 100vw;
+    width: var(--preview-panel-width, 100vw);
   }
 }
 
@@ -92,7 +92,7 @@
 .reader-panel-card {
   position: relative;
   height: 95vh;
-  width: 35vw;
+  width: var(--preview-panel-width, 35vw);
   border-radius: 12px;
   overflow: hidden;
   background: #0a0a0a;
@@ -105,7 +105,7 @@
 
 @media (max-width: 640px) {
   .reader-panel-card {
-    width: 100vw;
+    width: var(--preview-panel-width, 100vw);
     border-radius: 0;
   }
 }
@@ -518,13 +518,93 @@
   background: rgba(14,6,8,0.9);
 }
 
-/* ── Exit Preview button (creator-only overlay) ── */
+/* ── Preview bar (creator-only overlay, top of screen) ── */
+
+.reader-preview-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 56px;
+  z-index: 1000;
+  background: rgba(14, 6, 8, 0.97);
+  border-bottom: 1px solid rgba(245, 238, 232, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  backdrop-filter: blur(8px);
+  gap: 12px;
+}
+
+.reader-preview-bar__sizes {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.reader-preview-bar__sizes::-webkit-scrollbar { display: none; }
+
+.reader-preview-bar__size-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: transparent;
+  border: 1px solid rgba(245, 238, 232, 0.1);
+  color: rgba(245, 238, 232, 0.5);
+  font-size: 11px;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+.reader-preview-bar__size-btn:hover {
+  color: #F5EEE8;
+  border-color: rgba(245, 238, 232, 0.25);
+}
+.reader-preview-bar__size-btn.is-active {
+  background: rgba(201, 48, 96, 0.18);
+  color: #E87FAA;
+  border-color: rgba(201, 48, 96, 0.4);
+}
+
+.reader-preview-bar__controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.reader-preview-bar__audio-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: transparent;
+  border: 1px solid rgba(245, 238, 232, 0.1);
+  color: rgba(245, 238, 232, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+.reader-preview-bar__audio-btn.is-active {
+  color: #E87FAA;
+  border-color: rgba(201, 48, 96, 0.4);
+  background: rgba(201, 48, 96, 0.18);
+}
+.reader-preview-bar__audio-btn:hover {
+  color: #F5EEE8;
+  border-color: rgba(245, 238, 232, 0.25);
+}
+
+/* ── Exit Preview button — inline inside PreviewBar ── */
 
 .reader-exit-preview {
-  position: fixed;
-  top: 14px;
-  right: 14px;
-  z-index: 1000;
   background: rgba(201, 48, 96, 0.92);
   color: #F5EEE8;
   border: none;
@@ -535,13 +615,10 @@
   font-weight: 500;
   letter-spacing: 0.04em;
   cursor: pointer;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(6px);
-  transition: transform 120ms ease, background 120ms ease;
+  transition: background 120ms ease;
 }
 .reader-exit-preview:hover {
   background: rgba(220, 90, 138, 1);
-  transform: translateY(-1px);
 }
 
 /* ── Thumbnail strip ── */

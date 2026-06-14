@@ -160,7 +160,7 @@ export default function EditorFilmstrip(): React.JSX.Element {
           color: "var(--text-faint)",
         }}
       >
-        {isBook ? "Spreads" : "Panels"}
+        {isBook ? "Pages" : "Panels"}
       </div>
 
       {isBook ? (

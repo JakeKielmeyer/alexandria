@@ -12,6 +12,7 @@ interface ReaderState {
   setVideoSfx: (on: boolean) => void
   toggleVideoSfx: () => void
   setMusic: (on: boolean) => void
+  toggleMusic: () => void
   setVideoVolume: (volume: number) => void
 }
 
@@ -22,5 +23,6 @@ export const useReaderStore = create<ReaderState>((set) => ({
   setVideoSfx: (on) => set({ videoSfxEnabled: on }),
   toggleVideoSfx: () => set((s) => ({ videoSfxEnabled: !s.videoSfxEnabled })),
   setMusic: (on) => set({ musicEnabled: on }),
+  toggleMusic: () => set((s) => ({ musicEnabled: !s.musicEnabled })),
   setVideoVolume: (volume) => set({ videoVolume: volume }),
 }))
