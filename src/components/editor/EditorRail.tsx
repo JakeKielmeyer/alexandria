@@ -1,6 +1,6 @@
 // src/components/editor/EditorRail.tsx
 
-import React, { useRef, useState, useEffect, useCallback } from 'react'
+import React, { useRef, useState, useCallback } from 'react'
 import { Reorder } from 'framer-motion'
 import { useEditorStore } from '../../store/editorStore'
 import { useToastStore } from '../../store/toastStore'
@@ -268,9 +268,8 @@ export default function EditorRail(): React.JSX.Element {
     setSaveStatus('unsaved')
   }
 
-  const handleCoverUpload = useCallback(async (e: Event): Promise<void> => {
-    const input = e.target as HTMLInputElement
-    const file = input.files?.[0]
+  const handleCoverUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
+    const file = e.target.files?.[0]
     if (!file || !story) return
     const oldCoverUrl = story.cover_url
     setCoverUploading(true)
@@ -298,13 +297,6 @@ export default function EditorRail(): React.JSX.Element {
       if (coverInputRef.current) coverInputRef.current.value = ''
     }
   }, [story, setCoverUploading, setSaveStatus, updateStory, pushToast])
-
-  useEffect(() => {
-    const el = coverInputRef.current
-    if (!el) return
-    el.addEventListener('change', handleCoverUpload)
-    return () => el.removeEventListener('change', handleCoverUpload)
-  }, [handleCoverUpload])
 
   const handleCoverClear = async (): Promise<void> => {
     if (!story) return
@@ -1553,6 +1545,7 @@ export default function EditorRail(): React.JSX.Element {
             ref={coverInputRef}
             type="file"
             accept={ACCEPTED_COVER}
+            onChange={handleCoverUpload}
             style={{ display: 'none' }}
             aria-hidden="true"
           />

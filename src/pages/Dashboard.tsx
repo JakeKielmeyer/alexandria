@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { deleteStoryStorage } from '../lib/upload'
 import { useAuthStore } from '../store/authStore'
+import ReadingModeModal from '../components/dashboard/ReadingModeModal'
+import type { ReadingMode } from '../types'
 import '../styles/dashboard.css'
 
 interface DashboardStory {
@@ -37,6 +39,7 @@ export default function Dashboard(): React.JSX.Element {
   const [error, setError] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
+  const [modeModalOpen, setModeModalOpen] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [togglingId, setTogglingId] = useState<string | null>(null)
   const [copiedId, setCopiedId] = useState<string | null>(null)
@@ -104,7 +107,11 @@ export default function Dashboard(): React.JSX.Element {
     return () => clearTimeout(timer)
   }, [deletingId])
 
-  const handleNewStory = async (): Promise<void> => {
+  const handleNewStoryClick = (): void => {
+    setModeModalOpen(true)
+  }
+
+  const handleModeConfirm = async (mode: ReadingMode): Promise<void> => {
     if (!user) return
     setCreating(true)
     setCreateError(null)
@@ -118,6 +125,7 @@ export default function Dashboard(): React.JSX.Element {
           user_id: user.id,
           is_published: false,
           content_rating: 'mature',
+          reading_mode: mode,
         })
         .select('id')
         .single()
@@ -138,7 +146,6 @@ export default function Dashboard(): React.JSX.Element {
       navigate(`/editor/${storyId}`)
     } catch {
       setCreateError('Could not create story. Please try again.')
-    } finally {
       setCreating(false)
     }
   }
@@ -243,7 +250,7 @@ export default function Dashboard(): React.JSX.Element {
             )}
             <button
               className="dashboard-new-btn"
-              onClick={() => void handleNewStory()}
+              onClick={handleNewStoryClick}
               disabled={creating}
             >
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
@@ -364,6 +371,12 @@ export default function Dashboard(): React.JSX.Element {
           </div>
         )}
       </main>
+
+      <ReadingModeModal
+        open={modeModalOpen}
+        creating={creating}
+        onConfirm={(mode) => void handleModeConfirm(mode)}
+      />
     </div>
   )
 }

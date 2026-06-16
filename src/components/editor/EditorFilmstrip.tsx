@@ -35,6 +35,9 @@ export default function EditorFilmstrip(): React.JSX.Element {
         sortedPanels[i * 2 + 1] ?? null,
       ])
     : [];
+  const leftPages = isBook
+    ? sortedPanels.filter((_, i) => i % 2 === 0)
+    : [];
   const activeSpreadIdx = isBook
     ? spreads.findIndex(([l, r]) => l.id === activePanelId || r?.id === activePanelId)
     : -1;
@@ -90,6 +93,22 @@ export default function EditorFilmstrip(): React.JSX.Element {
       setConfirmingDeletionId(null);
       confirmTimeoutRef.current = null;
     }, 3000);
+  };
+
+  const handleSpreadReorder = (newLeftPages: Panel[]): void => {
+    // Snapshot right-page pairings from the current sorted order before any mutations.
+    const rightByLeft = new Map<string, string | null>();
+    for (let i = 0; i < sortedPanels.length; i += 2) {
+      rightByLeft.set(sortedPanels[i].id, sortedPanels[i + 1]?.id ?? null);
+    }
+    const newOrder: string[] = [];
+    newLeftPages.forEach((leftP) => {
+      newOrder.push(leftP.id);
+      const rightId = rightByLeft.get(leftP.id);
+      if (rightId) newOrder.push(rightId);
+    });
+    reorderPanels(newOrder);
+    setSaveStatus('unsaved');
   };
 
   const handleAddPanel = async (): Promise<void> => {
@@ -166,19 +185,27 @@ export default function EditorFilmstrip(): React.JSX.Element {
       {isBook ? (
         /* ── Book mode: spread thumbnails ── */
         <>
-          <div
+          <Reorder.Group
+            as="div"
+            axis="y"
+            values={leftPages}
+            onReorder={handleSpreadReorder}
             style={{
               display: "flex",
               flexDirection: "column",
               gap: "8px",
               padding: "0 16px",
+              listStyle: "none",
+              margin: 0,
             }}
           >
             {spreads.map(([leftP, rightP], si) => {
               const isActiveSpr = si === activeSpreadIdx;
               return (
-                <div
+                <Reorder.Item
                   key={leftP.id}
+                  value={leftP}
+                  as="div"
                   onClick={() => setActivePanelId(leftP.id)}
                   aria-label={`Spread ${si * 2 + 1}–${si * 2 + 2}${isActiveSpr ? ", selected" : ""}`}
                   style={{
@@ -196,6 +223,32 @@ export default function EditorFilmstrip(): React.JSX.Element {
                     cursor: "pointer",
                   }}
                 >
+                  {/* Drag grip — matches layer-row-drag-handle pattern */}
+                  <div
+                    aria-hidden="true"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    style={{
+                      position: "absolute",
+                      top: "4px",
+                      left: "4px",
+                      cursor: "grab",
+                      color: "var(--text-faint)",
+                      opacity: 0.4,
+                      display: "flex",
+                      alignItems: "center",
+                      padding: "2px",
+                      zIndex: 1,
+                    }}
+                  >
+                    <svg width="7" height="11" viewBox="0 0 7 11" fill="none" aria-hidden="true">
+                      <circle cx="2" cy="1.5" r="1" fill="currentColor"/>
+                      <circle cx="5" cy="1.5" r="1" fill="currentColor"/>
+                      <circle cx="2" cy="5.5" r="1" fill="currentColor"/>
+                      <circle cx="5" cy="5.5" r="1" fill="currentColor"/>
+                      <circle cx="2" cy="9.5" r="1" fill="currentColor"/>
+                      <circle cx="5" cy="9.5" r="1" fill="currentColor"/>
+                    </svg>
+                  </div>
                   {/* Left mini-page */}
                   {(() => {
                     const all = layers.filter((l) => l.panel_id === leftP.id);
@@ -277,10 +330,10 @@ export default function EditorFilmstrip(): React.JSX.Element {
                       </button>
                     );
                   })()}
-                </div>
+                </Reorder.Item>
               );
             })}
-          </div>
+          </Reorder.Group>
 
           {/* Add Spread button */}
           <button

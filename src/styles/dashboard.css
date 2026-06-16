@@ -511,3 +511,107 @@
   font-size: 13px;
   color: var(--db-text-muted);
 }
+
+/* ── Reading mode selection modal ── */
+.db-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.db-modal-card {
+  background: var(--db-bg);
+  border: 1px solid var(--db-border);
+  border-radius: 12px;
+  padding: 36px 32px 28px;
+  width: min(480px, calc(100vw - 32px));
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+}
+
+.db-modal-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 22px;
+  color: var(--db-text-primary);
+  margin: 0;
+}
+
+.db-mode-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.db-mode-option {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 14px 16px;
+  background: var(--db-card-bg);
+  border: 1px solid var(--db-card-brd);
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.12s, background 0.12s;
+  font-family: 'DM Sans', sans-serif;
+}
+
+.db-mode-option:hover {
+  border-color: var(--db-card-hover-brd);
+}
+
+.db-mode-option--selected {
+  background: var(--db-btn-rose-bg);
+  border-color: var(--db-rose-deep);
+}
+
+.db-mode-option-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--db-text-primary);
+}
+
+.db-mode-option-desc {
+  font-size: 11px;
+  color: var(--db-text-muted);
+}
+
+.db-modal-disclaimer {
+  font-size: 11px;
+  color: var(--db-text-muted);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.db-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.db-modal-confirm {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #F5EEE8;
+  background: var(--db-rose-deep);
+  border: none;
+  border-radius: 7px;
+  padding: 10px 20px;
+  min-height: 40px;
+  cursor: pointer;
+}
+
+.db-modal-confirm:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.db-modal-confirm:not(:disabled):hover {
+  opacity: 0.88;
+}
