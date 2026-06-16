@@ -157,10 +157,11 @@ export default function AssetsFolder(): React.JSX.Element {
 
   // ── upload (multi-file) ───────────────────────────────────────────────────
 
-  const handleUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
-    const files = Array.from(e.target.files ?? [])
+  const handleUpload = useCallback(async (e: Event): Promise<void> => {
+    const input = e.target as HTMLInputElement
+    const files = Array.from(input.files ?? [])
     if (!files.length || !story) return
-    if (e.target) e.target.value = ''
+    input.value = ''
 
     setUploadProgress({ current: 0, total: files.length })
     setSaveStatus('saving')
@@ -204,6 +205,21 @@ export default function AssetsFolder(): React.JSX.Element {
     if (successCount > 0) setSaveStatus('saved')
     else setSaveStatus('error')
   }, [story, setAssets, setSaveStatus, pushToast])
+
+  // ── file input native listeners (bypasses React delegation for Opera compat) ─
+
+  useEffect(() => {
+    if (!assetsModalOpen) return
+    const mediaEl = mediaInputRef.current
+    const audioEl = audioInputRef.current
+    if (!mediaEl || !audioEl) return
+    mediaEl.addEventListener('change', handleUpload)
+    audioEl.addEventListener('change', handleUpload)
+    return () => {
+      mediaEl.removeEventListener('change', handleUpload)
+      audioEl.removeEventListener('change', handleUpload)
+    }
+  }, [assetsModalOpen, handleUpload])
 
   // ── rename ────────────────────────────────────────────────────────────────
 
@@ -380,7 +396,6 @@ export default function AssetsFolder(): React.JSX.Element {
               type="file"
               accept={ACCEPTED_MEDIA}
               multiple
-              onChange={handleUpload}
               style={{ display: 'none' }}
               aria-hidden="true"
             />
@@ -389,7 +404,6 @@ export default function AssetsFolder(): React.JSX.Element {
               type="file"
               accept="audio/mpeg,audio/wav,audio/ogg"
               multiple
-              onChange={handleUpload}
               style={{ display: 'none' }}
               aria-hidden="true"
             />

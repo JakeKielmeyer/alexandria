@@ -45,7 +45,7 @@ const FlipPage = React.memo(
     return (
       <div
         ref={ref}
-        data-density={isCoverOrBack ? 'hard' : 'soft'}
+        data-density={isCoverOrBack && !isMobile ? 'hard' : 'soft'}
         style={{
           position: 'relative',
           width: '100%',
