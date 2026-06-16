@@ -5,6 +5,10 @@ import '../styles/reader.css'
 
 const FALLBACK_COVER = 'https://pub-d0a4c9548d2149eb9259096fbf8a9dfe.r2.dev/Cover%20Image.jpg'
 
+function isVideoUrl(url: string): boolean {
+  return /\.(mp4|webm)(\?.*)?$/i.test(url)
+}
+
 interface CoverProps {
   onEnter: () => void
   story: StoryWithCreator
@@ -39,7 +43,10 @@ export default function Cover({
           aria-label={`Enter ${story.title}`}
           className="reader-panel-card reader-panel-card--cover"
         >
-          <img src={coverImage} alt="" className="cover-bg" />
+          {isVideoUrl(coverImage)
+            ? <video src={coverImage} autoPlay muted loop playsInline className="cover-bg" />
+            : <img src={coverImage} alt="" className="cover-bg" />
+          }
           <div className="cover-gradient" />
 
           <div className="cover-branding" aria-hidden="true">

@@ -67,7 +67,7 @@ export default function AssetsFolder(): React.JSX.Element {
     assetsModalOpen, setAssetsModalOpen,
     assets, setAssets, removeAsset, updateAsset,
     story, layers, activePanelId,
-    addLayer, updateLayer, deleteLayer, setSaveStatus,
+    addLayer, updateLayer, deleteLayer, setSaveStatus, updateStory,
   } = useEditorStore()
   const pushToast = useToastStore((s) => s.pushToast)
 
@@ -77,6 +77,7 @@ export default function AssetsFolder(): React.JSX.Element {
   const [usingAssetId, setUsingAssetId] = useState<string | null>(null)
   const [editingAssetId, setEditingAssetId] = useState<string | null>(null)
   const [editingName, setEditingName] = useState('')
+  const [coverContextAssetId, setCoverContextAssetId] = useState<string | null>(null)
 
   const wrapperRef = useRef<HTMLDivElement>(null)
   const mediaInputRef = useRef<HTMLInputElement>(null)
@@ -88,7 +89,8 @@ export default function AssetsFolder(): React.JSX.Element {
   // ── fetch assets when opened ──────────────────────────────────────────────
 
   useEffect(() => {
-    if (!assetsModalOpen || !story) return
+    if (!assetsModalOpen) { setCoverContextAssetId(null); return }
+    if (!story) return
     setLoading(true)
     supabase
       .from('assets')
@@ -307,6 +309,23 @@ export default function AssetsFolder(): React.JSX.Element {
 
   // ── use in panel ──────────────────────────────────────────────────────────
 
+  const handleSetAsCoverField = useCallback(
+    async (asset: Asset, field: 'cover_url' | 'back_cover_url'): Promise<void> => {
+      if (!story) return
+      setSaveStatus('saving')
+      const { error } = await supabase.from('stories').update({ [field]: asset.media_url }).eq('id', story.id)
+      if (error) {
+        setSaveStatus('error')
+        pushToast('Failed to set cover', 'error')
+        return
+      }
+      updateStory({ [field]: asset.media_url })
+      setSaveStatus('saved')
+      setCoverContextAssetId(null)
+    },
+    [story, setSaveStatus, updateStory, pushToast],
+  )
+
   const handleUseInPanel = useCallback(async (asset: Asset): Promise<void> => {
     if (!activePanelId || !story) return
     setUsingAssetId(asset.id)
@@ -466,6 +485,31 @@ export default function AssetsFolder(): React.JSX.Element {
                         >
                           {isUsing ? 'Adding…' : 'Use in panel'}
                         </button>
+                        {asset.media_type !== 'audio' && (
+                          coverContextAssetId === asset.id ? (
+                            <>
+                              <button
+                                className="asset-btn asset-btn--ghost"
+                                onClick={() => void handleSetAsCoverField(asset, 'cover_url')}
+                              >
+                                → Front
+                              </button>
+                              <button
+                                className="asset-btn asset-btn--ghost"
+                                onClick={() => void handleSetAsCoverField(asset, 'back_cover_url')}
+                              >
+                                → Back
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              className="asset-btn asset-btn--ghost"
+                              onClick={() => setCoverContextAssetId(asset.id)}
+                            >
+                              Cover ▾
+                            </button>
+                          )
+                        )}
                         <button
                           ref={isConfirming ? confirmBtnRef : undefined}
                           className={isConfirming ? 'asset-btn asset-btn--danger asset-btn--confirm' : 'asset-btn asset-btn--ghost'}

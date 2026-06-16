@@ -5,7 +5,7 @@ import { Reorder } from 'framer-motion'
 import { useEditorStore } from '../../store/editorStore'
 import { useToastStore } from '../../store/toastStore'
 import { supabase } from '../../lib/supabase'
-import { ACCEPTED_COVER, coverPath, deleteFromPanelsBucket, extractStoragePath, uploadToPanelsBucket, validateMediaFile } from '../../lib/upload'
+import { ACCEPTED_COVER, getMediaType, registerAsset, uploadToPanelsBucket, validateMediaFile } from '../../lib/upload'
 import { loadFont } from '../../lib/fonts'
 import FontSelect from './FontSelect'
 import type { ContentRating, FillMode, Layer, ReadingDirection, ReadingMode, TransitionStyle, TextLayerType, TailDirection } from '../../types'
@@ -87,8 +87,9 @@ export default function EditorRail(): React.JSX.Element {
   const [editingLayerNameId, setEditingLayerNameId] = useState<string | null>(null)
   const [editingLayerNameValue, setEditingLayerNameValue] = useState('')
   const [publishConfirm, setPublishConfirm] = useState(false)
-  const [coverUploading, setCoverUploading] = useState(false)
+  const [coverFieldUploading, setCoverFieldUploading] = useState<'cover_url' | 'back_cover_url' | null>(null)
   const coverInputRef = useRef<HTMLInputElement>(null)
+  const backCoverInputRef = useRef<HTMLInputElement>(null)
   const [passwordInput, setPasswordInput] = useState('')
   const [passwordSaving, setPasswordSaving] = useState(false)
   const [showPasswordInput, setShowPasswordInput] = useState(false)
@@ -268,54 +269,41 @@ export default function EditorRail(): React.JSX.Element {
     setSaveStatus('unsaved')
   }
 
-  const handleCoverUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
-    const file = e.target.files?.[0]
-    if (!file || !story) return
-    const oldCoverUrl = story.cover_url
-    setCoverUploading(true)
-    setSaveStatus('saving')
-    try {
-      validateMediaFile(file, 'cover')
-      const { url } = await uploadToPanelsBucket(file, coverPath(story.id, file))
-      const { error } = await supabase
-        .from('stories')
-        .update({ cover_url: url })
-        .eq('id', story.id)
-      if (error) throw error
-      updateStory({ cover_url: url })
-      setSaveStatus('saved')
-      if (oldCoverUrl) {
-        const oldPath = extractStoragePath(oldCoverUrl)
-        if (oldPath) deleteFromPanelsBucket(oldPath).catch(() => {})
+  const handleCoverFieldUpload = useCallback(
+    async (file: File, field: 'cover_url' | 'back_cover_url'): Promise<void> => {
+      if (!story) return
+      setCoverFieldUploading(field)
+      setSaveStatus('saving')
+      try {
+        validateMediaFile(file, 'cover')
+        const path = `${story.id}/assets/${Date.now()}_0_${file.name}`
+        const { url } = await uploadToPanelsBucket(file, path)
+        const mediaType = getMediaType(file)
+        if (mediaType) await registerAsset(story.id, mediaType, url, file.name)
+        const { error } = await supabase.from('stories').update({ [field]: url }).eq('id', story.id)
+        if (error) throw error
+        updateStory({ [field]: url })
+        setSaveStatus('saved')
+      } catch (err: unknown) {
+        setSaveStatus('error')
+        const label = field === 'cover_url' ? 'Cover' : 'Back cover'
+        pushToast(`${label} upload failed: ${err instanceof Error ? err.message : 'Unknown error'}`, 'error')
+      } finally {
+        setCoverFieldUploading(null)
+        const ref = field === 'cover_url' ? coverInputRef : backCoverInputRef
+        if (ref.current) ref.current.value = ''
       }
-    } catch (err: unknown) {
-      setSaveStatus('error')
-      const msg = err instanceof Error ? err.message : 'Unknown error'
-      pushToast(`Cover upload failed: ${msg}`, 'error')
-    } finally {
-      setCoverUploading(false)
-      if (coverInputRef.current) coverInputRef.current.value = ''
-    }
-  }, [story, setCoverUploading, setSaveStatus, updateStory, pushToast])
+    },
+    [story, setSaveStatus, updateStory, pushToast],
+  )
 
-  const handleCoverClear = async (): Promise<void> => {
+  const handleCoverFieldClear = async (field: 'cover_url' | 'back_cover_url'): Promise<void> => {
     if (!story) return
-    const oldCoverUrl = story.cover_url
     setSaveStatus('saving')
-    const { error } = await supabase
-      .from('stories')
-      .update({ cover_url: null })
-      .eq('id', story.id)
-    if (error) {
-      setSaveStatus('error')
-      return
-    }
-    updateStory({ cover_url: null })
+    const { error } = await supabase.from('stories').update({ [field]: null }).eq('id', story.id)
+    if (error) { setSaveStatus('error'); return }
+    updateStory({ [field]: null })
     setSaveStatus('saved')
-    if (oldCoverUrl) {
-      const oldPath = extractStoragePath(oldCoverUrl)
-      if (oldPath) deleteFromPanelsBucket(oldPath).catch(() => {})
-    }
   }
 
   const isValidUrl = (url: string): boolean => {
@@ -1487,69 +1475,98 @@ export default function EditorRail(): React.JSX.Element {
           <div className="rail-hint">Shown on the end page. Use the full URL including https://.</div>
         </div>
 
-        <SectionLabel>Cover Image</SectionLabel>
+        <SectionLabel>Cover</SectionLabel>
         <div className="rail-section-inner">
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
-            <div
-              style={{
-                width: 68,
-                height: 88,
-                borderRadius: 6,
-                overflow: 'hidden',
-                background: 'var(--bg-dd)',
-                border: '1px solid var(--thumb-brd)',
-                flexShrink: 0,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              {story?.cover_url ? (
-                <img
-                  src={story.cover_url}
-                  alt="Cover preview"
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                />
-              ) : (
-                <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true" style={{ opacity: 0.3 }}>
-                  <rect x="1" y="1" width="20" height="20" rx="2" stroke="currentColor" strokeWidth="1.3"/>
-                  <path d="M1 15l6-5 4 4 4-4 6 6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-                  <circle cx="7" cy="7" r="1.5" stroke="currentColor" strokeWidth="1.2"/>
-                </svg>
-              )}
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
-              <button
-                type="button"
-                onClick={() => coverInputRef.current?.click()}
-                disabled={coverUploading}
-                className="rail-link-add"
-                style={{ textAlign: 'left' }}
-              >
-                {coverUploading ? 'Uploading…' : (story?.cover_url ? 'Replace cover' : 'Upload cover')}
-              </button>
-              {story?.cover_url && (
-                <button
-                  type="button"
-                  onClick={() => void handleCoverClear()}
-                  disabled={coverUploading}
-                  className="rail-link-add"
-                  style={{ textAlign: 'left' }}
-                >
-                  Clear cover
-                </button>
-              )}
-            </div>
-          </div>
+          {(['cover_url', 'back_cover_url'] as const).map((field) => {
+            const url = story?.[field] ?? null
+            const isUploading = coverFieldUploading === field
+            const isVideo = !!url && /\.(mp4|webm)(\?.*)?$/i.test(url)
+            const label = field === 'cover_url' ? 'Cover' : 'Back cover'
+            return (
+              <div key={field} style={{ marginBottom: field === 'cover_url' ? 12 : 0 }}>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>{label}</div>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                  <div
+                    style={{
+                      width: 68,
+                      height: 88,
+                      borderRadius: 6,
+                      overflow: 'hidden',
+                      background: 'var(--bg-dd)',
+                      border: '1px solid var(--thumb-brd)',
+                      flexShrink: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {url ? (
+                      isVideo ? (
+                        <video
+                          src={url}
+                          muted
+                          playsInline
+                          preload="metadata"
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                        />
+                      ) : (
+                        <img
+                          src={url}
+                          alt={`${label} preview`}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                        />
+                      )
+                    ) : (
+                      <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true" style={{ opacity: 0.3 }}>
+                        <rect x="1" y="1" width="20" height="20" rx="2" stroke="currentColor" strokeWidth="1.3"/>
+                        <path d="M1 15l6-5 4 4 4-4 6 6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+                        <circle cx="7" cy="7" r="1.5" stroke="currentColor" strokeWidth="1.2"/>
+                      </svg>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
+                    <button
+                      type="button"
+                      onClick={() => (field === 'cover_url' ? coverInputRef : backCoverInputRef).current?.click()}
+                      disabled={isUploading}
+                      className="rail-link-add"
+                      style={{ textAlign: 'left' }}
+                    >
+                      {isUploading ? 'Uploading…' : (url ? `Replace ${label.toLowerCase()}` : `Upload ${label.toLowerCase()}`)}
+                    </button>
+                    {url && (
+                      <button
+                        type="button"
+                        onClick={() => void handleCoverFieldClear(field)}
+                        disabled={isUploading}
+                        className="rail-link-add"
+                        style={{ textAlign: 'left' }}
+                      >
+                        Clear {label.toLowerCase()}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )
+          })}
           <input
             ref={coverInputRef}
             type="file"
             accept={ACCEPTED_COVER}
-            onChange={handleCoverUpload}
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleCoverFieldUpload(f, 'cover_url') }}
             style={{ display: 'none' }}
             aria-hidden="true"
           />
-          <div className="rail-hint">Upload a cover image that readers see before entering.</div>
+          <input
+            ref={backCoverInputRef}
+            type="file"
+            accept={ACCEPTED_COVER}
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleCoverFieldUpload(f, 'back_cover_url') }}
+            style={{ display: 'none' }}
+            aria-hidden="true"
+          />
+          <div className="rail-hint">Upload a cover that readers see before entering. Back cover is optional — shown as the last page in book mode.</div>
         </div>
 
         <div className="rail-go-live">

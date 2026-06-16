@@ -68,7 +68,7 @@ const FlipBookReader = forwardRef<FlipBookHandle, FlipBookReaderProps>(
 
     // pageStyle lives on the story in M2+. Default to 'hardback' until that column lands.
     const pageStyle = ((story as any).page_style as 'paper' | 'hardback' | undefined) ?? 'hardback'
-    const backCoverUrl: string | null = (story as any).back_cover_url ?? null
+    const backCoverUrl: string | null = story.back_cover_url ?? null
 
     // Stable common props for all interior pages — avoids FlipPage re-renders
     // when unrelated parent state changes (e.g. isFlipping toggling rapidly).

@@ -7,6 +7,10 @@ import ReadingModeModal from '../components/dashboard/ReadingModeModal'
 import type { ReadingMode } from '../types'
 import '../styles/dashboard.css'
 
+function isVideoUrl(url: string | null): boolean {
+  return !!url && /\.(mp4|webm)(\?.*)?$/i.test(url)
+}
+
 interface DashboardStory {
   id: string
   title: string
@@ -175,11 +179,12 @@ export default function Dashboard(): React.JSX.Element {
         // Gather storage URLs before the DB delete — the storage RLS policies
         // query public.stories, so the row must still exist when remove() runs.
         const [{ data: storyData }, { data: storyAssets }] = await Promise.all([
-          supabase.from('stories').select('cover_url').eq('id', storyId).single(),
+          supabase.from('stories').select('cover_url, back_cover_url').eq('id', storyId).single(),
           supabase.from('assets').select('media_url').eq('story_id', storyId),
         ])
         await deleteStoryStorage(
           storyData?.cover_url,
+          storyData?.back_cover_url,
           storyAssets?.map((a) => a.media_url) ?? [],
         ).catch(() => {})
 
@@ -279,7 +284,11 @@ export default function Dashboard(): React.JSX.Element {
                 <div className="story-card-top">
                   <div className="story-cover">
                     {story.cover_url ? (
-                      <img src={story.cover_url} alt="" />
+                      isVideoUrl(story.cover_url) ? (
+                        <video src={story.cover_url} muted playsInline preload="metadata" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                      ) : (
+                        <img src={story.cover_url} alt="" />
+                      )
                     ) : (
                       <div className="story-cover-placeholder">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">

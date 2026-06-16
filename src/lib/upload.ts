@@ -9,7 +9,7 @@ import { supabase } from './supabase'
 import type { Asset, MediaType } from '../types'
 
 export const ACCEPTED_MEDIA = 'image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,audio/mpeg,audio/wav,audio/ogg'
-export const ACCEPTED_COVER = 'image/jpeg,image/png,image/webp,image/gif'
+export const ACCEPTED_COVER = 'image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm'
 
 const ACCEPTED_MEDIA_TYPES = new Set(ACCEPTED_MEDIA.split(','))
 const ACCEPTED_COVER_TYPES = new Set(ACCEPTED_COVER.split(','))
@@ -107,9 +107,10 @@ export async function deleteFromPanelsBucket(path: string): Promise<void> {
 // queries public.stories to verify ownership, so the row must still exist.
 export async function deleteStoryStorage(
   coverUrl: string | null | undefined,
+  backCoverUrl: string | null | undefined,
   assetUrls: string[],
 ): Promise<void> {
-  const paths = [coverUrl, ...assetUrls]
+  const paths = [coverUrl, backCoverUrl, ...assetUrls]
     .map((url) => (url ? extractStoragePath(url) : null))
     .filter((p): p is string => p !== null)
   if (paths.length === 0) return

@@ -2,6 +2,10 @@ import React from 'react'
 import PanelLayers from '../reader/PanelLayers'
 import type { Layer } from '../../types'
 
+function isVideoUrl(url: string | null | undefined): boolean {
+  return !!url && /\.(mp4|webm)(\?.*)?$/i.test(url)
+}
+
 interface FlipPageProps {
   layers?: Layer[]
   coverUrl?: string | null
@@ -58,12 +62,23 @@ const FlipPage = React.memo(
       >
         {isCoverOrBack ? (
           coverUrl ? (
-            <img
-              src={coverUrl}
-              alt=""
-              draggable={false}
-              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-            />
+            isVideoUrl(coverUrl) ? (
+              <video
+                src={coverUrl}
+                autoPlay
+                muted
+                loop
+                playsInline
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              />
+            ) : (
+              <img
+                src={coverUrl}
+                alt=""
+                draggable={false}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              />
+            )
           ) : null
         ) : (
           <PanelLayers

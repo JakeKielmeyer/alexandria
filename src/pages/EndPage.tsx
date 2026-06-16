@@ -19,6 +19,10 @@ import '../styles/reader.css'
 
 const FALLBACK_END_IMAGE = 'https://pub-d0a4c9548d2149eb9259096fbf8a9dfe.r2.dev/Panel%202.jpg'
 
+function isVideoUrl(url: string): boolean {
+  return /\.(mp4|webm)(\?.*)?$/i.test(url)
+}
+
 export default function EndPage(): React.JSX.Element {
   const navigate = useNavigate()
   const { username, slug } = useParams<{ username: string; slug: string }>()
@@ -50,7 +54,7 @@ export default function EndPage(): React.JSX.Element {
     )
   }
 
-  const endImage = story.cover_url ?? FALLBACK_END_IMAGE
+  const endImage = story.back_cover_url ?? story.cover_url ?? FALLBACK_END_IMAGE
 
   // Mirror the story's transition_style for the back-cover entrance.
   // Stacked → 3D rise + scale + rotate (matches CinematicPanelItem's intro).
@@ -86,7 +90,10 @@ export default function EndPage(): React.JSX.Element {
           animate={cardAnimate}
           style={useStacked ? { transformStyle: 'preserve-3d', transformOrigin: 'center bottom' } : undefined}
         >
-          <img src={endImage} alt="" className="cover-bg" />
+          {isVideoUrl(endImage)
+            ? <video src={endImage} autoPlay muted loop playsInline className="cover-bg" />
+            : <img src={endImage} alt="" className="cover-bg" />
+          }
           <div className="cover-gradient" />
 
           <div className="end-content">

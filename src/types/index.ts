@@ -38,6 +38,7 @@ export interface Story {
   password_hash: string | null
   is_published: boolean
   cover_url: string | null
+  back_cover_url: string | null
   font_manifest: string[]
   creator_bio: string | null
   creator_links: { label: string; url: string }[]
