@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { deleteStoryStorage } from '../lib/upload'
 import { useAuthStore } from '../store/authStore'
 import '../styles/dashboard.css'
 
@@ -164,6 +165,17 @@ export default function Dashboard(): React.JSX.Element {
   const handleDeleteClick = async (storyId: string): Promise<void> => {
     if (deletingId === storyId) {
       try {
+        // Gather storage URLs before the DB delete — the storage RLS policies
+        // query public.stories, so the row must still exist when remove() runs.
+        const [{ data: storyData }, { data: storyAssets }] = await Promise.all([
+          supabase.from('stories').select('cover_url').eq('id', storyId).single(),
+          supabase.from('assets').select('media_url').eq('story_id', storyId),
+        ])
+        await deleteStoryStorage(
+          storyData?.cover_url,
+          storyAssets?.map((a) => a.media_url) ?? [],
+        ).catch(() => {})
+
         const { error: deleteError } = await supabase
           .from('stories')
           .delete()

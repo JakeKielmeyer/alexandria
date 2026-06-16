@@ -91,6 +91,31 @@ function toAssetMediaType(mt: MediaType): Asset['media_type'] {
   return mt as Asset['media_type']
 }
 
+export function extractStoragePath(mediaUrl: string): string | null {
+  const marker = '/storage/v1/object/public/panels/'
+  const idx = mediaUrl.indexOf(marker)
+  if (idx === -1) return null
+  return decodeURIComponent(mediaUrl.slice(idx + marker.length))
+}
+
+export async function deleteFromPanelsBucket(path: string): Promise<void> {
+  const { error } = await supabase.storage.from('panels').remove([path])
+  if (error) throw error
+}
+
+// Call this BEFORE deleting the story from the DB. The storage DELETE policy
+// queries public.stories to verify ownership, so the row must still exist.
+export async function deleteStoryStorage(
+  coverUrl: string | null | undefined,
+  assetUrls: string[],
+): Promise<void> {
+  const paths = [coverUrl, ...assetUrls]
+    .map((url) => (url ? extractStoragePath(url) : null))
+    .filter((p): p is string => p !== null)
+  if (paths.length === 0) return
+  await supabase.storage.from('panels').remove(paths)
+}
+
 /**
  * Register a successfully uploaded file as an `assets` row for the story.
  * Uses upsert on (story_id, filename) so re-uploading the same filename

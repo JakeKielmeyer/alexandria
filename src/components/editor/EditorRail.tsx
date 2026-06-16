@@ -5,7 +5,7 @@ import { Reorder } from 'framer-motion'
 import { useEditorStore } from '../../store/editorStore'
 import { useToastStore } from '../../store/toastStore'
 import { supabase } from '../../lib/supabase'
-import { ACCEPTED_COVER, coverPath, uploadToPanelsBucket, validateMediaFile } from '../../lib/upload'
+import { ACCEPTED_COVER, coverPath, deleteFromPanelsBucket, extractStoragePath, uploadToPanelsBucket, validateMediaFile } from '../../lib/upload'
 import { loadFont } from '../../lib/fonts'
 import FontSelect from './FontSelect'
 import type { ContentRating, FillMode, Layer, ReadingDirection, ReadingMode, TransitionStyle, TextLayerType, TailDirection } from '../../types'
@@ -271,6 +271,7 @@ export default function EditorRail(): React.JSX.Element {
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
     const file = e.target.files?.[0]
     if (!file || !story) return
+    const oldCoverUrl = story.cover_url
     setCoverUploading(true)
     setSaveStatus('saving')
     try {
@@ -283,6 +284,10 @@ export default function EditorRail(): React.JSX.Element {
       if (error) throw error
       updateStory({ cover_url: url })
       setSaveStatus('saved')
+      if (oldCoverUrl) {
+        const oldPath = extractStoragePath(oldCoverUrl)
+        if (oldPath) deleteFromPanelsBucket(oldPath).catch(() => {})
+      }
     } catch (err: unknown) {
       setSaveStatus('error')
       const msg = err instanceof Error ? err.message : 'Unknown error'
@@ -295,6 +300,7 @@ export default function EditorRail(): React.JSX.Element {
 
   const handleCoverClear = async (): Promise<void> => {
     if (!story) return
+    const oldCoverUrl = story.cover_url
     setSaveStatus('saving')
     const { error } = await supabase
       .from('stories')
@@ -306,6 +312,10 @@ export default function EditorRail(): React.JSX.Element {
     }
     updateStory({ cover_url: null })
     setSaveStatus('saved')
+    if (oldCoverUrl) {
+      const oldPath = extractStoragePath(oldCoverUrl)
+      if (oldPath) deleteFromPanelsBucket(oldPath).catch(() => {})
+    }
   }
 
   const isValidUrl = (url: string): boolean => {

@@ -22,6 +22,7 @@ import {
   ACCEPTED_MEDIA, getMediaType,
   uploadToPanelsBucket,
   validateMediaFile, registerAsset,
+  extractStoragePath, deleteFromPanelsBucket,
 } from '../../lib/upload'
 import { LAYER_DEFAULTS } from '../../types'
 import type { Asset, Layer, MediaType } from '../../types'
@@ -267,8 +268,17 @@ export default function AssetsFolder(): React.JSX.Element {
     setConfirmingDeleteId(null)
     clearConfirmTimeout()
 
+    const asset = assets.find((a) => a.id === assetId)
+
     const { error } = await supabase.from('assets').delete().eq('id', assetId)
     if (error) { pushToast('Delete failed', 'error'); return }
+
+    if (asset) {
+      const storagePath = extractStoragePath(asset.media_url)
+      if (storagePath) {
+        deleteFromPanelsBucket(storagePath).catch(() => {})
+      }
+    }
 
     // The DB cascades layer deletion; mirror in store so the canvas updates
     // immediately without waiting for a reload.
@@ -277,7 +287,7 @@ export default function AssetsFolder(): React.JSX.Element {
       deleteLayer(layer.id)
     }
     removeAsset(assetId)
-  }, [confirmingDeleteId, pushToast, removeAsset, deleteLayer])
+  }, [confirmingDeleteId, assets, pushToast, removeAsset, deleteLayer])
 
   // ── use in panel ──────────────────────────────────────────────────────────
 
