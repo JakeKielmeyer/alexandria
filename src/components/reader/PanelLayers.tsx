@@ -17,7 +17,6 @@
 
 import React, { useRef, useEffect, useState } from 'react'
 import type { Layer, FillMode, TailDirection } from '../../types'
-import { BOOK_SPINE_PX } from '../../types'
 import { computeBasePoint, buildTailPath } from '../SpeechBubble/geometry'
 import type { BubbleState, Point } from '../SpeechBubble/geometry'
 
@@ -379,17 +378,8 @@ function LayerRenderer({ layer, videoSfxEnabled, musicEnabled, videoVolume, isMo
   // each page clips to exactly its own half via overflow:hidden.
   // Portrait / no spreadSide: show the full image scaled to fit the page.
   const isSpread = layer.is_spread_layer
-  const gutterHalf = BOOK_SPINE_PX / 2
   const effectiveCStyle: React.CSSProperties = isSpread
-    ? {
-        position: 'absolute',
-        top: 0,
-        bottom: 0,
-        left: spreadSide === 'right' ? gutterHalf : 0,
-        right: spreadSide === 'left' ? gutterHalf : 0,
-        opacity: layer.opacity,
-        overflow: 'hidden',
-      }
+    ? { position: 'absolute', inset: 0, opacity: layer.opacity, overflow: 'hidden' }
     : cStyle
   const spreadMediaStyle: React.CSSProperties | null = isSpread ? {
     position: 'absolute',
