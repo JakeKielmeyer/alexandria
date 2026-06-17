@@ -26,7 +26,7 @@ export default function Editor(): React.JSX.Element {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useAutoSave()
+  const { flush } = useAutoSave()
 
   useEffect(() => {
     if (!storyId || !user) return
@@ -137,7 +137,13 @@ export default function Editor(): React.JSX.Element {
     <div className="editor-root" data-theme="dark">
       {/* Keyed so switching stories remounts with the new title; lets
           EditorTopBar drop its prop→state sync useEffect. */}
-      <EditorTopBar key={story?.id ?? 'no-story'} />
+      <EditorTopBar
+        key={story?.id ?? 'no-story'}
+        onPreview={async () => {
+          await flush()
+          if (story) navigate(`/u/${story.username}/s/${story.slug}?preview=1`)
+        }}
+      />
       <div className="editor-body">
         <EditorFilmstrip />
         <EditorCanvas />

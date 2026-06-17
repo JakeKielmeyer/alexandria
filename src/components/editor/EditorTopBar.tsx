@@ -7,12 +7,16 @@ const MODES: { id: EditorMode; label: string }[] = [
   { id: 'design', label: 'Design' },
 ]
 
+interface EditorTopBarProps {
+  onPreview?: () => Promise<void>
+}
+
 // NOTE: This component is keyed off `story?.id` by its parent
 // (src/pages/Editor.tsx) so that switching stories remounts the
 // component with a fresh `titleValue` initialized from the new story's
 // title. That avoids a useEffect that syncs prop → state, which tripped
 // react-hooks/set-state-in-effect.
-export default function EditorTopBar(): React.JSX.Element {
+export default function EditorTopBar({ onPreview }: EditorTopBarProps): React.JSX.Element {
   const { story, saveStatus, editorMode, setEditorMode, updateStory, setSaveStatus, gridVisible, toggleGrid } = useEditorStore()
   const navigate = useNavigate()
   const [titleValue, setTitleValue] = useState(story?.title ?? '')
@@ -147,7 +151,11 @@ export default function EditorTopBar(): React.JSX.Element {
         <button
           onClick={() => {
             if (!story) return
-            navigate(`/u/${story.username}/s/${story.slug}?preview=1`)
+            if (onPreview) {
+              void onPreview()
+            } else {
+              navigate(`/u/${story.username}/s/${story.slug}?preview=1`)
+            }
           }}
           disabled={!story}
           style={{

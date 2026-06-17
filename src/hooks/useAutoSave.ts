@@ -6,7 +6,7 @@ import { useEditorStore } from '../store/editorStore'
 
 const DEBOUNCE_MS = 2000
 
-export function useAutoSave(): void {
+export function useAutoSave(): { flush: () => Promise<void> } {
   const { story, panels, layers, saveStatus, setSaveStatus } = useEditorStore()
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isMounted = useRef(true)
@@ -163,6 +163,22 @@ export function useAutoSave(): void {
     }
   }, [story, panels, layers, setSaveStatus])
 
+  // Keep a ref to the latest save so flush() can call it without stale closures.
+  const saveRef = useRef(save)
+  useEffect(() => { saveRef.current = save }, [save])
+
+  // Flush any pending debounced save immediately. Called by the Preview button
+  // before the Editor unmounts so changes reach Supabase before the reader fetches.
+  const flush = useCallback(async (): Promise<void> => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+      timerRef.current = null
+    }
+    if (useEditorStore.getState().saveStatus === 'unsaved') {
+      await saveRef.current()
+    }
+  }, [])
+
   useEffect(() => {
     if (saveStatus !== 'unsaved') return
 
@@ -176,4 +192,6 @@ export function useAutoSave(): void {
       if (timerRef.current) clearTimeout(timerRef.current)
     }
   }, [saveStatus, save])
+
+  return { flush }
 }

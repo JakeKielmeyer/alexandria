@@ -17,6 +17,7 @@
 
 import React, { useRef, useEffect, useState } from 'react'
 import type { Layer, FillMode, TailDirection } from '../../types'
+import { BOOK_SPINE_PX } from '../../types'
 import { computeBasePoint, buildTailPath } from '../SpeechBubble/geometry'
 import type { BubbleState, Point } from '../SpeechBubble/geometry'
 
@@ -177,10 +178,10 @@ function TextLayerRenderer({ layer, isMobile = false }: { layer: Layer; isMobile
       <svg
         style={{
           position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
+          top: -bubbleState.y,
+          left: -bubbleState.x,
+          width: pw,
+          height: ph,
           overflow: 'visible',
           pointerEvents: 'none',
         }}
@@ -378,8 +379,17 @@ function LayerRenderer({ layer, videoSfxEnabled, musicEnabled, videoVolume, isMo
   // each page clips to exactly its own half via overflow:hidden.
   // Portrait / no spreadSide: show the full image scaled to fit the page.
   const isSpread = layer.is_spread_layer
+  const gutterHalf = BOOK_SPINE_PX / 2
   const effectiveCStyle: React.CSSProperties = isSpread
-    ? { position: 'absolute', inset: 0, opacity: layer.opacity, overflow: 'hidden' }
+    ? {
+        position: 'absolute',
+        top: 0,
+        bottom: 0,
+        left: spreadSide === 'right' ? gutterHalf : 0,
+        right: spreadSide === 'left' ? gutterHalf : 0,
+        opacity: layer.opacity,
+        overflow: 'hidden',
+      }
     : cStyle
   const spreadMediaStyle: React.CSSProperties | null = isSpread ? {
     position: 'absolute',

@@ -825,9 +825,9 @@ export default function EditorCanvas(): React.JSX.Element {
           onClick={() => panelFileInputRef.current?.click()}
           disabled={isPanelUploading || !canAddLayer}
           className="canvas-preset-btn"
-          aria-label="Add media layer"
+          aria-label="Add content layer"
         >
-          {isPanelUploading ? 'Uploading…' : '+ Media'}
+          {isPanelUploading ? 'Uploading…' : '+ Content'}
         </button>
 
         {/* Text type dropdown */}
@@ -943,13 +943,13 @@ export default function EditorCanvas(): React.JSX.Element {
                       onClick={(e) => { e.stopPropagation(); panelFileInputRef.current?.click() }}
                       disabled={isPanelUploading}
                       className="canvas-empty-upload"
-                      aria-label="Add media to panel"
+                      aria-label="Add content to panel"
                     >
                       <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
                         <rect x="2" y="2" width="24" height="24" rx="4" stroke="currentColor" strokeWidth="1.5"/>
                         <path d="M14 9v10M9 14h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
                       </svg>
-                      {isPanelUploading ? 'Uploading…' : 'Add media'}
+                      {isPanelUploading ? 'Uploading…' : 'Add content'}
                     </button>
                   )}
                   {gridVisible && (
@@ -1001,13 +1001,13 @@ export default function EditorCanvas(): React.JSX.Element {
                         onClick={(e) => { e.stopPropagation(); panelFileInputRef.current?.click() }}
                         disabled={isPanelUploading}
                         className="canvas-empty-upload"
-                        aria-label="Add media to panel"
+                        aria-label="Add content to panel"
                       >
                         <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
                           <rect x="2" y="2" width="24" height="24" rx="4" stroke="currentColor" strokeWidth="1.5"/>
                           <path d="M14 9v10M9 14h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
                         </svg>
-                        {isPanelUploading ? 'Uploading…' : 'Add media'}
+                        {isPanelUploading ? 'Uploading…' : 'Add content'}
                       </button>
                     )}
                     {gridVisible && (
@@ -1098,13 +1098,13 @@ export default function EditorCanvas(): React.JSX.Element {
                     onClick={() => panelFileInputRef.current?.click()}
                     disabled={isPanelUploading}
                     className="canvas-empty-upload"
-                    aria-label="Add media to panel"
+                    aria-label="Add content to panel"
                   >
                     <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
                       <rect x="2" y="2" width="24" height="24" rx="4" stroke="currentColor" strokeWidth="1.5"/>
                       <path d="M14 9v10M9 14h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
                     </svg>
-                    {isPanelUploading ? 'Uploading…' : 'Add media'}
+                    {isPanelUploading ? 'Uploading…' : 'Add content'}
                   </button>
                 )}
 

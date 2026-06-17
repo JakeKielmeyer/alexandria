@@ -177,6 +177,7 @@ export const PANEL_HEIGHT_PRESETS = {
 export const BOOK_PAGE_HEIGHT  = 879
 export const BOOK_PAGE_WIDTH   = 796
 export const BOOK_SPREAD_WIDTH = 1592
+export const BOOK_SPINE_PX     = 4
 
 export type PanelHeightPreset = keyof typeof PANEL_HEIGHT_PRESETS
 

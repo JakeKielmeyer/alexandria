@@ -956,12 +956,12 @@ export default function EditorRail(): React.JSX.Element {
                 )}
 
                 {activeLayer.media_type !== 'audio' && activeLayer.media_type !== 'text' && (
-                <><SectionLabel>Fill Mode</SectionLabel>
+                <><SectionLabel>Fit Mode</SectionLabel>
                 {(() => {
                   const currentMode = resolvedFillMode(activeLayer)
                   const FILL_MODES: { id: FillMode; label: string; desc: string }[] = [
                     { id: 'crop',    label: 'Crop',    desc: 'Covers panel, preserves proportions. Drag image to set focal point.' },
-                    { id: 'stretch', label: 'Stretch', desc: 'Covers panel, ignores proportions.' },
+                    { id: 'stretch', label: 'Fill', desc: 'Covers panel, ignores proportions.' },
                     { id: 'custom',  label: 'Custom',  desc: 'Free position and size via drag handles.' },
                   ]
                   return (
@@ -1481,7 +1481,7 @@ export default function EditorRail(): React.JSX.Element {
             const url = story?.[field] ?? null
             const isUploading = coverFieldUploading === field
             const isVideo = !!url && /\.(mp4|webm)(\?.*)?$/i.test(url)
-            const label = field === 'cover_url' ? 'Cover' : 'Back cover'
+            const label = field === 'cover_url' ? 'Front cover' : 'Back cover'
             return (
               <div key={field} style={{ marginBottom: field === 'cover_url' ? 12 : 0 }}>
                 <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>{label}</div>
