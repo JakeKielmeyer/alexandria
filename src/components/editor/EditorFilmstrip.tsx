@@ -6,7 +6,6 @@ import { BOOK_PAGE_HEIGHT } from "../../types";
 import type { Panel } from "../../types";
 import VideoThumbnail from "../VideoThumbnail";
 
-const THUMB_WIDTH = 148;
 
 export default function EditorFilmstrip(): React.JSX.Element {
   const {
