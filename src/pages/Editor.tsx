@@ -145,9 +145,11 @@ export default function Editor(): React.JSX.Element {
         }}
       />
       <div className="editor-body">
-        <EditorFilmstrip />
-        <EditorCanvas />
         <EditorRail />
+        <div className="editor-center">
+          <EditorCanvas />
+          <EditorFilmstrip />
+        </div>
       </div>
     </div>
   )

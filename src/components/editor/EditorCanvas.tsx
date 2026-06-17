@@ -1082,8 +1082,8 @@ export default function EditorCanvas(): React.JSX.Element {
               <div
                 ref={panelFrameRef}
                 style={{
-                  width: '100%',
-                  maxWidth: '30vw',
+                  maxWidth: '22.5vw',
+                  maxHeight: 'calc(100vh - 248px)',
                   aspectRatio: `400 / ${panelHeight}`,
                   background: 'var(--bg-dd)',
                   border: '1px solid var(--border)',

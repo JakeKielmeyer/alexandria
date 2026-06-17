@@ -167,16 +167,21 @@ export default function EditorFilmstrip(): React.JSX.Element {
     <aside
       className="editor-filmstrip"
       aria-label="Panel filmstrip"
-      style={{ overflowX: "hidden", width: "275px" }}
+      style={{ overflowX: "auto", overflowY: "hidden", width: "100%" }}
     >
       <div
         style={{
-          padding: "12px 16px 8px",
-          fontSize: "15px",
+          padding: "0 12px",
+          fontSize: "10px",
           fontWeight: 600,
-          letterSpacing: "0.1em",
+          letterSpacing: "0.12em",
           textTransform: "uppercase",
           color: "var(--text-faint)",
+          display: "flex",
+          alignItems: "center",
+          flexShrink: 0,
+          writingMode: "vertical-rl",
+          transform: "rotate(180deg)",
         }}
       >
         {isBook ? "Pages" : "Panels"}
@@ -187,14 +192,14 @@ export default function EditorFilmstrip(): React.JSX.Element {
         <>
           <Reorder.Group
             as="div"
-            axis="y"
+            axis="x"
             values={leftPages}
             onReorder={handleSpreadReorder}
             style={{
               display: "flex",
-              flexDirection: "column",
+              flexDirection: "row",
               gap: "8px",
-              padding: "0 16px",
+              padding: "8px 0",
               listStyle: "none",
               margin: 0,
             }}
@@ -209,8 +214,8 @@ export default function EditorFilmstrip(): React.JSX.Element {
                   onClick={() => setActivePanelId(leftP.id)}
                   aria-label={`Spread ${si * 2 + 1}–${si * 2 + 2}${isActiveSpr ? ", selected" : ""}`}
                   style={{
-                    width: "100%",
-                    height: "120px",
+                    width: "150px",
+                    height: "96px",
                     display: "flex",
                     background: "var(--bg-dd)",
                     border: isActiveSpr
@@ -338,7 +343,7 @@ export default function EditorFilmstrip(): React.JSX.Element {
           {/* Add Spread button */}
           <button
             onClick={handleAddSpread}
-            style={{ margin: "12px 16px", width: `${THUMB_WIDTH}px`, height: "40px", background: "none", border: "1px dashed var(--border)", borderRadius: "4px", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", color: "var(--text-muted)", fontFamily: "DM Sans, sans-serif", fontSize: "11px", cursor: "pointer" }}
+            style={{ margin: "8px 8px", width: "60px", height: "96px", background: "none", border: "1px dashed var(--border)", borderRadius: "4px", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", color: "var(--text-muted)", fontFamily: "DM Sans, sans-serif", fontSize: "11px", cursor: "pointer", flexShrink: 0, flexDirection: "column" }}
             aria-label="Add page"
           >
             <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true"><path d="M5 1v8M1 5h8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" /></svg>
@@ -350,7 +355,7 @@ export default function EditorFilmstrip(): React.JSX.Element {
         <>
           <Reorder.Group
             as="div"
-            axis="y"
+            axis="x"
             values={[...panels].sort((a, b) => a.position - b.position)}
             onReorder={(newOrder: Panel[]) => {
               reorderPanels(newOrder.map((p) => p.id));
@@ -358,9 +363,9 @@ export default function EditorFilmstrip(): React.JSX.Element {
             }}
             style={{
               display: "flex",
-              flexDirection: "column",
+              flexDirection: "row",
               gap: "8px",
-              padding: "0 16px",
+              padding: "8px 0",
               listStyle: "none",
               margin: 0,
             }}
@@ -375,8 +380,8 @@ export default function EditorFilmstrip(): React.JSX.Element {
                   onClick={() => setActivePanelId(panel.id)}
                   aria-label={`Panel ${index + 1}${isActive ? ", selected" : ""}`}
                   style={{
-                    width: "100%",
-                    height: `300px`,
+                    width: "70px",
+                    height: "96px",
                     background: "var(--bg-dd)",
                     border: isActive
                       ? "1.5px solid var(--rose-deep)"
@@ -445,7 +450,7 @@ export default function EditorFilmstrip(): React.JSX.Element {
           {/* Add Panel button */}
           <button
             onClick={handleAddPanel}
-            style={{ margin: "12px 16px", width: `${THUMB_WIDTH}px`, height: "40px", background: "none", border: "1px dashed var(--border)", borderRadius: "4px", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", color: "var(--text-muted)", fontFamily: "DM Sans, sans-serif", fontSize: "11px", cursor: "pointer" }}
+            style={{ margin: "8px 8px", width: "60px", height: "96px", background: "none", border: "1px dashed var(--border)", borderRadius: "4px", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", color: "var(--text-muted)", fontFamily: "DM Sans, sans-serif", fontSize: "11px", cursor: "pointer", flexShrink: 0, flexDirection: "column" }}
             aria-label="Add panel"
           >
             <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true"><path d="M5 1v8M1 5h8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" /></svg>

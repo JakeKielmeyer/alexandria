@@ -66,13 +66,21 @@
   overflow: hidden;
 }
 
-.editor-filmstrip {
-  width: 180px;
-  background: var(--bg-rail);
-  border-right: 1px solid var(--border);
+.editor-center {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
+  overflow: hidden;
+}
+
+.editor-filmstrip {
+  height: 120px;
+  background: var(--bg-rail);
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: row;
+  overflow-x: auto;
+  overflow-y: hidden;
   flex-shrink: 0;
 }
 
@@ -85,9 +93,9 @@
 }
 
 .editor-rail {
-  width: 360px;
+  width: 225px;
   background: var(--bg-rail);
-  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
@@ -213,7 +221,8 @@
 .editor-canvas-book-spread {
   display: flex;
   align-items: flex-start;
-  width: min(90%, 820px);
+  height: calc(100vh - 248px);
+  width: auto;
   position: relative;
 }
 
@@ -225,8 +234,9 @@
 }
 
 .editor-canvas-book-page {
-  flex: 1;
-  min-width: 0;
+  flex: none;
+  height: 100%;
+  width: auto;
   aspect-ratio: 2 / 3;
   background: var(--bg-dd);
   border: 1px solid var(--border);
