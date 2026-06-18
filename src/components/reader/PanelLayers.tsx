@@ -261,6 +261,7 @@ function LayerRenderer({ layer, videoSfxEnabled, musicEnabled, videoVolume, isMo
   const audioRef = useRef<HTMLAudioElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const isVisibleRef = useRef(false)
+  const [containerWidth, setContainerWidth] = useState<number | null>(null)
 
   // Audio-only layers respect the Sound (musicEnabled) toggle; video layers
   // respect the Video & SFX toggle. This lets readers control them independently.
@@ -364,6 +365,24 @@ function LayerRenderer({ layer, videoSfxEnabled, musicEnabled, videoVolume, isMo
     }
   }, [isFreezing, layer.media_type, layer.autoplay])
 
+  // Measure container width so spread video positioning uses integer px values.
+  // page-flip sets page width to containerWidth/2, which is fractional at odd
+  // viewport widths. left:-100% then lands at e.g. -720.5px; the GPU video
+  // compositor snaps to integer boundaries, producing a visible hairline that
+  // <img> avoids via anti-aliasing. We floor the offset and ceil the width so
+  // the right half overlaps the fractional clip boundary instead of gapping.
+  useEffect(() => {
+    if (!layer.is_spread_layer || layer.media_type !== 'video' || spreadSide == null) return
+    const el = containerRef.current
+    if (!el) return
+    setContainerWidth(el.getBoundingClientRect().width)
+    const ro = new ResizeObserver(([entry]) => {
+      setContainerWidth(entry.contentRect.width)
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [layer.is_spread_layer, layer.media_type, spreadSide])
+
   if (layer.media_type === 'text') {
     return <TextLayerRenderer layer={layer} isMobile={isMobile} />
   }
@@ -390,7 +409,23 @@ function LayerRenderer({ layer, videoSfxEnabled, musicEnabled, videoVolume, isMo
     objectFit: 'cover',
     display: 'block',
   } : null
-  const effectiveMStyle: React.CSSProperties = isSpread ? spreadMediaStyle! : mStyle
+  // Pixel-snapped override for spread video only. Falls back to spreadMediaStyle
+  // until the ResizeObserver fires (video hasn't loaded yet — no visible flash).
+  const spreadVideoStyle: React.CSSProperties | null =
+    isSpread && layer.media_type === 'video' && spreadSide != null && containerWidth != null
+      ? {
+          position: 'absolute',
+          top: 0,
+          left: spreadSide === 'right' ? `-${Math.floor(containerWidth)}px` : '0',
+          width: `${Math.ceil(containerWidth) * 2}px`,
+          height: '100%',
+          objectFit: 'cover',
+          display: 'block',
+        }
+      : null
+  const effectiveMStyle: React.CSSProperties = isSpread
+    ? (spreadVideoStyle ?? spreadMediaStyle!)
+    : mStyle
 
   if (layer.media_type === 'audio') {
     return (
