@@ -175,12 +175,13 @@ export default function BookReader({
           }}
         />
 
-        {cw > 0 && (
+        {cw > 0 && ch > 0 && (
           <FlipBookReader
             ref={flipRef}
             story={story}
             panels={panels}
             isPortrait={isPortrait}
+            containerH={ch}
             isFlipping={isFlipping}
             videoSfxEnabled={videoSfxEnabled}
             musicEnabled={musicEnabled}

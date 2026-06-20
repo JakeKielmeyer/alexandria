@@ -26,6 +26,7 @@ interface FlipBookReaderProps {
   story: StoryWithCreator
   panels: PanelWithMeta[]
   isPortrait: boolean
+  containerH: number
   isFlipping: boolean
   videoSfxEnabled: boolean
   musicEnabled: boolean
@@ -48,6 +49,7 @@ const FlipBookReader = forwardRef<FlipBookHandle, FlipBookReaderProps>(
       story,
       panels,
       isPortrait,
+      containerH,
       isFlipping,
       videoSfxEnabled,
       musicEnabled,
@@ -112,10 +114,12 @@ const FlipBookReader = forwardRef<FlipBookHandle, FlipBookReaderProps>(
       onStateChange(e.data)
     }
 
+    const marginY    = 20
     const pageWidth  = isPortrait ? 400                   : BOOK_PAGE_WIDTH
     const pageHeight = isPortrait ? CINEMATIC_PANEL_HEIGHT : BOOK_PAGE_HEIGHT
-    const pageMaxW   = isPortrait ? 640                   : BOOK_PAGE_WIDTH
-    const pageMaxH   = isPortrait ? CINEMATIC_PANEL_HEIGHT : BOOK_PAGE_HEIGHT
+    const pageMaxW   = isPortrait ? 640
+                                  : Math.min(Math.floor((containerH - marginY * 2) * BOOK_PAGE_WIDTH / BOOK_PAGE_HEIGHT), BOOK_PAGE_WIDTH)
+    const pageMaxH   = isPortrait ? CINEMATIC_PANEL_HEIGHT : Math.min(containerH - marginY * 2, BOOK_PAGE_HEIGHT)
 
     return (
       <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

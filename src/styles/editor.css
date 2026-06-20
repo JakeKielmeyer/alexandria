@@ -237,7 +237,7 @@
   flex: none;
   height: 100%;
   width: auto;
-  aspect-ratio: 2 / 3;
+  aspect-ratio: 5 / 6;
   background: var(--bg-dd);
   border: 1px solid var(--border);
   overflow: hidden;

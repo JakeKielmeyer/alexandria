@@ -401,12 +401,12 @@ function LayerRenderer({ layer, videoSfxEnabled, musicEnabled, videoVolume, isMo
     ? { position: 'absolute', inset: 0, opacity: layer.opacity, overflow: 'hidden' }
     : cStyle
   const spreadMediaStyle: React.CSSProperties | null = isSpread ? {
+    ...mStyle,
     position: 'absolute',
     top: 0,
     left: spreadSide === 'right' ? '-100%' : '0',
     width: spreadSide != null ? '200%' : '100%',
     height: '100%',
-    objectFit: 'cover',
     display: 'block',
   } : null
   // Pixel-snapped override for spread video only. Falls back to spreadMediaStyle
@@ -414,12 +414,12 @@ function LayerRenderer({ layer, videoSfxEnabled, musicEnabled, videoVolume, isMo
   const spreadVideoStyle: React.CSSProperties | null =
     isSpread && layer.media_type === 'video' && spreadSide != null && containerWidth != null
       ? {
+          ...mStyle,
           position: 'absolute',
           top: 0,
           left: spreadSide === 'right' ? `-${Math.floor(containerWidth)}px` : '0',
           width: `${Math.ceil(containerWidth) * 2}px`,
           height: '100%',
-          objectFit: 'cover',
           display: 'block',
         }
       : null

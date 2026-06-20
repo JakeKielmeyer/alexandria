@@ -639,7 +639,7 @@ export default function EditorCanvas(): React.JSX.Element {
     })
     ro.observe(el)
     return () => ro.disconnect()
-  }, [])
+  }, [activePanelId, story?.reading_mode])
 
   useEffect(() => {
     const el = spreadRef.current
@@ -871,7 +871,7 @@ export default function EditorCanvas(): React.JSX.Element {
           </span>
         ) : isBook ? (
           <span style={{ fontSize: '11px', color: 'var(--text-faint)' }}>
-            Book — 796 × 879px per page
+            Book — 995 × 1194px per page
           </span>
         ) : (
           <>
@@ -1082,8 +1082,7 @@ export default function EditorCanvas(): React.JSX.Element {
               <div
                 ref={panelFrameRef}
                 style={{
-                  maxWidth: '22.5vw',
-                  maxHeight: 'calc(100vh - 248px)',
+                  width: `min(22.5vw, calc((100vh - 248px) * 400 / ${panelHeight}))`,
                   aspectRatio: `400 / ${panelHeight}`,
                   background: 'var(--bg-dd)',
                   border: '1px solid var(--border)',

@@ -170,13 +170,13 @@ export interface Layer {
 
 export const PANEL_HEIGHT_PRESETS = {
   WEBTOON: 640,
-  BOOK:    879,
+  BOOK:    1194,
   COMIC:   800,
 } as const
 
-export const BOOK_PAGE_HEIGHT  = 879
-export const BOOK_PAGE_WIDTH   = 796
-export const BOOK_SPREAD_WIDTH = 1592
+export const BOOK_PAGE_HEIGHT  = 1194
+export const BOOK_PAGE_WIDTH   = 995
+export const BOOK_SPREAD_WIDTH = 1990
 
 export type PanelHeightPreset = keyof typeof PANEL_HEIGHT_PRESETS
 
