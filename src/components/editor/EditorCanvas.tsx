@@ -5,7 +5,7 @@ import { useEditorStore } from '../../store/editorStore'
 import { useToastStore } from '../../store/toastStore'
 import { supabase } from '../../lib/supabase'
 import { PANEL_HEIGHT_PRESETS, CINEMATIC_PANEL_HEIGHT, BOOK_PAGE_HEIGHT, LAYER_DEFAULTS, TEXT_LAYER_TYPE_DEFAULTS, resolvedFillMode, TEXT_TYPE_OPTIONS } from '../../types'
-import type { PanelHeightPreset, Layer, FillMode, TextLayerType, TailDirection } from '../../types'
+import type { PanelHeightPreset, Layer, TextLayerType, TailDirection } from '../../types'
 import {
   ACCEPTED_MEDIA, getMediaType,
   uploadToPanelsBucket, panelLayerPath,

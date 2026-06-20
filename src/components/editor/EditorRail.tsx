@@ -8,7 +8,7 @@ import { supabase } from '../../lib/supabase'
 import { ACCEPTED_COVER, getMediaType, registerAsset, uploadToPanelsBucket, validateMediaFile } from '../../lib/upload'
 import { loadFont } from '../../lib/fonts'
 import FontSelect from './FontSelect'
-import type { ContentRating, FillMode, Layer, ReadingDirection, ReadingMode, TransitionStyle, TextLayerType, TailDirection } from '../../types'
+import type { ContentRating, FillMode, Layer, ReadingDirection, ReadingMode, TransitionStyle, TailDirection } from '../../types'
 import { resolvedFillMode, TEXT_TYPE_OPTIONS } from '../../types'
 
 // ── Constants ──────────────────────────────────────────────────────────────
