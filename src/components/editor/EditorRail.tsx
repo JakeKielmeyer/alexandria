@@ -9,11 +9,7 @@ import { ACCEPTED_COVER, getMediaType, registerAsset, uploadToPanelsBucket, vali
 import { loadFont } from '../../lib/fonts'
 import FontSelect from './FontSelect'
 import type { ContentRating, FillMode, Layer, ReadingDirection, ReadingMode, TransitionStyle, TextLayerType, TailDirection } from '../../types'
-
-function resolvedFillMode(layer: { fill_mode: FillMode | null; is_fill: boolean }): FillMode {
-  if (layer.fill_mode) return layer.fill_mode
-  return layer.is_fill ? 'crop' : 'custom'
-}
+import { resolvedFillMode, TEXT_TYPE_OPTIONS } from '../../types'
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -43,14 +39,6 @@ const MAX_OPACITY = 1
 const OPACITY_STEP = 0.05
 
 const PLAYBACK_RATES = [0.5, 1, 1.5, 2] as const
-
-const TEXT_TYPE_LABELS: { type: TextLayerType; label: string }[] = [
-  { type: 'dialogue',  label: 'Dialogue'  },
-  { type: 'narrative', label: 'Narrative' },
-  { type: 'caption',   label: 'Caption'   },
-  { type: 'sound_fx',  label: 'Sound FX'  },
-  { type: 'plain',     label: 'Plain'     },
-]
 
 // ── Section header ─────────────────────────────────────────────────────────
 
@@ -532,7 +520,7 @@ export default function EditorRail(): React.JSX.Element {
                   <>
                     <SectionLabel>Type</SectionLabel>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: 8 }}>
-                      {TEXT_TYPE_LABELS.map(({ type, label }) => {
+                      {TEXT_TYPE_OPTIONS.map(({ type, label }) => {
                         const current = activeLayer.text_layer_type ?? 'plain'
                         const isActive = current === type
                         return (

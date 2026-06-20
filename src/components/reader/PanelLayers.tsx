@@ -462,7 +462,7 @@ function LayerRenderer({ layer, videoSfxEnabled, musicEnabled, videoVolume, isMo
   // image or gif
   return (
     <div style={effectiveCStyle}>
-      <img src={layer.media_url} alt="" style={effectiveMStyle} />
+      <img src={layer.media_url} alt="" loading="lazy" style={effectiveMStyle} />
     </div>
   )
 }

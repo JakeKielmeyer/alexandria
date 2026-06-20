@@ -186,7 +186,9 @@ export default function Dashboard(): React.JSX.Element {
           storyData?.cover_url,
           storyData?.back_cover_url,
           storyAssets?.map((a) => a.media_url) ?? [],
-        ).catch(() => {})
+        ).catch((err: unknown) => {
+          if (import.meta.env.DEV) console.warn('[dashboard] storage delete failed', err)
+        })
 
         const { error: deleteError } = await supabase
           .from('stories')

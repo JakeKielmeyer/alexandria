@@ -294,7 +294,9 @@ export default function AssetsFolder(): React.JSX.Element {
     if (asset) {
       const storagePath = extractStoragePath(asset.media_url)
       if (storagePath) {
-        deleteFromPanelsBucket(storagePath).catch(() => {})
+        deleteFromPanelsBucket(storagePath).catch((err: unknown) => {
+          if (import.meta.env.DEV) console.warn('[assets] storage delete failed', err)
+        })
       }
     }
 

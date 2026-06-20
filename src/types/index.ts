@@ -439,3 +439,16 @@ export const TEXT_LAYER_TYPE_DEFAULTS: Record<TextLayerType, TextLayerTypeDefaul
     text_content: 'Type here',
   },
 }
+
+export function resolvedFillMode(layer: Pick<Layer, 'fill_mode' | 'is_fill'>): FillMode {
+  if (layer.fill_mode) return layer.fill_mode
+  return layer.is_fill ? 'crop' : 'custom'
+}
+
+export const TEXT_TYPE_OPTIONS: { type: TextLayerType; label: string; desc: string }[] = [
+  { type: 'dialogue',  label: 'Dialogue',  desc: 'Speech bubble'  },
+  { type: 'narrative', label: 'Narrative', desc: 'Caption box'    },
+  { type: 'caption',   label: 'Caption',   desc: 'Subtitle bar'   },
+  { type: 'sound_fx',  label: 'Sound FX',  desc: 'Bold effect text' },
+  { type: 'plain',     label: 'Plain',     desc: 'No preset style' },
+]

@@ -190,11 +190,7 @@ function ScrollReader({ story, panels, previewMode, previewScreenSize, onReachEn
   }, [navigate, previewMode, story.id])
 
   const isMobileSim = previewScreenSize === 'phone-h' || previewScreenSize === 'phone-v'
-  const simWidth = previewScreenSize === 'desktop' ? null
-    : previewScreenSize === 'phone-v'  ? 390
-    : previewScreenSize === 'phone-h'  ? 844
-    : previewScreenSize === 'tablet-v' ? 768
-    : 1024 // tablet-h
+  const simWidth = PREVIEW_SIZES.find(s => s.id === previewScreenSize)?.w ?? null
 
   // Defensive: if ScrollReader unmounts for any other reason while still
   // fullscreen (browser back, EndPage navigation, etc.), drop fullscreen so

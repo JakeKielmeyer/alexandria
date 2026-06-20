@@ -54,7 +54,8 @@ export default function VideoThumbnail({
         // Will throw SecurityError if the canvas is tainted by CORS.
         const url = canvas.toDataURL('image/jpeg', 0.7)
         setDataUrl(url)
-      } catch {
+      } catch (err) {
+        if (import.meta.env.DEV) console.warn('[video-thumbnail] canvas capture failed', err)
         setFallbackVideo(true)
       } finally {
         video.src = ''

@@ -4,7 +4,7 @@ import React, { useRef, useState, useEffect, useCallback } from 'react'
 import { useEditorStore } from '../../store/editorStore'
 import { useToastStore } from '../../store/toastStore'
 import { supabase } from '../../lib/supabase'
-import { PANEL_HEIGHT_PRESETS, CINEMATIC_PANEL_HEIGHT, BOOK_PAGE_HEIGHT, LAYER_DEFAULTS, TEXT_LAYER_TYPE_DEFAULTS } from '../../types'
+import { PANEL_HEIGHT_PRESETS, CINEMATIC_PANEL_HEIGHT, BOOK_PAGE_HEIGHT, LAYER_DEFAULTS, TEXT_LAYER_TYPE_DEFAULTS, resolvedFillMode, TEXT_TYPE_OPTIONS } from '../../types'
 import type { PanelHeightPreset, Layer, FillMode, TextLayerType, TailDirection } from '../../types'
 import {
   ACCEPTED_MEDIA, getMediaType,
@@ -24,20 +24,7 @@ const FORMAT_LABELS: { key: PanelHeightPreset; label: string; disabled: boolean 
   { key: 'COMIC',   label: 'Comic',   disabled: true  },
 ]
 
-const TEXT_TYPE_OPTIONS: { type: TextLayerType; label: string; desc: string }[] = [
-  { type: 'dialogue',  label: 'Dialogue',  desc: 'Speech bubble' },
-  { type: 'narrative', label: 'Narrative', desc: 'Caption box' },
-  { type: 'caption',   label: 'Caption',   desc: 'Subtitle bar' },
-  { type: 'sound_fx',  label: 'Sound FX',  desc: 'Bold effect text' },
-  { type: 'plain',     label: 'Plain',     desc: 'No preset style' },
-]
-
 // ── Helpers ────────────────────────────────────────────────────────────────
-
-function resolvedFillMode(layer: Layer): FillMode {
-  if (layer.fill_mode) return layer.fill_mode
-  return layer.is_fill ? 'crop' : 'custom'
-}
 
 function getLayerStyle(layer: Layer): React.CSSProperties {
   const mode = resolvedFillMode(layer)
