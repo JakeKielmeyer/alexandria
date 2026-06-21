@@ -11,6 +11,7 @@ interface FlipPageProps {
   coverUrl?: string | null
   isCover?: boolean
   isBack?: boolean
+  isRTL?: boolean
   pageStyle?: 'paper' | 'hardback'
   videoSfxEnabled: boolean
   musicEnabled: boolean
@@ -29,6 +30,7 @@ const FlipPage = React.memo(
       coverUrl,
       isCover = false,
       isBack = false,
+      isRTL = false,
       pageStyle = 'hardback',
       videoSfxEnabled,
       musicEnabled,
@@ -58,6 +60,7 @@ const FlipPage = React.memo(
           backgroundColor: bg,
           userSelect: 'none',
           WebkitUserSelect: 'none',
+          transform: isRTL ? 'scaleX(-1)' : undefined,
         }}
       >
         {isCoverOrBack ? (

@@ -8,7 +8,7 @@ interface ProfileStory {
   title: string
   slug: string
   cover_url: string | null
-  content_rating: 'mature' | 'explicit' | null
+  content_rating: 'all-audiences' | 'mature' | 'explicit' | null
 }
 
 interface ProfileCreator {
@@ -176,7 +176,7 @@ export default function Profile(): React.JSX.Element {
                       marginBottom: '5px',
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}>{story.title}</div>
-                    {story.content_rating && (
+                    {story.content_rating && story.content_rating !== 'all-audiences' && (
                       <span style={{
                         display: 'inline-block',
                         fontSize: '9px', fontWeight: 600,

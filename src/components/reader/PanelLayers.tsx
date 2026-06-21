@@ -391,11 +391,18 @@ function LayerRenderer({ layer, videoSfxEnabled, musicEnabled, videoVolume, isMo
 
   const cStyle = containerStyle(layer, isMobile)
   const mStyle = mediaStyle(layer)
+  const fillMode = resolvedFillMode(layer)
+  const x = layer.x_percent ?? 0
+  const y = layer.y_percent ?? 0
+  const w = layer.width_percent ?? 50
+  const h = layer.height_percent ?? 50
 
   // Spread layers span two pages. Render the image at 200% width so it
   // covers the full spread, then shift left by 100% on the right page so
   // each page clips to exactly its own half via overflow:hidden.
   // Portrait / no spreadSide: show the full image scaled to fit the page.
+  // Custom fill-mode spread layers use their explicit x/y/w/h coordinates,
+  // converted from spread-relative % (full 2× page width) to page-relative %.
   const isSpread = layer.is_spread_layer
   const effectiveCStyle: React.CSSProperties = isSpread
     ? { position: 'absolute', inset: 0, opacity: layer.opacity, overflow: 'hidden' }
@@ -403,25 +410,50 @@ function LayerRenderer({ layer, videoSfxEnabled, musicEnabled, videoVolume, isMo
   const spreadMediaStyle: React.CSSProperties | null = isSpread ? {
     ...mStyle,
     position: 'absolute',
-    top: 0,
-    left: spreadSide === 'right' ? '-100%' : '0',
-    width: spreadSide != null ? '200%' : '100%',
-    height: '100%',
     display: 'block',
+    ...(fillMode === 'custom' && spreadSide != null
+      ? {
+          // Spread coords are % of full spread (= 2× page width).
+          // Multiply x and w by 2 to convert to page-relative %;
+          // subtract one page width (50% of spread) on the right page first.
+          top: `${y}%`,
+          height: `${h}%`,
+          left: spreadSide === 'right' ? `${(x - 50) * 2}%` : `${x * 2}%`,
+          width: `${w * 2}%`,
+        }
+      : {
+          top: 0,
+          left: spreadSide === 'right' ? '-100%' : '0',
+          width: spreadSide != null ? '200%' : '100%',
+          height: '100%',
+        }
+    ),
   } : null
   // Pixel-snapped override for spread video only. Falls back to spreadMediaStyle
   // until the ResizeObserver fires (video hasn't loaded yet — no visible flash).
   const spreadVideoStyle: React.CSSProperties | null =
     isSpread && layer.media_type === 'video' && spreadSide != null && containerWidth != null
-      ? {
-          ...mStyle,
-          position: 'absolute',
-          top: 0,
-          left: spreadSide === 'right' ? `-${Math.floor(containerWidth)}px` : '0',
-          width: `${Math.ceil(containerWidth) * 2}px`,
-          height: '100%',
-          display: 'block',
-        }
+      ? fillMode === 'custom'
+        ? {
+            ...mStyle,
+            position: 'absolute',
+            display: 'block',
+            top: `${y}%`,
+            height: `${h}%`,
+            left: spreadSide === 'right'
+              ? `${Math.floor((x - 50) * 2 / 100 * containerWidth)}px`
+              : `${Math.floor(x * 2 / 100 * containerWidth)}px`,
+            width: `${Math.ceil(w * 2 / 100 * containerWidth)}px`,
+          }
+        : {
+            ...mStyle,
+            position: 'absolute',
+            top: 0,
+            left: spreadSide === 'right' ? `-${Math.floor(containerWidth)}px` : '0',
+            width: `${Math.ceil(containerWidth) * 2}px`,
+            height: '100%',
+            display: 'block',
+          }
       : null
   const effectiveMStyle: React.CSSProperties = isSpread
     ? (spreadVideoStyle ?? spreadMediaStyle!)

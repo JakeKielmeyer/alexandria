@@ -1,6 +1,6 @@
 // src/types/index.ts
 
-export type ContentRating = 'mature' | 'explicit'
+export type ContentRating = 'all-audiences' | 'mature' | 'explicit'
 
 export type MediaType = 'image' | 'gif' | 'video' | 'audio' | 'text'
 

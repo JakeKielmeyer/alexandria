@@ -9,10 +9,9 @@ export function getRequiredGates(story: StoryWithCreator): GateName[] {
     gates.push('password')
   }
 
-  gates.push('age')
-
-  if (story.content_rating === 'explicit') {
-    gates.push('explicit')
+  if (story.content_rating !== 'all-audiences') {
+    gates.push('age')
+    if (story.content_rating === 'explicit') gates.push('explicit')
   }
 
   gates.push('interstitial')

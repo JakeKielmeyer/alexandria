@@ -19,6 +19,7 @@ const TRANSITION_PRESETS: { id: TransitionStyle; label: string; description: str
 ]
 
 const RATING_OPTIONS: { value: ContentRating; label: string; desc: string }[] = [
+  { value: 'all-audiences', label: 'All Audiences', desc: 'No gates' },
   { value: 'mature', label: 'Mature', desc: 'Age gate' },
   { value: 'explicit', label: 'Explicit', desc: 'Age + consent' },
 ]

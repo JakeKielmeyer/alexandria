@@ -61,12 +61,18 @@ const FlipBookReader = forwardRef<FlipBookHandle, FlipBookReaderProps>(
   ) {
     const bookRef = useRef<any>(null)
 
+    const isRTL = story.reading_direction === 'rtl'
+
     useImperativeHandle(handle, () => ({
-      flipNext: () => bookRef.current?.pageFlip?.()?.flipNext?.(),
-      flipPrev: () => bookRef.current?.pageFlip?.()?.flipPrev?.(),
+      flipNext: () => isRTL
+        ? bookRef.current?.pageFlip?.()?.flipPrev?.()
+        : bookRef.current?.pageFlip?.()?.flipNext?.(),
+      flipPrev: () => isRTL
+        ? bookRef.current?.pageFlip?.()?.flipNext?.()
+        : bookRef.current?.pageFlip?.()?.flipPrev?.(),
       goToPage: (n: number) => bookRef.current?.pageFlip?.()?.flip?.(n),
       getCurrentPageIndex: () => bookRef.current?.pageFlip?.()?.getCurrentPageIndex?.() ?? 0,
-    }))
+    }), [isRTL])
 
     // pageStyle lives on the story in M2+. Default to 'hardback' until that column lands.
     const pageStyle = ((story as any).page_style as 'paper' | 'hardback' | undefined) ?? 'hardback'
@@ -86,22 +92,26 @@ const FlipBookReader = forwardRef<FlipBookHandle, FlipBookReaderProps>(
     // of a spread always render the same is_spread_layer content.
     // Spread pairs: even i ↔ i+1, odd i ↔ i-1.
     const interiorPages = useMemo<{ id: string; layers: Layer[] }[]>(
-      () => panels.map((p, i) => {
-        const pairIndex = i % 2 === 0 ? i + 1 : i - 1
-        const pairSpreadLayers = (panels[pairIndex]?.layers ?? [])
-          .filter((l: Layer) => l.is_spread_layer)
-        const ownSpreadIds = new Set(
-          p.layers.filter((l: Layer) => l.is_spread_layer).map((l: Layer) => l.id)
-        )
-        return {
-          id: p.panelId,
-          layers: [
-            ...p.layers,
-            ...pairSpreadLayers.filter((l: Layer) => !ownSpreadIds.has(l.id)),
-          ],
-        }
-      }),
-      [panels]
+      () => {
+        const ordered = panels.map((p, i) => {
+          const pairIndex = i % 2 === 0 ? i + 1 : i - 1
+          const pairSpreadLayers = (panels[pairIndex]?.layers ?? [])
+            .filter((l: Layer) => l.is_spread_layer)
+          const ownSpreadIds = new Set(
+            p.layers.filter((l: Layer) => l.is_spread_layer).map((l: Layer) => l.id)
+          )
+          return {
+            id: p.panelId,
+            layers: [
+              ...p.layers,
+              ...pairSpreadLayers.filter((l: Layer) => !ownSpreadIds.has(l.id)),
+            ],
+          }
+        })
+        // RTL: reverse so navigating toward lower DOM indices reads panels in story order
+        return isRTL ? [...ordered].reverse() : ordered
+      },
+      [panels, isRTL]
     )
 
     const totalPages = panels.length + 2
@@ -122,7 +132,8 @@ const FlipBookReader = forwardRef<FlipBookHandle, FlipBookReaderProps>(
     const pageMaxH   = isPortrait ? CINEMATIC_PANEL_HEIGHT : Math.min(containerH - marginY * 2, BOOK_PAGE_HEIGHT)
 
     return (
-      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    transform: isRTL ? 'scaleX(-1)' : undefined }}>
         <HTMLFlipBook
           ref={bookRef}
           width={pageWidth}
@@ -132,7 +143,7 @@ const FlipBookReader = forwardRef<FlipBookHandle, FlipBookReaderProps>(
           maxWidth={pageMaxW}
           minHeight={360}
           maxHeight={pageMaxH}
-          startPage={0}
+          startPage={isRTL ? totalPages - 1 : 0}
           drawShadow={true}
           flippingTime={700}
           usePortrait={isPortrait}
@@ -152,23 +163,24 @@ const FlipBookReader = forwardRef<FlipBookHandle, FlipBookReaderProps>(
           onFlip={handleFlip}
           onChangeState={handleStateChange}
         >
-          {/* Page 0 — front cover */}
+          {/* Page 0 — front cover (RTL: rendered last in DOM, shown first via startPage=totalPages-1) */}
           <FlipPage
             {...pageProps}
             isCover
+            isRTL={isRTL}
             coverUrl={story.cover_url}
             isFreezing={isFlipping}
           />
 
-          {/* Pages 1..N — interior (one per panel) */}
-          {/* Even index (0,2,...) = left page of spread; odd (1,3,...) = right page */}
+          {/* Pages 1..N — interior (one per panel, reversed for RTL) */}
           {interiorPages.map((p, i) => (
             <FlipPage
               key={p.id}
               {...pageProps}
+              isRTL={isRTL}
               layers={p.layers}
               isFreezing={isFlipping}
-              spreadSide={i % 2 === 0 ? 'left' : 'right'}
+              spreadSide={i % 2 === 0 ? (isRTL ? 'right' : 'left') : (isRTL ? 'left' : 'right')}
             />
           ))}
 
@@ -176,6 +188,7 @@ const FlipBookReader = forwardRef<FlipBookHandle, FlipBookReaderProps>(
           <FlipPage
             {...pageProps}
             isBack
+            isRTL={isRTL}
             coverUrl={backCoverUrl}
             isFreezing={isFlipping}
           />

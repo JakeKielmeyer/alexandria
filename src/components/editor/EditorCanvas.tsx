@@ -36,12 +36,14 @@ function getLayerStyle(layer: Layer): React.CSSProperties {
       width: layer.width_percent != null ? `${layer.width_percent}%` : '50%',
       height: layer.height_percent != null ? `${layer.height_percent}%` : '50%',
       opacity: layer.opacity,
+      pointerEvents: 'auto',
     }
   }
   return {
     position: 'absolute',
     inset: 0,
     opacity: layer.opacity,
+    pointerEvents: 'auto',
   }
 }
 

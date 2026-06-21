@@ -84,6 +84,8 @@ export default function BookReader({
     flipRef.current?.flipPrev()
   }, [])
 
+  const isRTL = story.reading_direction === 'rtl'
+
   // ── Keyboard shortcuts ───────────────────────────────────────────────────
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
@@ -91,15 +93,15 @@ export default function BookReader({
       if (tag === 'INPUT' || tag === 'TEXTAREA') return
       if (e.key === 'ArrowRight' || e.key === ' ') {
         e.preventDefault()
-        handleNavForward()
+        isRTL ? handleNavBack() : handleNavForward()
       } else if (e.key === 'ArrowLeft') {
         e.preventDefault()
-        handleNavBack()
+        isRTL ? handleNavForward() : handleNavBack()
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [handleNavForward, handleNavBack])
+  }, [handleNavForward, handleNavBack, isRTL])
 
   // ── Touch swipe ──────────────────────────────────────────────────────────
   const touchStartX = useRef<number | null>(null)
