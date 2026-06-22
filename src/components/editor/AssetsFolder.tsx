@@ -15,6 +15,7 @@
 //     cleaned up so canvas panels update immediately.
 
 import React, { useEffect, useRef, useState, useCallback } from 'react'
+import VideoThumbnail from '../VideoThumbnail'
 import { useEditorStore } from '../../store/editorStore'
 import { useToastStore } from '../../store/toastStore'
 import { supabase } from '../../lib/supabase'
@@ -43,7 +44,7 @@ function MediaPreview({ asset }: { asset: Asset }): React.JSX.Element {
   if (asset.media_type === 'video') {
     return (
       <div className="asset-thumb">
-        <video src={asset.media_url} className="asset-thumb-media" muted preload="metadata" />
+        <VideoThumbnail src={asset.media_url} className="asset-thumb-media" />
         <div className="asset-thumb-play" aria-hidden="true">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <circle cx="8" cy="8" r="7" fill="rgba(0,0,0,0.55)"/>

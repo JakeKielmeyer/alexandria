@@ -262,7 +262,8 @@
   border: 1px solid var(--db-border-card);
 }
 
-.story-cover img {
+.story-cover img,
+.story-cover video {
   width: 100%;
   height: 100%;
   object-fit: cover;

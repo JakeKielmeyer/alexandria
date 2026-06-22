@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { deleteStoryStorage } from '../lib/upload'
 import { useAuthStore } from '../store/authStore'
 import ReadingModeModal from '../components/dashboard/ReadingModeModal'
+import VideoThumbnail from '../components/VideoThumbnail'
 import type { ReadingMode } from '../types'
 import '../styles/dashboard.css'
 
@@ -99,7 +100,7 @@ export default function Dashboard(): React.JSX.Element {
     } finally {
       setLoading(false)
     }
-  }, [user])
+  }, [user?.id])
 
   useEffect(() => {
     void fetchStories()
@@ -287,9 +288,9 @@ export default function Dashboard(): React.JSX.Element {
                   <div className="story-cover">
                     {story.cover_url ? (
                       isVideoUrl(story.cover_url) ? (
-                        <video src={story.cover_url} muted playsInline preload="metadata" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                        <VideoThumbnail src={story.cover_url} style={{ width: '100%', height: '100%' }} />
                       ) : (
-                        <img src={story.cover_url} alt="" />
+                        <img src={story.cover_url} alt="" loading="lazy" />
                       )
                     ) : (
                       <div className="story-cover-placeholder">

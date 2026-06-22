@@ -94,7 +94,7 @@ export default function VideoThumbnail({
         src={src}
         muted
         playsInline
-        preload="metadata"
+        preload="none"
         onLoadedMetadata={(e) => {
           const el = e.currentTarget
           const t = seekTo ?? Math.min(1, (el.duration || 10) * 0.1)
