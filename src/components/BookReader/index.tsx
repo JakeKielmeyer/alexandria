@@ -29,7 +29,7 @@ export default function BookReader({
   const musicEnabled     = useReaderStore(s => s.musicEnabled)
   const videoVolume      = useReaderStore(s => s.videoVolume)
 
-  // totalPages = panels.length + 2 (front cover + back cover)
+  // totalPages = panels.length + 2 (front cover + interior panels + blank back cover)
   const totalPages   = panels.length + 2
   const totalSpreads = Math.ceil(panels.length / 2)
 
@@ -63,8 +63,11 @@ export default function BookReader({
   const isPortrait = cw > 0 && ch > 0 && (cw < ch || cw < 768)
 
   // ── Flip event from StPageFlip ────────────────────────────────────────────
-  const handlePageFlipped = useCallback((pageIndex: number) => {
+  const handlePageFlipped = useCallback((pageIndex: number, total: number) => {
     setCurrentPageIndex(pageIndex)
+    if (pageIndex >= total - 1) {
+      Promise.resolve().then(() => onReachEndRef.current())
+    }
   }, [])
 
   const handleStateChange = useCallback((state: string) => {
@@ -134,18 +137,15 @@ export default function BookReader({
 
   // ── Navbar label ─────────────────────────────────────────────────────────
   const isFrontCover = currentPageIndex === 0
-  const isBackCover  = currentPageIndex === totalPages - 1
 
   const activePanelId = useMemo(() => {
-    if (isFrontCover || isBackCover) return null
+    if (isFrontCover) return null
     return panels[currentPageIndex - 1]?.panelId ?? null
-  }, [currentPageIndex, panels, isFrontCover, isBackCover])
+  }, [currentPageIndex, panels, isFrontCover])
 
   let navLabel: string
   if (isFrontCover) {
     navLabel = 'Cover'
-  } else if (isBackCover) {
-    navLabel = 'End'
   } else if (isPortrait) {
     navLabel = `${String(currentPageIndex).padStart(2, '0')} / ${String(panels.length).padStart(2, '0')}`
   } else {

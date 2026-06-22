@@ -38,7 +38,8 @@ interface FlipBookReaderProps {
 // Page sequence layout:
 //   [0]          Front cover  (hard)
 //   [1 .. N]     Interior pages, one per panel
-//   [N + 1]      Back cover   (hard)
+//   [N + 1]      Blank back cover (hard) — no content; exists so StPageFlip has a hard
+//                cover anchor. Flipping to it immediately triggers onReachEnd() → EndPage.
 //
 // totalPages = panels.length + 2
 // interior panel index = pageIndex - 1  (when pageIndex is between 1 and N)
@@ -76,7 +77,6 @@ const FlipBookReader = forwardRef<FlipBookHandle, FlipBookReaderProps>(
 
     // pageStyle lives on the story in M2+. Default to 'hardback' until that column lands.
     const pageStyle = ((story as any).page_style as 'paper' | 'hardback' | undefined) ?? 'hardback'
-    const backCoverUrl: string | null = story.back_cover_url ?? null
 
     // Stable common props for all interior pages — avoids FlipPage re-renders
     // when unrelated parent state changes (e.g. isFlipping toggling rapidly).
@@ -184,12 +184,11 @@ const FlipBookReader = forwardRef<FlipBookHandle, FlipBookReaderProps>(
             />
           ))}
 
-          {/* Page N+1 — back cover */}
+          {/* Page N+1 — blank back cover (hard); triggers EndPage on flip */}
           <FlipPage
             {...pageProps}
             isBack
             isRTL={isRTL}
-            coverUrl={backCoverUrl}
             isFreezing={isFlipping}
           />
         </HTMLFlipBook>
