@@ -261,7 +261,10 @@ function LayerRenderer({ layer, videoSfxEnabled, musicEnabled, videoVolume, isMo
   const audioRef = useRef<HTMLAudioElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const isVisibleRef = useRef(false)
-  const [containerWidth, setContainerWidth] = useState<number | null>(null)
+  const isFreezingRef = useRef(false)
+  isFreezingRef.current = isFreezing
+  const spreadSideRef = useRef(spreadSide)
+  spreadSideRef.current = spreadSide
 
   // Audio-only layers respect the Sound (musicEnabled) toggle; video layers
   // respect the Video & SFX toggle. This lets readers control them independently.
@@ -285,7 +288,7 @@ function LayerRenderer({ layer, videoSfxEnabled, musicEnabled, videoVolume, isMo
         for (const entry of entries) {
           isVisibleRef.current = entry.isIntersecting
           if (entry.isIntersecting) {
-            if (layer.autoplay) {
+            if (layer.autoplay && !isFreezingRef.current && !(layer.is_spread_layer && spreadSideRef.current !== undefined)) {
               el.play().catch(() => { /* browser policy — ignore */ })
             }
           } else {
@@ -354,34 +357,22 @@ function LayerRenderer({ layer, videoSfxEnabled, musicEnabled, videoVolume, isMo
   // ── Freeze during page-turn curl ──────────────────────────────────────
   // StPageFlip rasterises pages to canvas during the flip; videos must freeze
   // so the poster frame shows instead of a broken canvas capture.
+  // Spread-layer videos are also reset to 0 on freeze so they stay in sync
+  // with the spread overlay, which always mounts at currentTime = 0.
   useEffect(() => {
     if (layer.media_type !== 'video') return
     const el = videoRef.current
     if (!el) return
     if (isFreezing) {
       el.pause()
-    } else if (layer.autoplay && isVisibleRef.current) {
+      if (layer.is_spread_layer) {
+        try { el.currentTime = 0 } catch { /* noop */ }
+      }
+    } else if (layer.autoplay && isVisibleRef.current && !(layer.is_spread_layer && spreadSide !== undefined)) {
       el.play().catch(() => { /* browser policy */ })
     }
-  }, [isFreezing, layer.media_type, layer.autoplay])
+  }, [isFreezing, layer.media_type, layer.autoplay, layer.is_spread_layer, spreadSide])
 
-  // Measure container width so spread video positioning uses integer px values.
-  // page-flip sets page width to containerWidth/2, which is fractional at odd
-  // viewport widths. left:-100% then lands at e.g. -720.5px; the GPU video
-  // compositor snaps to integer boundaries, producing a visible hairline that
-  // <img> avoids via anti-aliasing. We floor the offset and ceil the width so
-  // the right half overlaps the fractional clip boundary instead of gapping.
-  useEffect(() => {
-    if (!layer.is_spread_layer || layer.media_type !== 'video' || spreadSide == null) return
-    const el = containerRef.current
-    if (!el) return
-    setContainerWidth(el.getBoundingClientRect().width)
-    const ro = new ResizeObserver(([entry]) => {
-      setContainerWidth(entry.contentRect.width)
-    })
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [layer.is_spread_layer, layer.media_type, spreadSide])
 
   if (layer.media_type === 'text') {
     return <TextLayerRenderer layer={layer} isMobile={isMobile} />
@@ -429,35 +420,7 @@ function LayerRenderer({ layer, videoSfxEnabled, musicEnabled, videoVolume, isMo
         }
     ),
   } : null
-  // Pixel-snapped override for spread video only. Falls back to spreadMediaStyle
-  // until the ResizeObserver fires (video hasn't loaded yet — no visible flash).
-  const spreadVideoStyle: React.CSSProperties | null =
-    isSpread && layer.media_type === 'video' && spreadSide != null && containerWidth != null
-      ? fillMode === 'custom'
-        ? {
-            ...mStyle,
-            position: 'absolute',
-            display: 'block',
-            top: `${y}%`,
-            height: `${h}%`,
-            left: spreadSide === 'right'
-              ? `${Math.floor((x - 50) * 2 / 100 * containerWidth)}px`
-              : `${Math.floor(x * 2 / 100 * containerWidth)}px`,
-            width: `${Math.ceil(w * 2 / 100 * containerWidth)}px`,
-          }
-        : {
-            ...mStyle,
-            position: 'absolute',
-            top: 0,
-            left: spreadSide === 'right' ? `-${Math.floor(containerWidth)}px` : '0',
-            width: `${Math.ceil(containerWidth) * 2}px`,
-            height: '100%',
-            display: 'block',
-          }
-      : null
-  const effectiveMStyle: React.CSSProperties = isSpread
-    ? (spreadVideoStyle ?? spreadMediaStyle!)
-    : mStyle
+  const effectiveMStyle: React.CSSProperties = isSpread ? spreadMediaStyle! : mStyle
 
   if (layer.media_type === 'audio') {
     return (
@@ -484,7 +447,6 @@ function LayerRenderer({ layer, videoSfxEnabled, musicEnabled, videoVolume, isMo
           playsInline
           muted={effectiveMuted}
           loop={layer.loop}
-          autoPlay={layer.autoplay}
           preload="auto"
         />
       </div>

@@ -3,12 +3,15 @@ import {
   useImperativeHandle,
   useRef,
   useMemo,
+  useState,
+  useEffect,
 } from 'react'
 // react-pageflip ships partial TS types; the ref is typed `any` in its own declarations.
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import HTMLFlipBook from 'react-pageflip'
 import FlipPage from './FlipPage'
+import SpreadVideoOverlayLayer from './SpreadVideoOverlayLayer'
 import { BOOK_PAGE_WIDTH, BOOK_PAGE_HEIGHT, CINEMATIC_PANEL_HEIGHT } from '../../types'
 import type { PanelWithMeta } from '../../hooks/useReaderData'
 import type { StoryWithCreator, Layer } from '../../types'
@@ -61,8 +64,27 @@ const FlipBookReader = forwardRef<FlipBookHandle, FlipBookReaderProps>(
     handle
   ) {
     const bookRef = useRef<any>(null)
+    const outerRef = useRef<HTMLDivElement>(null)
 
     const isRTL = story.reading_direction === 'rtl'
+
+    const [containerW, setContainerW] = useState(0)
+
+    // Track the outer container's width so we can size the spread overlay.
+    // IMPORTANT: do NOT call setContainerW synchronously inside the effect
+    // body — doing so batches this state update with react-pageflip's internal
+    // setPages call in the same React 18 flush. That combined re-render causes
+    // react-pageflip's init effect to run before its childRef is populated,
+    // permanently skipping page initialization and breaking all flips.
+    // The ResizeObserver callback fires asynchronously (after all layout and
+    // paint effects), safely after react-pageflip has fully initialized.
+    useEffect(() => {
+      const el = outerRef.current
+      if (!el) return
+      const ro = new ResizeObserver(([entry]) => setContainerW(entry.contentRect.width))
+      ro.observe(el)
+      return () => ro.disconnect()
+    }, [])
 
     useImperativeHandle(handle, () => ({
       flipNext: () => isRTL
@@ -115,8 +137,28 @@ const FlipBookReader = forwardRef<FlipBookHandle, FlipBookReaderProps>(
     )
 
     const totalPages = panels.length + 2
+    const [currentPageIndex, setCurrentPageIndex] = useState(isRTL ? totalPages - 1 : 0)
+
+    // Spread video layers for the currently visible spread, deduplicated.
+    // interiorPages is 0-based; StPageFlip reports the left page index via onFlip.
+    const currentSpreadVideoLayers = useMemo(() => {
+      if (isPortrait) return []
+      if (currentPageIndex === 0 || currentPageIndex >= totalPages - 1) return []
+      const interiorIdx = currentPageIndex - 1
+      const spreadIdx = Math.floor(interiorIdx / 2)
+      const left = interiorPages[spreadIdx * 2]
+      const right = interiorPages[spreadIdx * 2 + 1]
+      const seen = new Set<string>()
+      return [...(left?.layers ?? []), ...(right?.layers ?? [])].filter((l: Layer) => {
+        if (!l.is_spread_layer || l.media_type !== 'video' || !l.media_url) return false
+        if (seen.has(l.id)) return false
+        seen.add(l.id)
+        return true
+      })
+    }, [currentPageIndex, totalPages, interiorPages, isPortrait])
 
     const handleFlip = (e: { data: number }) => {
+      setCurrentPageIndex(e.data)
       onPageFlipped(e.data, totalPages)
     }
 
@@ -130,10 +172,15 @@ const FlipBookReader = forwardRef<FlipBookHandle, FlipBookReaderProps>(
     const pageMaxW   = isPortrait ? 640
                                   : Math.min(Math.floor((containerH - marginY * 2) * BOOK_PAGE_WIDTH / BOOK_PAGE_HEIGHT), BOOK_PAGE_WIDTH)
     const pageMaxH   = isPortrait ? CINEMATIC_PANEL_HEIGHT : Math.min(containerH - marginY * 2, BOOK_PAGE_HEIGHT)
+    // Spread overlay width = actual book width (container width capped at two pages).
+    const spreadW    = Math.min(containerW > 0 ? containerW : pageMaxW * 2, pageMaxW * 2)
 
     return (
-      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    transform: isRTL ? 'scaleX(-1)' : undefined }}>
+      <div
+        ref={outerRef}
+        style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                 position: 'relative', transform: isRTL ? 'scaleX(-1)' : undefined }}
+      >
         <HTMLFlipBook
           ref={bookRef}
           width={pageWidth}
@@ -180,7 +227,7 @@ const FlipBookReader = forwardRef<FlipBookHandle, FlipBookReaderProps>(
               isRTL={isRTL}
               layers={p.layers}
               isFreezing={isFlipping}
-              spreadSide={i % 2 === 0 ? (isRTL ? 'right' : 'left') : (isRTL ? 'left' : 'right')}
+              spreadSide={isPortrait ? undefined : (i % 2 === 0 ? (isRTL ? 'right' : 'left') : (isRTL ? 'left' : 'right'))}
             />
           ))}
 
@@ -192,6 +239,34 @@ const FlipBookReader = forwardRef<FlipBookHandle, FlipBookReaderProps>(
             isFreezing={isFlipping}
           />
         </HTMLFlipBook>
+
+        {/* Single overlay video for the current spread — eliminates frame desync.
+            Lives as a sibling to HTMLFlipBook so it is NOT react-pageflip's parent;
+            the outer container (height: 100%, stable) stays the parent, preventing
+            video metadata loads from destabilising autoSize's ResizeObserver. */}
+        {currentSpreadVideoLayers.length > 0 && (
+          <div style={{
+            position: 'absolute',
+            top: '50%', left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: spreadW,
+            height: pageMaxH,
+            pointerEvents: 'none',
+            overflow: 'hidden',
+            zIndex: 1,
+            visibility: isFlipping ? 'hidden' : undefined,
+          }}>
+            {currentSpreadVideoLayers.map((layer: Layer) => (
+              <SpreadVideoOverlayLayer
+                key={layer.id}
+                layer={layer}
+                videoSfxEnabled={videoSfxEnabled}
+                videoVolume={videoVolume}
+                isFreezing={isFlipping}
+              />
+            ))}
+          </div>
+        )}
       </div>
     )
   }
