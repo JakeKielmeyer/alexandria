@@ -12,6 +12,7 @@ import {
 import HTMLFlipBook from 'react-pageflip'
 import FlipPage from './FlipPage'
 import SpreadVideoOverlayLayer from './SpreadVideoOverlayLayer'
+import { TextLayerRenderer } from '../reader/PanelLayers'
 import { BOOK_PAGE_WIDTH, BOOK_PAGE_HEIGHT, CINEMATIC_PANEL_HEIGHT } from '../../types'
 import type { PanelWithMeta } from '../../hooks/useReaderData'
 import type { StoryWithCreator, Layer } from '../../types'
@@ -157,6 +158,31 @@ const FlipBookReader = forwardRef<FlipBookHandle, FlipBookReaderProps>(
       })
     }, [currentPageIndex, totalPages, interiorPages, isPortrait])
 
+    // Non-spread text layers that sit above spread layers in the current spread.
+    // These are rendered in a sibling overlay (zIndex 2) so they appear above the
+    // spread video overlay (zIndex 1) after a page turn.
+    const currentSpreadAboveTextLayers = useMemo(() => {
+      const empty = { left: [] as Layer[], right: [] as Layer[] }
+      if (isPortrait) return empty
+      if (currentPageIndex === 0 || currentPageIndex >= totalPages - 1) return empty
+      const interiorIdx = currentPageIndex - 1
+      const spreadIdx = Math.floor(interiorIdx / 2)
+      const leftPage = interiorPages[spreadIdx * 2]
+      const rightPage = interiorPages[spreadIdx * 2 + 1]
+      const allSpreadPos = [
+        ...(leftPage?.layers ?? []),
+        ...(rightPage?.layers ?? []),
+      ].filter((l: Layer) => l.is_spread_layer).map((l: Layer) => l.position)
+      if (allSpreadPos.length === 0) return empty
+      const maxSpreadPos = Math.max(...allSpreadPos)
+      const above = (pageLayers: Layer[]) =>
+        pageLayers.filter((l: Layer) => !l.is_spread_layer && l.media_type === 'text' && l.position > maxSpreadPos)
+      return {
+        left: above(leftPage?.layers ?? []),
+        right: above(rightPage?.layers ?? []),
+      }
+    }, [currentPageIndex, totalPages, interiorPages, isPortrait])
+
     const handleFlip = (e: { data: number }) => {
       setCurrentPageIndex(e.data)
       onPageFlipped(e.data, totalPages)
@@ -264,6 +290,33 @@ const FlipBookReader = forwardRef<FlipBookHandle, FlipBookReaderProps>(
                 videoVolume={videoVolume}
                 isFreezing={isFlipping}
               />
+            ))}
+          </div>
+        )}
+
+        {/* Text layers above spread — rendered above the video overlay (zIndex 2) so they
+            remain visible after a page turn when the spread video overlay becomes active. */}
+        {(currentSpreadAboveTextLayers.left.length > 0 || currentSpreadAboveTextLayers.right.length > 0) && (
+          <div style={{
+            position: 'absolute',
+            top: '50%', left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: spreadW,
+            height: pageMaxH,
+            pointerEvents: 'none',
+            overflow: 'hidden',
+            zIndex: 2,
+            visibility: isFlipping ? 'hidden' : undefined,
+          }}>
+            {currentSpreadAboveTextLayers.left.map((layer: Layer) => (
+              <div key={layer.id} style={{ position: 'absolute', left: 0, top: 0, width: '50%', height: '100%', overflow: 'hidden' }}>
+                <TextLayerRenderer layer={layer} isMobile={isPortrait} />
+              </div>
+            ))}
+            {currentSpreadAboveTextLayers.right.map((layer: Layer) => (
+              <div key={layer.id} style={{ position: 'absolute', left: '50%', top: 0, width: '50%', height: '100%', overflow: 'hidden' }}>
+                <TextLayerRenderer layer={layer} isMobile={isPortrait} />
+              </div>
             ))}
           </div>
         )}

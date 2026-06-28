@@ -730,8 +730,26 @@ export default function EditorCanvas(): React.JSX.Element {
         .filter((l) => l.is_spread_layer)
         .sort((a, b) => a.position - b.position)
     : []
-  const leftPageLayers = leftPanelLayers.filter((l) => !l.is_spread_layer)
-  const rightPageLayers = rightPanelLayers.filter((l) => !l.is_spread_layer)
+  const maxSpreadPosLeft = spreadOverlayLayers
+    .filter((l) => l.panel_id === leftPanel?.id)
+    .reduce((m, l) => Math.max(m, l.position), -Infinity)
+  const maxSpreadPosRight = spreadOverlayLayers
+    .filter((l) => l.panel_id === rightPanel?.id)
+    .reduce((m, l) => Math.max(m, l.position), -Infinity)
+  const leftPageLayers = leftPanelLayers.filter((l) =>
+    !l.is_spread_layer &&
+    !(l.media_type === 'text' && spreadOverlayLayers.length > 0 && l.position > maxSpreadPosLeft)
+  )
+  const rightPageLayers = rightPanelLayers.filter((l) =>
+    !l.is_spread_layer &&
+    !(l.media_type === 'text' && spreadOverlayLayers.length > 0 && l.position > maxSpreadPosRight)
+  )
+  const leftTextAboveSpread = spreadOverlayLayers.length > 0
+    ? leftPanelLayers.filter((l) => !l.is_spread_layer && l.media_type === 'text' && l.position > maxSpreadPosLeft)
+    : []
+  const rightTextAboveSpread = spreadOverlayLayers.length > 0
+    ? rightPanelLayers.filter((l) => !l.is_spread_layer && l.media_type === 'text' && l.position > maxSpreadPosRight)
+    : []
 
   useEffect(() => {
     if (activePanel) setCustomHeight(String(activePanel.height))
@@ -1053,6 +1071,46 @@ export default function EditorCanvas(): React.JSX.Element {
                           setActivePanelId(layer.panel_id)
                           setActiveLayerId(layer.id)
                           setRailTab(layer.media_type === 'text' ? 'properties' : 'layers')
+                        }}
+                        onUpdate={(updates) => handleLayerUpdate(layer.id, updates)}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {/* Text layers above spread — lifted out of page frames so they render above the spread overlay (z-index 21) */}
+                {leftTextAboveSpread.length > 0 && (
+                  <div style={{ position: 'absolute', left: 0, top: 0, width: displayedSize.w, height: displayedSize.h, overflow: 'hidden', zIndex: 21 }}>
+                    {leftTextAboveSpread.map((layer) => (
+                      <LayerCanvas
+                        key={layer.id}
+                        layer={layer}
+                        panelWidth={displayedSize.w}
+                        panelHeight={displayedSize.h}
+                        isActive={layer.id === activeLayerId}
+                        onSelect={() => {
+                          setActivePanelId(leftPanel!.id)
+                          setActiveLayerId(layer.id)
+                          setRailTab('properties')
+                        }}
+                        onUpdate={(updates) => handleLayerUpdate(layer.id, updates)}
+                      />
+                    ))}
+                  </div>
+                )}
+                {rightTextAboveSpread.length > 0 && rightPanel && (
+                  <div style={{ position: 'absolute', left: displayedSize.w + 4, top: 0, width: displayedSize.w, height: displayedSize.h, overflow: 'hidden', zIndex: 21 }}>
+                    {rightTextAboveSpread.map((layer) => (
+                      <LayerCanvas
+                        key={layer.id}
+                        layer={layer}
+                        panelWidth={displayedSize.w}
+                        panelHeight={displayedSize.h}
+                        isActive={layer.id === activeLayerId}
+                        onSelect={() => {
+                          setActivePanelId(rightPanel.id)
+                          setActiveLayerId(layer.id)
+                          setRailTab('properties')
                         }}
                         onUpdate={(updates) => handleLayerUpdate(layer.id, updates)}
                       />

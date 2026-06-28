@@ -118,7 +118,7 @@ function mediaStyle(layer: Layer): React.CSSProperties {
 
 // ── Text layer renderer (separate component so hooks are at top level) ────────
 
-function TextLayerRenderer({ layer, isMobile = false }: { layer: Layer; isMobile?: boolean }): React.JSX.Element {
+export function TextLayerRenderer({ layer, isMobile = false }: { layer: Layer; isMobile?: boolean }): React.JSX.Element {
   const hasBg = Boolean(layer.background_color)
   const base = containerStyle(layer, isMobile)
 
